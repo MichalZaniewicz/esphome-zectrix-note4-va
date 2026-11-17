@@ -1,7 +1,7 @@
-// Skin "szwajcaria". Ported from note4-style.html (idleB, answerB, weatherB,
+// Skin "swiss". Ported from note4-style.html (idleB, answerB, weatherB,
 // timerB). LISTEN, THINK and DOORBELL follow the same grid: a 3 px rule under
 // a huge word, three columns, the one black block marks what is happening.
-#include "skin_szwajcaria.h"
+#include "skin_swiss.h"
 
 #include <cmath>
 
@@ -27,7 +27,7 @@ std::string total_label(int s) { return s % 60 == 0 ? std::to_string(s / 60) : m
 }  // namespace
 
 // ---------------------------------------------------------------------------
-void SzwajcariaSkin::status_(Display &d, const Model &m, const std::string &left) {
+void SwissSkin::status_(Display &d, const Model &m, const std::string &left) {
   text(d, f_.i10b, 16, 15, K, fit(f_.i10b, upper(left), 230, 1), Align::LEFT, paper(), 1);
   std::string right = m.wifi ? "WI-FI" : "BEZ WI-FI";
   if (!m.ha)
@@ -40,7 +40,7 @@ void SzwajcariaSkin::status_(Display &d, const Model &m, const std::string &left
   hline(d, 16, 384, 22, K, 2);
 }
 
-void SzwajcariaSkin::draw(Display &d, Screen s, const Model &m) {
+void SwissSkin::draw(Display &d, Screen s, const Model &m) {
   switch (s) {
     case Screen::IDLE:
       idle_(d, m);
@@ -66,9 +66,9 @@ void SzwajcariaSkin::draw(Display &d, Screen s, const Model &m) {
   }
 }
 
-int SzwajcariaSkin::answer_lines_(const Model &m) const { return m.facts.empty() ? 7 : 5; }
+int SwissSkin::answer_lines_(const Model &m) const { return m.facts.empty() ? 7 : 5; }
 
-std::vector<Rect> SzwajcariaSkin::live_regions(Screen s, const Model &m) const {
+std::vector<Rect> SwissSkin::live_regions(Screen s, const Model &m) const {
   switch (s) {
     case Screen::IDLE: {
       std::vector<Rect> r{{8, 30, 380, 106}};
@@ -92,7 +92,7 @@ std::vector<Rect> SzwajcariaSkin::live_regions(Screen s, const Model &m) const {
 }
 
 // ---------------------------------------------------------------------------
-void SzwajcariaSkin::idle_(Display &d, const Model &m) {
+void SwissSkin::idle_(Display &d, const Model &m) {
   status_(d, m, weekday_short(m.weekday) + " " + ddmm(m.date) + " · " + m.room);
   text(d, f_.clock, 10, 130, K, hhmm(m.hour, m.minute), Align::LEFT, paper(), -3);
   std::string date = cap_first(m.weekday) + ", " + m.date;
@@ -158,7 +158,7 @@ void SzwajcariaSkin::idle_(Display &d, const Model &m) {
 }
 
 // ---------------------------------------------------------------------------
-void SzwajcariaSkin::answer_(Display &d, const Model &m) {
+void SwissSkin::answer_(Display &d, const Model &m) {
   status_(d, m, hhmm(m.hour, m.minute) + " · " + m.room);
   text(d, f_.i9b, 16, 44, K, "PYTANIE", Align::LEFT, paper(), 1.2f);
   text(d, f_.question, 16, 67, K, fit(f_.question, m.question, 368, -0.3f), Align::LEFT, paper(), -0.3f);
@@ -181,7 +181,7 @@ void SzwajcariaSkin::answer_(Display &d, const Model &m) {
 }
 
 // ---------------------------------------------------------------------------
-void SzwajcariaSkin::weather_(Display &d, const Model &m) {
+void SwissSkin::weather_(Display &d, const Model &m) {
   status_(d, m, hhmm(m.hour, m.minute) + " · Pogoda");
   std::string hi = deg(m.fc_hi);
   text(d, f_.fc_hi, 8, 118, K, hi, Align::LEFT, paper(), -4);
@@ -232,7 +232,7 @@ void SzwajcariaSkin::weather_(Display &d, const Model &m) {
 }
 
 // ---------------------------------------------------------------------------
-void SzwajcariaSkin::timer_(Display &d, const Model &m) {
+void SwissSkin::timer_(Display &d, const Model &m) {
   status_(d, m, hhmm(m.hour, m.minute) + " · Timer");
   text(d, f_.h26, 16, 60, K, fit(f_.h26, m.timer_name, 260, -0.5f), Align::LEFT, paper(), -0.5f);
   text(d, f_.i13s, 384, 60, grey(105), "z " + mmss(m.timer_total), Align::RIGHT);
@@ -257,7 +257,7 @@ void SzwajcariaSkin::timer_(Display &d, const Model &m) {
 // ---------------------------------------------------------------------------
 // LISTEN: the huge word, the elapsed time in the black block, the voice as
 // black bars across the full width, then the idle screen's three columns.
-void SzwajcariaSkin::listen_(Display &d, const Model &m) {
+void SwissSkin::listen_(Display &d, const Model &m) {
   status_(d, m, hhmm(m.hour, m.minute) + " · " + m.room);
   text(d, f_.big, 14, 82, K, "Słucham", Align::LEFT, paper(), -1.5f);
   fill_rect(d, 288, 34, 96, 54, K);
@@ -284,7 +284,7 @@ void SzwajcariaSkin::listen_(Display &d, const Model &m) {
 
 // THINK: the question under the rule, the three pipeline steps as the grid's
 // columns; the step in progress is the black block.
-void SzwajcariaSkin::think_(Display &d, const Model &m) {
+void SwissSkin::think_(Display &d, const Model &m) {
   status_(d, m, hhmm(m.hour, m.minute) + " · " + m.room);
   text(d, f_.big, 14, 82, K, "Chwila…", Align::LEFT, paper(), -1.5f);
   hline(d, 16, 384, 96, K, 3);
@@ -313,7 +313,7 @@ void SzwajcariaSkin::think_(Display &d, const Model &m) {
 }
 
 // DOORBELL: snapshot left, the black block on top of the panel with the time.
-void SzwajcariaSkin::doorbell_(Display &d, const Model &m) {
+void SwissSkin::doorbell_(Display &d, const Model &m) {
   if (m.bell_image != nullptr && m.bell_image_ready) {
     d.start_clipping(0, 0, 264, H);
     d.image(0, 0, m.bell_image);

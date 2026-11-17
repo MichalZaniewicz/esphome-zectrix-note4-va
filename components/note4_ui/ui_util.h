@@ -1,4 +1,4 @@
-// Shared helpers for the papier, szwajcaria, instrument and kafelki skins:
+// Shared helpers for the paper, swiss, instrument and tiles skins:
 // Polish text utilities, forecast maths, answer typing layout and a few
 // pictograms that several mockups share (cloud, sun, keycap).
 #pragma once
@@ -92,7 +92,7 @@ struct IconStyle {
   bool outline = true;          // 2 px ink rim around the cloud
   uint8_t cloud_top = 252, cloud_bottom = 176;
   uint8_t sun_inner = 245, sun_outer = 150;
-  bool sun_rays = true;         // rays + rim (papier); false = soft disc (kafelki)
+  bool sun_rays = true;         // rays + rim (paper); false = soft disc (tiles)
   Color line = ink(0);          // rain strokes, snow dots, wind lines
   float line_w = 2.0f;
   bool round = false;           // round caps on rain strokes

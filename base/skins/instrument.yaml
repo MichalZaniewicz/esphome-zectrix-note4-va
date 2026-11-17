@@ -90,7 +90,7 @@ font:
 esphome:
   on_boot:
     # After the fonts and the UI object exist, before core.yaml applies the
-    # restored "Skórka" choice (-500).
+    # restored "Skin" choice (-500).
     - priority: -50
       then:
         - lambda: |-

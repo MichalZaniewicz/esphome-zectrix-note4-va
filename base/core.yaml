@@ -53,10 +53,10 @@ substitutions:
   # What the device looks like and where it is. All four are normally set in
   # the thin config.
   # ---------------------------------------------------------------------------
-  # Boot default of the "Skórka" select. Only skins whose package is in the
+  # Boot default of the "Skin" select. Only skins whose package is in the
   # build can be chosen; picking another one keeps the current skin and says
   # so in the log.
-  skin: szwajcaria
+  skin: swiss
   room: "Kuchnia"
   # The weather entity for the idle screen: its state is the condition, its
   # `temperature` attribute the temperature now.
@@ -382,7 +382,7 @@ esphome:
         - lambda: |-
             id(audio_stack)->set_mic_gain(powf(10.0f, id(mic_gain_number).state / 20.0f));
     # THE SKIN, LAST OF ALL. Skin packages register themselves from their own
-    # on_boot (id(ui).add_skin(...)), so the restored "Skórka" value cannot be
+    # on_boot (id(ui).add_skin(...)), so the restored "Skin" value cannot be
     # applied when the select restores it during setup: the skin it names does
     # not exist yet, and set_skin() would refuse it. -500 is after LATE and
     # after any reasonable skin on_boot; until here the select's on_value
@@ -1337,7 +1337,7 @@ globals:
     restore_value: false
     initial_value: "false"
   # The UI is up and the skins have registered (see on_boot -500). Until then
-  # the "Skórka" select only remembers its value; applying it would fail.
+  # the "Skin" select only remembers its value; applying it would fail.
   - id: ui_ready
     type: bool
     restore_value: false
@@ -2237,7 +2237,7 @@ switch:
   # refresh takes.
   - platform: template
     id: gray16
-    name: "16 szarości"
+    name: "16 greys"
     icon: mdi:gradient-horizontal
     optimistic: true
     restore_mode: RESTORE_DEFAULT_ON
@@ -2401,20 +2401,20 @@ select:
   # refused by set_skin(), and the select goes back to the one still showing.
   - platform: template
     id: skin_select
-    name: "Skórka"
+    name: "Skin"
     icon: mdi:palette-outline
     entity_category: config
     optimistic: true
     restore_value: true
     options:
-      - papier
-      - szwajcaria
+      - paper
+      - swiss
       - instrument
-      - kafelki
-      - plakat
-      - tarcza
-      - piksel
-      - cisza
+      - tiles
+      - poster
+      - dial
+      - pixel
+      - quiet
     initial_option: ${skin}
     on_value:
       - lambda: |-

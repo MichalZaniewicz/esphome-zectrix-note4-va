@@ -1,4 +1,4 @@
-// Skin "plakat": poster geometry. A big black circle with the clock, quarter
+// Skin "poster": poster geometry. A big black circle with the clock, quarter
 // circles as background, black bars. Archivo Black + Archivo.
 #pragma once
 
@@ -7,12 +7,12 @@
 namespace esphome {
 namespace note4_ui {
 
-class PlakatSkin : public Skin {
+class PosterSkin : public Skin {
  public:
   // clock: Archivo Black 56 (digits), huge: 118 (digits), timer: 44 (digits),
   // num: 30 (digits), head: Archivo Black 22, val: Archivo Black 14,
   // body: Archivo 19, bold: Archivo 700 13, small: Archivo 600 12, label: Archivo 700 10.
-  PlakatSkin(Font *clock, Font *huge, Font *timer, Font *num, Font *head, Font *val, Font *body, Font *bold,
+  PosterSkin(Font *clock, Font *huge, Font *timer, Font *num, Font *head, Font *val, Font *body, Font *bold,
              Font *small, Font *label)
       : f_clock_(clock),
         f_huge_(huge),
@@ -25,7 +25,7 @@ class PlakatSkin : public Skin {
         f_small_(small),
         f_label_(label) {}
 
-  const char *id() const override { return "plakat"; }
+  const char *id() const override { return "poster"; }
   void draw(Display &d, Screen s, const Model &m) override;
   std::vector<Rect> live_regions(Screen s, const Model &m) const override;
 

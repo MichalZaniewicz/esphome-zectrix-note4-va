@@ -5,7 +5,7 @@
 #     display_id: epd      # optional when there is a single display
 #
 # Skins are added from YAML (base/skins/<id>.yaml) with
-# id(ui).add_skin(new note4_ui::PapierSkin(...)) in an on_boot lambda.
+# id(ui).add_skin(new note4_ui::PaperSkin(...)) in an on_boot lambda.
 import esphome.codegen as cg
 from esphome.components import display
 import esphome.config_validation as cv

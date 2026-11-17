@@ -12,7 +12,7 @@
 substitutions:
   name: note4-va-ci
   friendly_name: "Note 4 Voice CI"
-  skin: szwajcaria
+  skin: swiss
   # The sounds from the working tree too, not from GitHub: a build of a branch
   # must not depend on what `main` happens to hold. Paths are relative to this
   # file.
@@ -28,11 +28,11 @@ external_components:
 
 packages:
   core: !include ../base/core.yaml
-  skin_papier: !include ../base/skins/papier.yaml
-  skin_szwajcaria: !include ../base/skins/szwajcaria.yaml
+  skin_paper: !include ../base/skins/paper.yaml
+  skin_swiss: !include ../base/skins/swiss.yaml
   skin_instrument: !include ../base/skins/instrument.yaml
-  skin_kafelki: !include ../base/skins/kafelki.yaml
-  skin_plakat: !include ../base/skins/plakat.yaml
-  skin_tarcza: !include ../base/skins/tarcza.yaml
-  skin_piksel: !include ../base/skins/piksel.yaml
-  skin_cisza: !include ../base/skins/cisza.yaml
+  skin_tiles: !include ../base/skins/tiles.yaml
+  skin_poster: !include ../base/skins/poster.yaml
+  skin_dial: !include ../base/skins/dial.yaml
+  skin_pixel: !include ../base/skins/pixel.yaml
+  skin_quiet: !include ../base/skins/quiet.yaml

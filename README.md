@@ -44,14 +44,14 @@ side is a port of
 
 ## Skins
 
-Switch live with the **Skórka** select in Home Assistant; `skin:` in the thin
+Switch live with the **Skin** select in Home Assistant; `skin:` in the thin
 config is the boot default. Only skins whose package is in the build can be
 picked.
 
-`papier`, `szwajcaria`, `instrument`, `kafelki`, `plakat`, `tarcza`, `piksel`,
-`cisza`
+`paper`, `swiss`, `instrument`, `tiles`, `poster`, `dial`, `pixel`,
+`quiet`
 
-The **16 szarości** switch lets screens without live regions (forecast,
+The **16 greys** switch lets screens without live regions (forecast,
 doorbell) use a 16-grey refresh; everything with a clock or a countdown is
 1-bit (see [docs/HARDWARE.md](docs/HARDWARE.md) for why).
 

@@ -1,4 +1,4 @@
-// Skin "papier" (style A): Literata serif like an e-book reader, Atkinson
+// Skin "paper" (style A): Literata serif like an e-book reader, Atkinson
 // Hyperlegible for labels, thin rounded frames, one negative card.
 #pragma once
 
@@ -7,7 +7,7 @@
 namespace esphome {
 namespace note4_ui {
 
-struct PapierFonts {
+struct PaperFonts {
   // Literata
   Font *clock{nullptr};      // 700, clock digits
   Font *date{nullptr};       // 400 italic 17, date line
@@ -39,10 +39,10 @@ struct PapierFonts {
   Font *l14b{nullptr};   // 700 14
 };
 
-class PapierSkin : public Skin {
+class PaperSkin : public Skin {
  public:
-  explicit PapierSkin(const PapierFonts &f) : f_(f) {}
-  const char *id() const override { return "papier"; }
+  explicit PaperSkin(const PaperFonts &f) : f_(f) {}
+  const char *id() const override { return "paper"; }
   void draw(Display &d, Screen s, const Model &m) override;
   std::vector<Rect> live_regions(Screen s, const Model &m) const override;
 
@@ -55,7 +55,7 @@ class PapierSkin : public Skin {
   void timer_(Display &d, const Model &m);
   void listen_(Display &d, const Model &m, bool thinking);
   void doorbell_(Display &d, const Model &m);
-  PapierFonts f_;
+  PaperFonts f_;
 };
 
 }  // namespace note4_ui

@@ -1,4 +1,4 @@
-// Skin "szwajcaria" (style B): strict grid, huge Inter Tight numerals, thick
+// Skin "swiss" (style B): strict grid, huge Inter Tight numerals, thick
 // rules, no icons, one black block per screen.
 #pragma once
 
@@ -7,7 +7,7 @@
 namespace esphome {
 namespace note4_ui {
 
-struct SzwajcariaFonts {
+struct SwissFonts {
   // Inter Tight
   Font *clock{nullptr};     // 800 122, clock and timer digits
   Font *next{nullptr};      // 700 32, next event time, step numbers, seconds
@@ -35,10 +35,10 @@ struct SzwajcariaFonts {
   Font *i19{nullptr};    // 400 19, answer text
 };
 
-class SzwajcariaSkin : public Skin {
+class SwissSkin : public Skin {
  public:
-  explicit SzwajcariaSkin(const SzwajcariaFonts &f) : f_(f) {}
-  const char *id() const override { return "szwajcaria"; }
+  explicit SwissSkin(const SwissFonts &f) : f_(f) {}
+  const char *id() const override { return "swiss"; }
   void draw(Display &d, Screen s, const Model &m) override;
   std::vector<Rect> live_regions(Screen s, const Model &m) const override;
 
@@ -52,7 +52,7 @@ class SzwajcariaSkin : public Skin {
   void listen_(Display &d, const Model &m);
   void think_(Display &d, const Model &m);
   void doorbell_(Display &d, const Model &m);
-  SzwajcariaFonts f_;
+  SwissFonts f_;
 };
 
 }  // namespace note4_ui

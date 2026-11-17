@@ -1,6 +1,6 @@
-# Skin "tarcza": like a good watch. Analogue dial with hands, date window,
+# Skin "dial": like a good watch. Analogue dial with hands, date window,
 # sub-dials for weather and timer, tomorrow as a 24 h dial.
-# Barlow Condensed + Barlow. Fonts are prefixed tarcza_ so several skins can be
+# Barlow Condensed + Barlow. Fonts are prefixed dial_ so several skins can be
 # compiled in.
 #
 # Text fonts: GF_Latin_Kernel plus the Polish letters and „ (Kernel has ” ° · … – —).
@@ -9,55 +9,55 @@
 
 font:
   # ---- Barlow Condensed ----
-  - id: tarcza_num            # dial numerals, sub-dial values, temperatures on the 24 h dial
+  - id: dial_num            # dial numerals, sub-dial values, temperatures on the 24 h dial
     file: "gfonts://Barlow Condensed@700"
     size: 16
     bpp: 4
     glyphsets: [GF_Latin_Kernel]
     glyphs: ["ĄąĆćĘęŁłŃńÓóŚśŹźŻż„"]
-  - id: tarcza_big            # next event time, timer box, elapsed time, doorbell time
+  - id: dial_big            # next event time, timer box, elapsed time, doorbell time
     file: "gfonts://Barlow Condensed@700"
     size: 26
     bpp: 4
     glyphsets: [GF_Latin_Kernel]
     glyphs: ["ĄąĆćĘęŁłŃńÓóŚśŹźŻż„"]
-  - id: tarcza_huge           # tomorrow's high in the middle of the 24 h dial
+  - id: dial_huge           # tomorrow's high in the middle of the 24 h dial
     file: "gfonts://Barlow Condensed@700"
     size: 32
     bpp: 4
     glyphs: ["0123456789:-°"]
-  - id: tarcza_title          # "Teraz ważne" title
+  - id: dial_title          # "Teraz ważne" title
     file: "gfonts://Barlow Condensed@700"
     size: 20
     bpp: 4
     glyphsets: [GF_Latin_Kernel]
     glyphs: ["ĄąĆćĘęŁłŃńÓóŚśŹźŻż„"]
-  - id: tarcza_head           # question, weekday
+  - id: dial_head           # question, weekday
     file: "gfonts://Barlow Condensed@600"
     size: 28
     bpp: 4
     glyphsets: [GF_Latin_Kernel]
     glyphs: ["ĄąĆćĘęŁłŃńÓóŚśŹźŻż„"]
-  - id: tarcza_label          # spaced capitals
+  - id: dial_label          # spaced capitals
     file: "gfonts://Barlow Condensed@600"
     size: 11
     bpp: 4
     glyphsets: [GF_Latin_Kernel]
     glyphs: ["ĄąĆćĘęŁłŃńÓóŚśŹźŻż„"]
   # ---- Barlow ----
-  - id: tarcza_body           # answer text
+  - id: dial_body           # answer text
     file: "gfonts://Barlow@500"
     size: 19
     bpp: 4
     glyphsets: [GF_Latin_Kernel]
     glyphs: ["ĄąĆćĘęŁłŃńÓóŚśŹźŻż„"]
-  - id: tarcza_text
+  - id: dial_text
     file: "gfonts://Barlow@600"
     size: 14
     bpp: 4
     glyphsets: [GF_Latin_Kernel]
     glyphs: ["ĄąĆćĘęŁłŃńÓóŚśŹźŻż„"]
-  - id: tarcza_small
+  - id: dial_small
     file: "gfonts://Barlow@600"
     size: 12
     bpp: 4
@@ -67,11 +67,11 @@ font:
 esphome:
   on_boot:
     # After the fonts and the UI object exist, before core.yaml applies the
-    # restored "Skórka" choice (-500).
+    # restored "Skin" choice (-500).
     - priority: -50
       then:
         - lambda: |-
-            id(ui).add_skin(new note4_ui::TarczaSkin(
-                id(tarcza_num), id(tarcza_big), id(tarcza_huge), id(tarcza_title),
-                id(tarcza_head), id(tarcza_label), id(tarcza_body), id(tarcza_text),
-                id(tarcza_small)));
+            id(ui).add_skin(new note4_ui::DialSkin(
+                id(dial_num), id(dial_big), id(dial_huge), id(dial_title),
+                id(dial_head), id(dial_label), id(dial_body), id(dial_text),
+                id(dial_small)));

@@ -1,4 +1,4 @@
-// Skin "kafelki" (style D): rounded tiles in several greys, big friendly
+// Skin "tiles" (style D): rounded tiles in several greys, big friendly
 // Manrope numbers, pill buttons. Uses the 16 greys the most.
 #pragma once
 
@@ -7,7 +7,7 @@
 namespace esphome {
 namespace note4_ui {
 
-struct KafelkiFonts {
+struct TilesFonts {
   Font *clock{nullptr};   // 800 72
   Font *temp{nullptr};    // 800 44, temperature now
   Font *next{nullptr};    // 800 28, next event time / tomorrow numbers
@@ -27,10 +27,10 @@ struct KafelkiFonts {
   Font *m10{nullptr};     // 800 10
 };
 
-class KafelkiSkin : public Skin {
+class TilesSkin : public Skin {
  public:
-  explicit KafelkiSkin(const KafelkiFonts &f) : f_(f) {}
-  const char *id() const override { return "kafelki"; }
+  explicit TilesSkin(const TilesFonts &f) : f_(f) {}
+  const char *id() const override { return "tiles"; }
   void draw(Display &d, Screen s, const Model &m) override;
   std::vector<Rect> live_regions(Screen s, const Model &m) const override;
 
@@ -45,7 +45,7 @@ class KafelkiSkin : public Skin {
   void listen_(Display &d, const Model &m);
   void think_(Display &d, const Model &m);
   void doorbell_(Display &d, const Model &m);
-  KafelkiFonts f_;
+  TilesFonts f_;
 };
 
 }  // namespace note4_ui

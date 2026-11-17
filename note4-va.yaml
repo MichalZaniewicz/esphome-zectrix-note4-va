@@ -18,11 +18,11 @@ substitutions:
   name: note4-va
   friendly_name: "Note 4 Voice"
 
-  # The look the device boots with; switch it live with the "Skórka" select in
+  # The look the device boots with; switch it live with the "Skin" select in
   # Home Assistant. One of:
-  #   papier, szwajcaria, instrument, kafelki, plakat, tarcza, piksel, cisza
+  #   paper, swiss, instrument, tiles, poster, dial, pixel, quiet
   # It must be one of the skins listed under `files:` below.
-  skin: szwajcaria
+  skin: swiss
 
   # Shown on the page of the day.
   room: "Kuchnia"
@@ -67,14 +67,14 @@ packages:
       # Assistant. Each one costs flash (fonts and artwork) and build time, so
       # delete the lines of skins you will never use - just keep the one named
       # in `skin:` above.
-      - base/skins/papier.yaml
-      - base/skins/szwajcaria.yaml
+      - base/skins/paper.yaml
+      - base/skins/swiss.yaml
       - base/skins/instrument.yaml
-      - base/skins/kafelki.yaml
-      - base/skins/plakat.yaml
-      - base/skins/tarcza.yaml
-      - base/skins/piksel.yaml
-      - base/skins/cisza.yaml
+      - base/skins/tiles.yaml
+      - base/skins/poster.yaml
+      - base/skins/dial.yaml
+      - base/skins/pixel.yaml
+      - base/skins/quiet.yaml
     refresh: 0s
 
 # Optional: encrypt the native API. Add the key to secrets.yaml as well.

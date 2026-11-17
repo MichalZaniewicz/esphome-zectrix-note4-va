@@ -1,4 +1,4 @@
-#include "skin_piksel.h"
+#include "skin_pixel.h"
 #include "skin_efgh.h"
 
 namespace esphome {
@@ -101,7 +101,7 @@ std::string pad2(int v) {
 
 }  // namespace
 
-void PikselSkin::draw(Display &d, Screen s, const Model &m) {
+void PixelSkin::draw(Display &d, Screen s, const Model &m) {
   switch (s) {
     case Screen::IDLE:
       this->idle_(d, m);
@@ -127,7 +127,7 @@ void PikselSkin::draw(Display &d, Screen s, const Model &m) {
   }
 }
 
-std::vector<Rect> PikselSkin::live_regions(Screen s, const Model &m) const {
+std::vector<Rect> PixelSkin::live_regions(Screen s, const Model &m) const {
   switch (s) {
     case Screen::IDLE: {
       std::vector<Rect> r{{10, 24, 256, 62}};
@@ -151,9 +151,9 @@ std::vector<Rect> PikselSkin::live_regions(Screen s, const Model &m) const {
   }
 }
 
-int PikselSkin::answer_lines_(const Model &m) const { return m.facts.empty() ? 8 : 6; }
+int PixelSkin::answer_lines_(const Model &m) const { return m.facts.empty() ? 8 : 6; }
 
-void PikselSkin::titlebar_(Display &d, const std::string &l, const std::string &r) {
+void PixelSkin::titlebar_(Display &d, const std::string &l, const std::string &r) {
   fill_rect(d, 0, 0, W, 20, ink());
   int rw = r.empty() ? 0 : measure(f_s_, r) + 16;
   text(d, f_s_, 8, 14, paper(), fit(f_s_, l, 384 - rw), Align::LEFT, ink());
@@ -162,7 +162,7 @@ void PikselSkin::titlebar_(Display &d, const std::string &l, const std::string &
 }
 
 // White window with a double frame and an optional title cut into the top edge.
-void PikselSkin::win_(Display &d, int x, int y, int w, int h, const std::string &title) {
+void PixelSkin::win_(Display &d, int x, int y, int w, int h, const std::string &title) {
   fill_rect(d, x, y, w, h, paper());
   stroke_rect(d, x, y, w, h, ink(), 2);
   stroke_rect(d, x + 4, y + 4, w - 8, h - 8, ink(), 1);
@@ -174,7 +174,7 @@ void PikselSkin::win_(Display &d, int x, int y, int w, int h, const std::string 
 }
 
 // Round console button: 'A', 'B' or 'v' (the down arrow).
-void PikselSkin::button_(Display &d, int x, int cy, char key, int r, const std::string &label, int label_dx,
+void PixelSkin::button_(Display &d, int x, int cy, char key, int r, const std::string &label, int label_dx,
                          int label_dy) {
   fill_circle(d, x, cy, r, ink());
   if (key == 'v')
@@ -185,7 +185,7 @@ void PikselSkin::button_(Display &d, int x, int cy, char key, int r, const std::
 }
 
 // ------------------------------------------------------------------ IDLE
-void PikselSkin::idle_(Display &d, const Model &m) {
+void PixelSkin::idle_(Display &d, const Model &m) {
   std::string right = m.battery >= 0 ? std::string(m.charging ? "BAT+ " : "BAT ") + std::to_string(m.battery) + "%" : "";
   if (!m.wifi)
     right = "BRAK WIFI" + (right.empty() ? "" : "  " + right);
@@ -243,7 +243,7 @@ void PikselSkin::idle_(Display &d, const Model &m) {
 }
 
 // "Teraz ważne" window in the middle (140,138 118x156).
-void PikselSkin::now_win_(Display &d, const Model &m) {
+void PixelSkin::now_win_(Display &d, const Model &m) {
   const int x = 140, y = 138, w = 118, h = 156, cx = x + w / 2 + 1;
   if (m.now_level == NowLevel::ALARM) {
     this->win_(d, x, y, w, h, "UWAGA!");
@@ -280,7 +280,7 @@ void PikselSkin::now_win_(Display &d, const Model &m) {
 // ------------------------------------------------------------------ LISTEN
 // A "MIKROFON" window with chunky level bars (two samples per bar), the
 // elapsed time ticking in the title bar like a recorder.
-void PikselSkin::listen_(Display &d, const Model &m) {
+void PixelSkin::listen_(Display &d, const Model &m) {
   this->titlebar_(d, "SŁUCHAM", "REC " + mmss(m.listen_seconds));
   this->win_(d, 8, 30, 384, 150, "MIKROFON");
   const size_t n = m.mic_history.size() / 2;
@@ -298,7 +298,7 @@ void PikselSkin::listen_(Display &d, const Model &m) {
 
 // ------------------------------------------------------------------ THINK
 // Quest log: what was heard, then the three steps as checkboxes.
-void PikselSkin::think_(Display &d, const Model &m) {
+void PixelSkin::think_(Display &d, const Model &m) {
   this->titlebar_(d, "MYŚLĘ...", hhmm(m.hour, m.minute));
   this->win_(d, 14, 34, 372, 72, "USŁYSZAŁEM");
   auto q = wrap_n(f_vt_, "> " + (m.question.empty() ? std::string("...") : m.question), 344, 2);
@@ -320,7 +320,7 @@ void PikselSkin::think_(Display &d, const Model &m) {
 }
 
 // ------------------------------------------------------------------ ANSWER
-void PikselSkin::answer_(Display &d, const Model &m) {
+void PixelSkin::answer_(Display &d, const Model &m) {
   this->titlebar_(d, "ASYSTENT", hhmm(m.hour, m.minute));
   this->win_(d, 14, 28, 372, 42, "");
   text(d, f_vt_, 26, 56, ink(), fit(f_vt_, "> " + m.question, 348));
@@ -359,7 +359,7 @@ void PikselSkin::answer_(Display &d, const Model &m) {
 }
 
 // ------------------------------------------------------------------ WEATHER
-void PikselSkin::weather_(Display &d, const Model &m) {
+void PixelSkin::weather_(Display &d, const Model &m) {
   this->titlebar_(d, "POGODA: JUTRO", short_day(m.fc_day) + " " + ddmm(m.fc_date));
   float total = fc_rain_total(m);
   if (total >= 0.2f) {
@@ -406,7 +406,7 @@ void PikselSkin::weather_(Display &d, const Model &m) {
 }
 
 // ------------------------------------------------------------------ TIMER
-void PikselSkin::timer_(Display &d, const Model &m) {
+void PixelSkin::timer_(Display &d, const Model &m) {
   this->titlebar_(d, "TIMER: " + upper(m.timer_name), hhmm(m.hour, m.minute));
   text(d, f_xxl_, 200, 132, ink(), mmss(m.timer_remaining), Align::CENTER);
   text(d, f_s_, 20, 176, ink(), "CZAS");
@@ -427,7 +427,7 @@ void PikselSkin::timer_(Display &d, const Model &m) {
 }
 
 // ------------------------------------------------------------------ DOORBELL
-void PikselSkin::doorbell_(Display &d, const Model &m) {
+void PixelSkin::doorbell_(Display &d, const Model &m) {
   if (!bell_image(d, m, 264)) {
     checker(d, 0, 0, 264, 300);
     this->win_(d, 52, 120, 160, 60, "");

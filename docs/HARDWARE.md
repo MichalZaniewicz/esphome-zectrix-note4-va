@@ -122,7 +122,7 @@ So any screen with live regions - the clock on the page of the day, the timer
 countdown, the listening waveform, the answer being typed - is drawn and
 refreshed 1-bit, and its flat grey fills are rendered as an 8x8 Bayer raster.
 Only screens without live regions (the forecast, the doorbell) may use a
-16-grey full refresh, and only while the **16 szarości** switch is on. Live
+16-grey full refresh, and only while the **16 greys** switch is on. Live
 regions must sit on pure white or pure black for the same reason: a partial
 refresh is 1-bit, and grey under it turns into dots. The driver also forces a
 full 1-bit refresh after every 30 partial ones, to clear ghosting.

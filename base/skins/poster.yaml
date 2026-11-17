@@ -1,6 +1,6 @@
-# Skin "plakat": poster geometry. A big black circle with the clock, quarter
+# Skin "poster": poster geometry. A big black circle with the clock, quarter
 # circles as background, black bars, data shown as shapes.
-# Archivo Black + Archivo. Fonts are prefixed plakat_ so several skins can be
+# Archivo Black + Archivo. Fonts are prefixed poster_ so several skins can be
 # compiled in.
 #
 # Text fonts: GF_Latin_Kernel plus the Polish letters and „ (Kernel has ” ° · … – —).
@@ -9,59 +9,59 @@
 
 font:
   # ---- Archivo Black: numerals ----
-  - id: plakat_clock          # idle clock in the circle ("00:00" = 167 px), idle temperature
+  - id: poster_clock          # idle clock in the circle ("00:00" = 167 px), idle temperature
     file: "gfonts://Archivo Black"
     size: 56
     bpp: 4
     glyphs: ["0123456789:-°"]
-  - id: plakat_huge           # tomorrow's high
+  - id: poster_huge           # tomorrow's high
     file: "gfonts://Archivo Black"
     size: 118
     bpp: 4
     glyphs: ["0123456789-°"]
-  - id: plakat_timer          # timer screen, elapsed seconds while listening
+  - id: poster_timer          # timer screen, elapsed seconds while listening
     file: "gfonts://Archivo Black"
     size: 44
     bpp: 4
     glyphs: ["0123456789:"]
-  - id: plakat_num            # idle timer card, tomorrow's low, doorbell time
+  - id: poster_num            # idle timer card, tomorrow's low, doorbell time
     file: "gfonts://Archivo Black"
     size: 30
     bpp: 4
     glyphs: ["0123456789:-°"]
   # ---- Archivo Black: text ----
-  - id: plakat_head           # question, next event time, headlines
+  - id: poster_head           # question, next event time, headlines
     file: "gfonts://Archivo Black"
     size: 22
     bpp: 4
     glyphsets: [GF_Latin_Kernel]
     glyphs: ["ĄąĆćĘęŁłŃńÓóŚśŹźŻż„"]
-  - id: plakat_val            # values inside the shapes
+  - id: poster_val            # values inside the shapes
     file: "gfonts://Archivo Black"
     size: 14
     bpp: 4
     glyphsets: [GF_Latin_Kernel]
     glyphs: ["ĄąĆćĘęŁłŃńÓóŚśŹźŻż„"]
   # ---- Archivo ----
-  - id: plakat_body           # answer text
+  - id: poster_body           # answer text
     file: "gfonts://Archivo@400"
     size: 19
     bpp: 4
     glyphsets: [GF_Latin_Kernel]
     glyphs: ["ĄąĆćĘęŁłŃńÓóŚśŹźŻż„"]
-  - id: plakat_bold
+  - id: poster_bold
     file: "gfonts://Archivo@700"
     size: 13
     bpp: 4
     glyphsets: [GF_Latin_Kernel]
     glyphs: ["ĄąĆćĘęŁłŃńÓóŚśŹźŻż„"]
-  - id: plakat_small
+  - id: poster_small
     file: "gfonts://Archivo@600"
     size: 12
     bpp: 4
     glyphsets: [GF_Latin_Kernel]
     glyphs: ["ĄąĆćĘęŁłŃńÓóŚśŹźŻż„"]
-  - id: plakat_label          # spaced capitals
+  - id: poster_label          # spaced capitals
     file: "gfonts://Archivo@700"
     size: 10
     bpp: 4
@@ -71,11 +71,11 @@ font:
 esphome:
   on_boot:
     # After the fonts and the UI object exist, before core.yaml applies the
-    # restored "Skórka" choice (-500).
+    # restored "Skin" choice (-500).
     - priority: -50
       then:
         - lambda: |-
-            id(ui).add_skin(new note4_ui::PlakatSkin(
-                id(plakat_clock), id(plakat_huge), id(plakat_timer), id(plakat_num),
-                id(plakat_head), id(plakat_val), id(plakat_body), id(plakat_bold),
-                id(plakat_small), id(plakat_label)));
+            id(ui).add_skin(new note4_ui::PosterSkin(
+                id(poster_clock), id(poster_huge), id(poster_timer), id(poster_num),
+                id(poster_head), id(poster_val), id(poster_body), id(poster_bold),
+                id(poster_small), id(poster_label)));

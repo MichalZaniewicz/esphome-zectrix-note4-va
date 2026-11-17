@@ -1,4 +1,4 @@
-#include "skin_plakat.h"
+#include "skin_poster.h"
 #include "skin_efgh.h"
 
 namespace esphome {
@@ -8,7 +8,7 @@ using namespace efgh;
 
 static const Color GREY_Q = tone(214);  // quarter circles, card fills
 
-void PlakatSkin::draw(Display &d, Screen s, const Model &m) {
+void PosterSkin::draw(Display &d, Screen s, const Model &m) {
   switch (s) {
     case Screen::IDLE:
       this->idle_(d, m);
@@ -34,7 +34,7 @@ void PlakatSkin::draw(Display &d, Screen s, const Model &m) {
   }
 }
 
-std::vector<Rect> PlakatSkin::live_regions(Screen s, const Model &m) const {
+std::vector<Rect> PosterSkin::live_regions(Screen s, const Model &m) const {
   switch (s) {
     case Screen::IDLE: {
       std::vector<Rect> r{{16, 26, 192, 192}};
@@ -58,10 +58,10 @@ std::vector<Rect> PlakatSkin::live_regions(Screen s, const Model &m) const {
   }
 }
 
-int PlakatSkin::answer_lines_(const Model &m) const { return m.facts.empty() ? 7 : 5; }
+int PosterSkin::answer_lines_(const Model &m) const { return m.facts.empty() ? 7 : 5; }
 
 // ------------------------------------------------------------------ IDLE
-void PlakatSkin::idle_(Display &d, const Model &m) {
+void PosterSkin::idle_(Display &d, const Model &m) {
   wedge(d, 400, 0, 92, PI_F / 2, PI_F, GREY_Q);
 
   // the big black circle with the clock
@@ -105,7 +105,7 @@ void PlakatSkin::idle_(Display &d, const Model &m) {
 }
 
 // "Teraz ważne" card, bottom left (0,236 200x64).
-void PlakatSkin::now_card_(Display &d, const Model &m) {
+void PosterSkin::now_card_(Display &d, const Model &m) {
   bool alarm = m.now_level == NowLevel::ALARM;
   Color bg = alarm ? ink() : GREY_Q;
   Color fg = alarm ? paper() : ink();
@@ -137,7 +137,7 @@ void PlakatSkin::now_card_(Display &d, const Model &m) {
 // ------------------------------------------------------------------ LISTEN
 // The clock circle becomes the recorder: elapsed time inside, the voice as a
 // black band of bars along the bottom edge.
-void PlakatSkin::listen_(Display &d, const Model &m) {
+void PosterSkin::listen_(Display &d, const Model &m) {
   wedge(d, 400, 0, 92, PI_F / 2, PI_F, GREY_Q);
   fill_circle(d, 112, 122, 96, ink());
   text(d, f_label_, 112, 88, paper(), "SŁUCHAM", Align::CENTER, ink(), 2);
@@ -163,7 +163,7 @@ void PlakatSkin::listen_(Display &d, const Model &m) {
 // ------------------------------------------------------------------ THINK
 // Inside the circle three dots for the pipeline steps; the heard question
 // stands next to it as a headline.
-void PlakatSkin::think_(Display &d, const Model &m) {
+void PosterSkin::think_(Display &d, const Model &m) {
   wedge(d, 400, 300, 80, PI_F, PI_F * 1.5f, GREY_Q);
   fill_circle(d, 112, 122, 96, ink());
   text(d, f_head_, 112, 106, paper(), "Chwila…", Align::CENTER, ink());
@@ -188,7 +188,7 @@ void PlakatSkin::think_(Display &d, const Model &m) {
 }
 
 // ------------------------------------------------------------------ ANSWER
-void PlakatSkin::answer_(Display &d, const Model &m) {
+void PosterSkin::answer_(Display &d, const Model &m) {
   wedge(d, 400, 0, 70, PI_F / 2, PI_F, GREY_Q);
   text(d, f_label_, 16, 30, ink(), "PYTANIE", Align::LEFT, paper(), 1.5f);
   text(d, f_head_, 16, 56, ink(), fit(f_head_, m.question, 320));
@@ -227,7 +227,7 @@ void PlakatSkin::answer_(Display &d, const Model &m) {
 // ------------------------------------------------------------------ WEATHER
 // Tomorrow: a huge temperature, a grey cloud, hours as black circles whose
 // size is the temperature, grey bars for rain.
-void PlakatSkin::weather_(Display &d, const Model &m) {
+void PosterSkin::weather_(Display &d, const Model &m) {
   text(d, f_label_, 16, 30, ink(), "JUTRO · " + upper(m.fc_day), Align::LEFT, paper(), 1.5f);
   std::string hi = temp_str(m.fc_hi);
   text(d, f_huge_, 8, 132, ink(), hi, Align::LEFT, paper(), -4);
@@ -292,7 +292,7 @@ void PlakatSkin::weather_(Display &d, const Model &m) {
 }
 
 // ------------------------------------------------------------------ TIMER
-void PlakatSkin::timer_(Display &d, const Model &m) {
+void PosterSkin::timer_(Display &d, const Model &m) {
   wedge(d, 400, 300, 80, PI_F, PI_F * 1.5f, GREY_Q);
   text(d, f_label_, 16, 30, ink(), fit(f_label_, upper(m.timer_name), 200), Align::LEFT, paper(), 1.5f);
   const float cx = 120, cy = 156;
@@ -313,7 +313,7 @@ void PlakatSkin::timer_(Display &d, const Model &m) {
 }
 
 // ------------------------------------------------------------------ DOORBELL
-void PlakatSkin::doorbell_(Display &d, const Model &m) {
+void PosterSkin::doorbell_(Display &d, const Model &m) {
   if (!bell_image(d, m, 264)) {
     fill_rect(d, 0, 0, 264, 300, GREY_Q);
     fill_circle(d, 132, 140, 40, ink());

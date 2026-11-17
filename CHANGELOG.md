@@ -25,7 +25,7 @@ ci/local.yaml`) and nothing more is claimed yet.
 - **Board support**: power latch and audio rail at boot, PCF8563 RTC kept in
   sync with Home Assistant, battery voltage and percentage (vendor curve),
   charging state, status LED, a Power off button.
-- **Skórka** select (eight skins) and a **16 szarości** switch.
+- **Skin** select (eight skins) and a **16 greys** switch.
 - CI: `.github/workflows/build.yml` validates and compiles `ci/local.yaml`.
 
 ### Not carried over from the Box-3

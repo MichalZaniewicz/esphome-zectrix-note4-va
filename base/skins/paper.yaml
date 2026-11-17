@@ -1,157 +1,157 @@
-# Skin "papier": Literata + Atkinson Hyperlegible, thin frames, warm and
-# editorial. Fonts are prefixed papier_ so several skins can be compiled in.
+# Skin "paper": Literata + Atkinson Hyperlegible, thin frames, warm and
+# editorial. Fonts are prefixed paper_ so several skins can be compiled in.
 #
 # Text fonts: GF_Latin_Kernel plus the Polish letters and „ (Kernel has ” ° · … –).
 # Big numerals carry only the glyphs they show.
 
 font:
   # ---- Literata ----
-  - id: papier_clock
+  - id: paper_clock
     file: "gfonts://Literata@700"
     # "00:00" (the widest) fits the 236 px the mockup allows
     size: 84
     bpp: 4
     glyphs: ["0123456789:"]
-  - id: papier_date
+  - id: paper_date
     file: { type: gfonts, family: Literata, weight: 400, italic: true }
     size: 17
     bpp: 4
     glyphsets: [GF_Latin_Kernel]
     glyphs: ["ĄąĆćĘęŁłŃńÓóŚśŹźŻż„"]
-  - id: papier_temp
+  - id: paper_temp
     file: "gfonts://Literata@600"
     size: 30
     bpp: 4
     glyphs: ["0123456789°-–"]
-  - id: papier_next
+  - id: paper_next
     file: "gfonts://Literata@700"
     size: 24
     bpp: 4
     glyphs: ["0123456789:–"]
-  - id: papier_brief
+  - id: paper_brief
     file: { type: gfonts, family: Literata, weight: 400, italic: true }
     size: 13
     bpp: 4
     glyphsets: [GF_Latin_Kernel]
     glyphs: ["ĄąĆćĘęŁłŃńÓóŚśŹźŻż„"]
-  - id: papier_card
+  - id: paper_card
     file: "gfonts://Literata@700"
     size: 28
     bpp: 4
     glyphs: ["0123456789:°/ -–"]
-  - id: papier_title
+  - id: paper_title
     file: "gfonts://Literata@600"
     size: 16
     bpp: 4
     glyphsets: [GF_Latin_Kernel]
     glyphs: ["ĄąĆćĘęŁłŃńÓóŚśŹźŻż„"]
-  - id: papier_question
+  - id: paper_question
     file: { type: gfonts, family: Literata, weight: 400, italic: true }
     size: 19
     bpp: 4
     glyphsets: [GF_Latin_Kernel]
     glyphs: ["ĄąĆćĘęŁłŃńÓóŚśŹźŻż„"]
-  - id: papier_answer
+  - id: paper_answer
     file: "gfonts://Literata@400"
     size: 22
     bpp: 4
     glyphsets: [GF_Latin_Kernel]
     glyphs: ["ĄąĆćĘęŁłŃńÓóŚśŹźŻż„"]
-  - id: papier_fc_hi
+  - id: paper_fc_hi
     file: "gfonts://Literata@700"
     size: 58
     bpp: 4
     glyphs: ["0123456789°-–"]
-  - id: papier_fc_lo
+  - id: paper_fc_lo
     file: "gfonts://Literata@400"
     size: 26
     bpp: 4
     glyphs: ["0123456789°/ -–"]
-  - id: papier_timer
+  - id: paper_timer
     file: "gfonts://Literata@700"
     size: 48
     bpp: 4
     glyphs: ["0123456789:"]
-  - id: papier_times
+  - id: paper_times
     file: "gfonts://Literata@600"
     size: 22
     bpp: 4
     glyphs: ["0123456789:–"]
-  - id: papier_big
+  - id: paper_big
     file: { type: gfonts, family: Literata, weight: 500, italic: true }
     size: 50
     bpp: 4
     glyphs: ["SłuchamCwil…"]
-  - id: papier_bell_time
+  - id: paper_bell_time
     file: "gfonts://Literata@700"
     size: 34
     bpp: 4
     glyphs: ["0123456789:–"]
-  - id: papier_caption
+  - id: paper_caption
     file: "gfonts://Literata@600"
     size: 21
     bpp: 4
     glyphsets: [GF_Latin_Kernel]
     glyphs: ["ĄąĆćĘęŁłŃńÓóŚśŹźŻż„"]
   # ---- Atkinson Hyperlegible ----
-  - id: papier_l9b
+  - id: paper_l9b
     file: "gfonts://Atkinson Hyperlegible@700"
     size: 9
     bpp: 4
     glyphsets: [GF_Latin_Kernel]
     glyphs: ["ĄąĆćĘęŁłŃńÓóŚśŹźŻż„"]
-  - id: papier_l10b
+  - id: paper_l10b
     file: "gfonts://Atkinson Hyperlegible@700"
     size: 10
     bpp: 4
     glyphsets: [GF_Latin_Kernel]
     glyphs: ["ĄąĆćĘęŁłŃńÓóŚśŹźŻż„"]
-  - id: papier_l10i
+  - id: paper_l10i
     file: { type: gfonts, family: Atkinson Hyperlegible, weight: 400, italic: true }
     size: 10
     bpp: 4
     glyphs: [" AIacdeijopszę"]
-  - id: papier_l11
+  - id: paper_l11
     file: "gfonts://Atkinson Hyperlegible@400"
     size: 11
     bpp: 4
     glyphsets: [GF_Latin_Kernel]
     glyphs: ["ĄąĆćĘęŁłŃńÓóŚśŹźŻż„"]
-  - id: papier_l11i
+  - id: paper_l11i
     file: { type: gfonts, family: Atkinson Hyperlegible, weight: 400, italic: true }
     size: 11
     bpp: 4
     glyphsets: [GF_Latin_Kernel]
     glyphs: ["ĄąĆćĘęŁłŃńÓóŚśŹźŻż„"]
-  - id: papier_l11b
+  - id: paper_l11b
     file: "gfonts://Atkinson Hyperlegible@700"
     size: 11
     bpp: 4
     glyphs: ["0123456789°-–"]
-  - id: papier_l12
+  - id: paper_l12
     file: "gfonts://Atkinson Hyperlegible@400"
     size: 12
     bpp: 4
     glyphs: [" 0123456789:z"]
-  - id: papier_l12b
+  - id: paper_l12b
     file: "gfonts://Atkinson Hyperlegible@700"
     size: 12
     bpp: 4
     glyphsets: [GF_Latin_Kernel]
     glyphs: ["ĄąĆćĘęŁłŃńÓóŚśŹźŻż„"]
-  - id: papier_l13
+  - id: paper_l13
     file: "gfonts://Atkinson Hyperlegible@400"
     size: 13
     bpp: 4
     glyphsets: [GF_Latin_Kernel]
     glyphs: ["ĄąĆćĘęŁłŃńÓóŚśŹźŻż„"]
-  - id: papier_l13b
+  - id: paper_l13b
     file: "gfonts://Atkinson Hyperlegible@700"
     size: 13
     bpp: 4
     glyphsets: [GF_Latin_Kernel]
     glyphs: ["ĄąĆćĘęŁłŃńÓóŚśŹźŻż„"]
-  - id: papier_l14b
+  - id: paper_l14b
     file: "gfonts://Atkinson Hyperlegible@700"
     size: 14
     bpp: 4
@@ -161,36 +161,36 @@ font:
 esphome:
   on_boot:
     # After the fonts and the UI object exist, before core.yaml applies the
-    # restored "Skórka" choice (-500).
+    # restored "Skin" choice (-500).
     - priority: -50
       then:
         - lambda: |-
-            note4_ui::PapierFonts f;
-            f.clock = id(papier_clock);
-            f.date = id(papier_date);
-            f.temp = id(papier_temp);
-            f.next = id(papier_next);
-            f.brief = id(papier_brief);
-            f.card = id(papier_card);
-            f.title = id(papier_title);
-            f.question = id(papier_question);
-            f.answer = id(papier_answer);
-            f.fc_hi = id(papier_fc_hi);
-            f.fc_lo = id(papier_fc_lo);
-            f.timer = id(papier_timer);
-            f.times = id(papier_times);
-            f.big = id(papier_big);
-            f.bell_time = id(papier_bell_time);
-            f.caption = id(papier_caption);
-            f.l9b = id(papier_l9b);
-            f.l10b = id(papier_l10b);
-            f.l10i = id(papier_l10i);
-            f.l11 = id(papier_l11);
-            f.l11i = id(papier_l11i);
-            f.l11b = id(papier_l11b);
-            f.l12 = id(papier_l12);
-            f.l12b = id(papier_l12b);
-            f.l13 = id(papier_l13);
-            f.l13b = id(papier_l13b);
-            f.l14b = id(papier_l14b);
-            id(ui).add_skin(new note4_ui::PapierSkin(f));
+            note4_ui::PaperFonts f;
+            f.clock = id(paper_clock);
+            f.date = id(paper_date);
+            f.temp = id(paper_temp);
+            f.next = id(paper_next);
+            f.brief = id(paper_brief);
+            f.card = id(paper_card);
+            f.title = id(paper_title);
+            f.question = id(paper_question);
+            f.answer = id(paper_answer);
+            f.fc_hi = id(paper_fc_hi);
+            f.fc_lo = id(paper_fc_lo);
+            f.timer = id(paper_timer);
+            f.times = id(paper_times);
+            f.big = id(paper_big);
+            f.bell_time = id(paper_bell_time);
+            f.caption = id(paper_caption);
+            f.l9b = id(paper_l9b);
+            f.l10b = id(paper_l10b);
+            f.l10i = id(paper_l10i);
+            f.l11 = id(paper_l11);
+            f.l11i = id(paper_l11i);
+            f.l11b = id(paper_l11b);
+            f.l12 = id(paper_l12);
+            f.l12b = id(paper_l12b);
+            f.l13 = id(paper_l13);
+            f.l13b = id(paper_l13b);
+            f.l14b = id(paper_l14b);
+            id(ui).add_skin(new note4_ui::PaperSkin(f));

@@ -1,4 +1,4 @@
-#include "skin_cisza.h"
+#include "skin_quiet.h"
 #include "skin_efgh.h"
 
 namespace esphome {
@@ -10,7 +10,7 @@ namespace {
 const int ANSWER_LINES = 5;
 }  // namespace
 
-void CiszaSkin::draw(Display &d, Screen s, const Model &m) {
+void QuietSkin::draw(Display &d, Screen s, const Model &m) {
   switch (s) {
     case Screen::IDLE:
       this->idle_(d, m);
@@ -36,7 +36,7 @@ void CiszaSkin::draw(Display &d, Screen s, const Model &m) {
   }
 }
 
-std::vector<Rect> CiszaSkin::live_regions(Screen s, const Model &m) const {
+std::vector<Rect> QuietSkin::live_regions(Screen s, const Model &m) const {
   switch (s) {
     case Screen::IDLE: {
       std::vector<Rect> r{{8, 52, 384, 128}};
@@ -61,7 +61,7 @@ std::vector<Rect> CiszaSkin::live_regions(Screen s, const Model &m) const {
 }
 
 // ------------------------------------------------------------------ IDLE
-void CiszaSkin::idle_(Display &d, const Model &m) {
+void QuietSkin::idle_(Display &d, const Model &m) {
   text(d, f_small_, 16, 36, ink(105), fit(f_small_, cap_first(m.weekday) + ", " + m.date, 200));
   std::string w = temp_str(m.temp_now);
   if (!m.condition.empty())
@@ -96,8 +96,8 @@ void CiszaSkin::idle_(Display &d, const Model &m) {
   }
 }
 
-// Middle column. An alarm is the only black block cisza ever draws.
-void CiszaSkin::now_col_(Display &d, const Model &m) {
+// Middle column. An alarm is the only black block quiet ever draws.
+void QuietSkin::now_col_(Display &d, const Model &m) {
   const int x = 140, w = 116;
   if (m.now_level == NowLevel::BRIEF) {
     text(d, f_tiny_, x, 220, ink(110), "Dziś");
@@ -130,7 +130,7 @@ void CiszaSkin::now_col_(Display &d, const Model &m) {
 
 // ------------------------------------------------------------------ LISTEN
 // Just the voice: a thin waveform in the middle, the rest whispered.
-void CiszaSkin::listen_(Display &d, const Model &m) {
+void QuietSkin::listen_(Display &d, const Model &m) {
   text(d, f_italic_, 200, 64, ink(105), "Słucham", Align::CENTER);
   for (size_t i = 0; i < m.mic_history.size(); i++) {
     float v = clampf(m.mic_history[i], 0, 1);
@@ -144,7 +144,7 @@ void CiszaSkin::listen_(Display &d, const Model &m) {
 
 // ------------------------------------------------------------------ THINK
 // The heard question is the one big thing; a hairline shows how far it got.
-void CiszaSkin::think_(Display &d, const Model &m) {
+void QuietSkin::think_(Display &d, const Model &m) {
   text(d, f_italic_, 200, 64, ink(105), "Usłyszałem", Align::CENTER);
   auto q = wrap_n(f_body_, m.question.empty() ? std::string("…") : m.question, 340, 3);
   int y0 = 150 - (int) (q.size() - 1) * 17;
@@ -159,7 +159,7 @@ void CiszaSkin::think_(Display &d, const Model &m) {
 }
 
 // ------------------------------------------------------------------ ANSWER
-void CiszaSkin::answer_(Display &d, const Model &m) {
+void QuietSkin::answer_(Display &d, const Model &m) {
   if (!m.question.empty())
     text(d, f_italic_, 16, 52, ink(105), fit(f_italic_, "„" + m.question + "”", 368));
   AnswerLayout a = layout_answer(f_body_, m.answer, 368, ANSWER_LINES, m.answer_words_shown);
@@ -178,7 +178,7 @@ void CiszaSkin::answer_(Display &d, const Model &m) {
 }
 
 // ------------------------------------------------------------------ WEATHER
-void CiszaSkin::weather_(Display &d, const Model &m) {
+void QuietSkin::weather_(Display &d, const Model &m) {
   text(d, f_small_, 16, 36, ink(105), "Jutro, " + lower(m.fc_day));
   std::string hi = temp_str(m.fc_hi), lo = "/ " + temp_str(m.fc_lo);
   text(d, f_huge_, 10, 158, ink(), hi);
@@ -224,7 +224,7 @@ void CiszaSkin::weather_(Display &d, const Model &m) {
 }
 
 // ------------------------------------------------------------------ TIMER
-void CiszaSkin::timer_(Display &d, const Model &m) {
+void QuietSkin::timer_(Display &d, const Model &m) {
   text(d, f_italic_, 200, 64, ink(105), fit(f_italic_, cap_first(m.timer_name), 360), Align::CENTER);
   fixed_digits(d, f_huge_, 200, 192, ink(), strip0(mmss(m.timer_remaining)));
   hline(d, 16, 384, 222, ink());
@@ -236,7 +236,7 @@ void CiszaSkin::timer_(Display &d, const Model &m) {
 
 // ------------------------------------------------------------------ DOORBELL
 // The snapshot is the big thing; time and the AI caption sit next to it.
-void CiszaSkin::doorbell_(Display &d, const Model &m) {
+void QuietSkin::doorbell_(Display &d, const Model &m) {
   if (!bell_image(d, m, 264)) {
     fill_rect(d, 0, 0, 264, 300, tone(236));
     text(d, f_italic_, 132, 156, ink(105), "Czekam na obraz…", Align::CENTER, tone(236));

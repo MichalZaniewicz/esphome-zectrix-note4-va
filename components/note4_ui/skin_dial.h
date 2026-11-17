@@ -1,4 +1,4 @@
-// Skin "tarcza": like a good watch. Analogue dial with hands, date window,
+// Skin "dial": like a good watch. Analogue dial with hands, date window,
 // sub-dials for weather and timer, a 24 h dial for tomorrow.
 // Barlow Condensed + Barlow.
 #pragma once
@@ -8,12 +8,12 @@
 namespace esphome {
 namespace note4_ui {
 
-class TarczaSkin : public Skin {
+class DialSkin : public Skin {
  public:
   // num: Barlow Condensed 700 16, big: BC 700 26 (digits), huge: BC 700 32 (digits),
   // title: BC 700 20, head: BC 600 28, label: BC 600 11,
   // body: Barlow 500 19, text: Barlow 600 14, small: Barlow 600 12.
-  TarczaSkin(Font *num, Font *big, Font *huge, Font *title, Font *head, Font *label, Font *body, Font *text,
+  DialSkin(Font *num, Font *big, Font *huge, Font *title, Font *head, Font *label, Font *body, Font *text,
              Font *small)
       : f_num_(num),
         f_big_(big),
@@ -25,7 +25,7 @@ class TarczaSkin : public Skin {
         f_text_(text),
         f_small_(small) {}
 
-  const char *id() const override { return "tarcza"; }
+  const char *id() const override { return "dial"; }
   void draw(Display &d, Screen s, const Model &m) override;
   std::vector<Rect> live_regions(Screen s, const Model &m) const override;
 

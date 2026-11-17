@@ -1,4 +1,4 @@
-#include "skin_tarcza.h"
+#include "skin_dial.h"
 #include "skin_efgh.h"
 
 namespace esphome {
@@ -6,7 +6,7 @@ namespace note4_ui {
 
 using namespace efgh;
 
-void TarczaSkin::draw(Display &d, Screen s, const Model &m) {
+void DialSkin::draw(Display &d, Screen s, const Model &m) {
   switch (s) {
     case Screen::IDLE:
       this->idle_(d, m);
@@ -32,7 +32,7 @@ void TarczaSkin::draw(Display &d, Screen s, const Model &m) {
   }
 }
 
-std::vector<Rect> TarczaSkin::live_regions(Screen s, const Model &m) const {
+std::vector<Rect> DialSkin::live_regions(Screen s, const Model &m) const {
   switch (s) {
     case Screen::IDLE: {
       std::vector<Rect> r{{8, 46, 210, 210}};
@@ -56,11 +56,11 @@ std::vector<Rect> TarczaSkin::live_regions(Screen s, const Model &m) const {
   }
 }
 
-int TarczaSkin::answer_lines_(const Model &m) const { return m.facts.empty() ? 7 : 5; }
+int DialSkin::answer_lines_(const Model &m) const { return m.facts.empty() ? 7 : 5; }
 
 // Small sub-dial: grey track (or a 1 px ring when it is live), black arc,
 // value in the middle, label under it.
-void TarczaSkin::gauge_(Display &d, float cx, float cy, float r, float frac, const std::string &val,
+void DialSkin::gauge_(Display &d, float cx, float cy, float r, float frac, const std::string &val,
                         const std::string &label, bool live) {
   if (live)
     ring(d, cx, cy, r, 1, ink());
@@ -77,7 +77,7 @@ void TarczaSkin::gauge_(Display &d, float cx, float cy, float r, float frac, con
 }
 
 // ------------------------------------------------------------------ IDLE
-void TarczaSkin::idle_(Display &d, const Model &m) {
+void DialSkin::idle_(Display &d, const Model &m) {
   const float cx = 112, cy = 150, R = 100;
   ring(d, cx, cy, R, 2, ink());
   for (int i = 0; i < 60; i++) {
@@ -133,7 +133,7 @@ void TarczaSkin::idle_(Display &d, const Model &m) {
 }
 
 // "Teraz ważne" between the dotted rules (236..384, 176..258).
-void TarczaSkin::now_card_(Display &d, const Model &m) {
+void DialSkin::now_card_(Display &d, const Model &m) {
   if (m.now_level == NowLevel::BRIEF) {
     text(d, f_label_, 236, 190, ink(), "TERAZ · DZIEŃ", Align::LEFT, paper(), 1.5f);
     auto l = wrap_n(f_text_, brief_text(m), 148, 3);
@@ -166,7 +166,7 @@ void TarczaSkin::now_card_(Display &d, const Model &m) {
 // ------------------------------------------------------------------ LISTEN
 // A dial whose rim is the voice: the last 92 levels as radial bars, newest at
 // 12 o'clock, a seconds hand sweeping the elapsed time.
-void TarczaSkin::listen_(Display &d, const Model &m) {
+void DialSkin::listen_(Display &d, const Model &m) {
   const float cx = 200, cy = 150, R = 70;
   text(d, f_text_, 16, 30, ink(), "Mów naturalnie.");
   text(d, f_small_, 16, 48, ink(105), "Skończę, gdy");
@@ -203,7 +203,7 @@ void TarczaSkin::listen_(Display &d, const Model &m) {
 // ------------------------------------------------------------------ THINK
 // Three sub-dials, one per pipeline step: full = done, partial = working,
 // empty = waiting.
-void TarczaSkin::think_(Display &d, const Model &m) {
+void DialSkin::think_(Display &d, const Model &m) {
   text(d, f_label_, 16, 30, ink(110), "USŁYSZAŁEM", Align::LEFT, paper(), 1.5f);
   auto q = wrap_n(f_head_, m.question.empty() ? std::string("…") : m.question, 368, 2);
   for (size_t i = 0; i < q.size(); i++)
@@ -225,7 +225,7 @@ void TarczaSkin::think_(Display &d, const Model &m) {
 }
 
 // ------------------------------------------------------------------ ANSWER
-void TarczaSkin::answer_(Display &d, const Model &m) {
+void DialSkin::answer_(Display &d, const Model &m) {
   text(d, f_label_, 16, 30, ink(110), "PYTANIE", Align::LEFT, paper(), 1.5f);
   text(d, f_head_, 16, 58, ink(), fit(f_head_, m.question, 368));
   hline(d, 16, 384, 72, ink());
@@ -250,7 +250,7 @@ void TarczaSkin::answer_(Display &d, const Model &m) {
 // ------------------------------------------------------------------ WEATHER
 // Tomorrow as a 24 h dial: grey night, rain as radial strokes, temperatures
 // inside, a pointer where the rain starts.
-void TarczaSkin::weather_(Display &d, const Model &m) {
+void DialSkin::weather_(Display &d, const Model &m) {
   const float cx = 138, cy = 158, R = 100;
   auto ang = [](float h) { return TOP + h / 24.0f * TAU_F; };
   float ss = parse_hm(m.fc_sunset), sr = parse_hm(m.fc_sunrise);
@@ -311,7 +311,7 @@ void TarczaSkin::weather_(Display &d, const Model &m) {
 }
 
 // ------------------------------------------------------------------ TIMER
-void TarczaSkin::timer_(Display &d, const Model &m) {
+void DialSkin::timer_(Display &d, const Model &m) {
   const float cx = 200, cy = 152, R = 112;
   ring(d, cx, cy, R, 2, ink());
   for (int i = 0; i < 60; i++) {
@@ -349,7 +349,7 @@ void TarczaSkin::timer_(Display &d, const Model &m) {
 
 // ------------------------------------------------------------------ DOORBELL
 // Snapshot on the left; on the right a small dial showing when it rang.
-void TarczaSkin::doorbell_(Display &d, const Model &m) {
+void DialSkin::doorbell_(Display &d, const Model &m) {
   if (!bell_image(d, m, 264)) {
     fill_rect(d, 0, 0, 264, 300, tone(212));
     ring(d, 132, 140, 40, 2, ink());

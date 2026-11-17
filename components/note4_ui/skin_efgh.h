@@ -1,4 +1,4 @@
-// Small header-only helpers shared by the skins plakat, tarcza, piksel and cisza.
+// Small header-only helpers shared by the skins poster, dial, pixel and quiet.
 // Everything here only calls the drawing helpers declared in note4_ui.h.
 #pragma once
 

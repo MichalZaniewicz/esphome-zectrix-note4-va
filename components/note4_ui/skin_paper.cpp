@@ -1,6 +1,6 @@
-// Skin "papier". Ported from note4-style.html (idleA, answerA, weatherA,
+// Skin "paper". Ported from note4-style.html (idleA, answerA, weatherA,
 // timerA) and note4-makiety.html (drawListen, drawTyping, drawDoorbell).
-#include "skin_papier.h"
+#include "skin_paper.h"
 
 #include <cmath>
 
@@ -24,7 +24,7 @@ const int ANS_X = 16, ANS_Y = 104, ANS_PITCH = 29, ANS_LINES = 6, ANS_W = 368;
 }  // namespace
 
 // ---------------------------------------------------------------------------
-void PapierSkin::status_(Display &d, const Model &m, const std::string &left, bool inv) {
+void PaperSkin::status_(Display &d, const Model &m, const std::string &left, bool inv) {
   const Color fg = inv ? WH : K, bg = inv ? K : paper();
   text(d, f_.l10b, 16, 15, fg, left, Align::LEFT, bg, 1.4f);
   // battery
@@ -54,7 +54,7 @@ void PapierSkin::status_(Display &d, const Model &m, const std::string &left, bo
 }
 
 // ---------------------------------------------------------------------------
-void PapierSkin::draw(Display &d, Screen s, const Model &m) {
+void PaperSkin::draw(Display &d, Screen s, const Model &m) {
   switch (s) {
     case Screen::IDLE:
       idle_(d, m);
@@ -80,7 +80,7 @@ void PapierSkin::draw(Display &d, Screen s, const Model &m) {
   }
 }
 
-std::vector<Rect> PapierSkin::live_regions(Screen s, const Model &m) const {
+std::vector<Rect> PaperSkin::live_regions(Screen s, const Model &m) const {
   switch (s) {
     case Screen::IDLE: {
       std::vector<Rect> r{{10, 30, 240, 84}};
@@ -104,7 +104,7 @@ std::vector<Rect> PapierSkin::live_regions(Screen s, const Model &m) const {
 }
 
 // ---------------------------------------------------------------------------
-void PapierSkin::idle_(Display &d, const Model &m) {
+void PaperSkin::idle_(Display &d, const Model &m) {
   status_(d, m, upper(m.room), false);
   text(d, f_.clock, 13, 106, K, hhmm(m.hour, m.minute));
   text(d, f_.date, 16, 133, K, fit(f_.date, m.weekday + ", " + m.date, 236));
@@ -190,7 +190,7 @@ void PapierSkin::idle_(Display &d, const Model &m) {
 
 // "Teraz ważne" card: BRIEF as the mockup (italic sentence), TODO as a framed
 // card like "Następne", ALARM in negative.
-void PapierSkin::now_card_(Display &d, const Model &m, int x, int y, int w, int h) {
+void PaperSkin::now_card_(Display &d, const Model &m, int x, int y, int w, int h) {
   const int tx = x + 10, tw = w - 20;
   if (m.now_level == NowLevel::BRIEF) {
     stroke_round(d, x, y, w, h, 6, K);
@@ -222,7 +222,7 @@ void PapierSkin::now_card_(Display &d, const Model &m, int x, int y, int w, int 
 }
 
 // ---------------------------------------------------------------------------
-void PapierSkin::answer_(Display &d, const Model &m) {
+void PaperSkin::answer_(Display &d, const Model &m) {
   status_(d, m, hhmm(m.hour, m.minute) + " · " + upper(m.room), false);
   const Color band = tone(238);
   fill_rect(d, 0, 23, W, 48, band);
@@ -255,7 +255,7 @@ void PapierSkin::answer_(Display &d, const Model &m) {
 }
 
 // ---------------------------------------------------------------------------
-void PapierSkin::weather_(Display &d, const Model &m) {
+void PaperSkin::weather_(Display &d, const Model &m) {
   status_(d, m, hhmm(m.hour, m.minute) + " · POGODA", false);
   IconStyle st;
   st.cloud_top = 236;
@@ -348,7 +348,7 @@ void PapierSkin::weather_(Display &d, const Model &m) {
 }
 
 // ---------------------------------------------------------------------------
-void PapierSkin::timer_(Display &d, const Model &m) {
+void PaperSkin::timer_(Display &d, const Model &m) {
   status_(d, m, hhmm(m.hour, m.minute) + " · TIMER", false);
   const float cx = 200, cy = 158, R = 92, th = 14;
   const float fr = timer_frac(m);
@@ -375,7 +375,7 @@ void PapierSkin::timer_(Display &d, const Model &m) {
 
 // ---------------------------------------------------------------------------
 // LISTEN and THINK share the black screen (drawListen).
-void PapierSkin::listen_(Display &d, const Model &m, bool thinking) {
+void PaperSkin::listen_(Display &d, const Model &m, bool thinking) {
   fill_rect(d, 0, 0, W, H, K);
   status_(d, m, hhmm(m.hour, m.minute) + " · " + upper(m.room), true);
   if (thinking) {
@@ -413,7 +413,7 @@ void PapierSkin::listen_(Display &d, const Model &m, bool thinking) {
 }
 
 // ---------------------------------------------------------------------------
-void PapierSkin::doorbell_(Display &d, const Model &m) {
+void PaperSkin::doorbell_(Display &d, const Model &m) {
   // snapshot, left 264 px
   if (m.bell_image != nullptr && m.bell_image_ready) {
     d.start_clipping(0, 0, 264, H);

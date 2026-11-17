@@ -1,11 +1,11 @@
-// Skin "kafelki". Ported from note4-style.html (idleD, answerD, weatherD,
+// Skin "tiles". Ported from note4-style.html (idleD, answerD, weatherD,
 // timerD). LISTEN is one big black tile with the voice in white, THINK three
 // step tiles, DOORBELL a black info tile and pill buttons beside the snapshot.
 //
 // Live regions sit on white or black only, so the answer tile is white inside
 // a grey ring (like the clock tile) instead of the mockup's flat grey 240:
 // the line being typed is refreshed partially, in 1 bit.
-#include "skin_kafelki.h"
+#include "skin_tiles.h"
 
 #include <cmath>
 
@@ -84,7 +84,7 @@ void now_icon(Display &d, const std::string &icon, float x, float y, Color c, Co
 }  // namespace
 
 // ---------------------------------------------------------------------------
-void KafelkiSkin::status_(Display &d, const Model &m, const std::string &left) {
+void TilesSkin::status_(Display &d, const Model &m, const std::string &left) {
   text(d, f_.m12, 16, 17, K, left);
   fill_round(d, 350, 6, 36, 15, 7, K);
   std::string b = m.battery >= 0 ? std::to_string(m.battery) : "–";
@@ -100,13 +100,13 @@ void KafelkiSkin::status_(Display &d, const Model &m, const std::string &left) {
     text(d, f_.m11m, 342, 17, grey(105), off, Align::RIGHT);
 }
 
-void KafelkiSkin::pill_(Display &d, int x, int y, int w, int h, const std::string &label, bool dark, Font *f) {
+void TilesSkin::pill_(Display &d, int x, int y, int w, int h, const std::string &label, bool dark, Font *f) {
   const Color bg = dark ? K : tone(222);
   fill_round(d, x, y, w, h, h / 2, bg);
   text(d, f, x + w / 2, y + h / 2 + 5, dark ? WH : K, label, Align::CENTER, bg);
 }
 
-void KafelkiSkin::draw(Display &d, Screen s, const Model &m) {
+void TilesSkin::draw(Display &d, Screen s, const Model &m) {
   switch (s) {
     case Screen::IDLE:
       idle_(d, m);
@@ -132,7 +132,7 @@ void KafelkiSkin::draw(Display &d, Screen s, const Model &m) {
   }
 }
 
-std::vector<Rect> KafelkiSkin::live_regions(Screen s, const Model &m) const {
+std::vector<Rect> TilesSkin::live_regions(Screen s, const Model &m) const {
   switch (s) {
     case Screen::IDLE: {
       std::vector<Rect> r{{18, 40, 214, 74}};
@@ -156,7 +156,7 @@ std::vector<Rect> KafelkiSkin::live_regions(Screen s, const Model &m) const {
 }
 
 // ---------------------------------------------------------------------------
-void KafelkiSkin::idle_(Display &d, const Model &m) {
+void TilesSkin::idle_(Display &d, const Model &m) {
   // clock tile: white inside a grey ring
   fill_round(d, 10, 10, 228, 146, 18, tone(214));
   fill_round(d, 12, 12, 224, 142, 16, paper());
@@ -228,7 +228,7 @@ void KafelkiSkin::idle_(Display &d, const Model &m) {
 
 // "Teraz ważne": TODO as the mockup (badge, pictogram, three lines), ALARM as
 // a black tile, BRIEF the day's sentence.
-void KafelkiSkin::now_tile_(Display &d, const Model &m) {
+void TilesSkin::now_tile_(Display &d, const Model &m) {
   const int x = 138, y = 164, w = 120, h = 126;
   const Color tt = tone(226);
   if (m.now_level == NowLevel::BRIEF) {
@@ -252,7 +252,7 @@ void KafelkiSkin::now_tile_(Display &d, const Model &m) {
 }
 
 // ---------------------------------------------------------------------------
-void KafelkiSkin::answer_(Display &d, const Model &m) {
+void TilesSkin::answer_(Display &d, const Model &m) {
   status_(d, m, hhmm(m.hour, m.minute));
   const Color qb = tone(220);
   std::string q = fit(f_.m15, m.question, 350);
@@ -298,7 +298,7 @@ void KafelkiSkin::answer_(Display &d, const Model &m) {
 }
 
 // ---------------------------------------------------------------------------
-void KafelkiSkin::weather_(Display &d, const Model &m) {
+void TilesSkin::weather_(Display &d, const Model &m) {
   const Color top = tone(54);
   fill_round(d, 10, 10, 380, 114, 20, top);
   if (fc_has_rain(m)) {
@@ -368,7 +368,7 @@ void KafelkiSkin::weather_(Display &d, const Model &m) {
 }
 
 // ---------------------------------------------------------------------------
-void KafelkiSkin::timer_(Display &d, const Model &m) {
+void TilesSkin::timer_(Display &d, const Model &m) {
   status_(d, m, hhmm(m.hour, m.minute));
   const float cx = 200, cy = 146, R = 98, th = 22;
   ring(d, cx, cy, R - th / 2, 2, K);
@@ -384,7 +384,7 @@ void KafelkiSkin::timer_(Display &d, const Model &m) {
 // ---------------------------------------------------------------------------
 // LISTEN: one black tile, the voice as white rounded bars, a white pill with
 // the elapsed time.
-void KafelkiSkin::listen_(Display &d, const Model &m) {
+void TilesSkin::listen_(Display &d, const Model &m) {
   status_(d, m, hhmm(m.hour, m.minute) + " · " + m.room);
   fill_round(d, 10, 30, 380, 196, 20, K);
   text(d, f_.card, 30, 74, WH, "Słucham", Align::LEFT, K, -1);
@@ -403,7 +403,7 @@ void KafelkiSkin::listen_(Display &d, const Model &m) {
 
 // THINK: the heard question as a bubble, three step tiles; the running one
 // is black, finished ones get a check badge.
-void KafelkiSkin::think_(Display &d, const Model &m) {
+void TilesSkin::think_(Display &d, const Model &m) {
   status_(d, m, hhmm(m.hour, m.minute) + " · " + m.room);
   const Color qb = tone(220);
   std::string q = fit(f_.m15, m.question, 350);
@@ -439,7 +439,7 @@ void KafelkiSkin::think_(Display &d, const Model &m) {
 }
 
 // DOORBELL: snapshot left; black info tile and pill buttons on the right.
-void KafelkiSkin::doorbell_(Display &d, const Model &m) {
+void TilesSkin::doorbell_(Display &d, const Model &m) {
   if (m.bell_image != nullptr && m.bell_image_ready) {
     d.start_clipping(0, 0, 264, H);
     d.image(0, 0, m.bell_image);

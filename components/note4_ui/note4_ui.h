@@ -169,7 +169,7 @@ std::string hhmm(int h, int m);  // "17:45"
 class Skin {
  public:
   virtual ~Skin() = default;
-  virtual const char *id() const = 0;  // "papier", "szwajcaria", ...
+  virtual const char *id() const = 0;  // "paper", "swiss", ...
   virtual void draw(Display &d, Screen s, const Model &m) = 0;
   // Regions that change between full refreshes on this screen (clock digits,
   // timer, waveform, current answer line). Must lie on white or black.

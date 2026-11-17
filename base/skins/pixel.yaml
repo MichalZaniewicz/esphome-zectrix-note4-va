@@ -1,9 +1,9 @@
-# Skin "piksel": retro handheld console. Pixel fonts, double-framed windows,
+# Skin "pixel": retro handheld console. Pixel fonts, double-framed windows,
 # pixel icons, time bars like a health bar.
 # Press Start 2P + VT323, all 1 bpp on their pixel grid: Press Start 2P is
 # drawn on an 8 px grid (sizes 8/16/32/48/56), VT323 has 80-unit rows and
 # 40-unit columns on a 1000 em, so 25 px puts every row on 2 whole pixels and
-# the baseline (ascender 800) on a whole pixel. Fonts are prefixed piksel_ so
+# the baseline (ascender 800) on a whole pixel. Fonts are prefixed pixel_ so
 # several skins can be compiled in.
 #
 # Text fonts: GF_Latin_Kernel plus the Polish letters and „. Press Start 2P has
@@ -11,36 +11,36 @@
 # Rough flash for all fonts below: ~25 KB.
 
 font:
-  - id: piksel_s              # title bars, window titles, small capitals
+  - id: pixel_s              # title bars, window titles, small capitals
     file: "gfonts://Press Start 2P"
     size: 8
     bpp: 1
     glyphsets: [GF_Latin_Kernel]
     glyphs: ["ĄąĆćĘęŁłŃńÓóŚśŹźŻż„"]
     ignore_missing_glyphs: true
-  - id: piksel_m              # card values: times, temperatures
+  - id: pixel_m              # card values: times, temperatures
     file: "gfonts://Press Start 2P"
     size: 16
     bpp: 1
     glyphsets: [GF_Latin_Kernel]
     glyphs: ["ĄąĆćĘęŁłŃńÓóŚśŹźŻż„"]
     ignore_missing_glyphs: true
-  - id: piksel_l              # tomorrow's high ("6°C")
+  - id: pixel_l              # tomorrow's high ("6°C")
     file: "gfonts://Press Start 2P"
     size: 32
     bpp: 1
     glyphs: ["0123456789:-°C"]
-  - id: piksel_xl             # idle clock
+  - id: pixel_xl             # idle clock
     file: "gfonts://Press Start 2P"
     size: 48
     bpp: 1
     glyphs: ["0123456789:"]
-  - id: piksel_xxl            # timer
+  - id: pixel_xxl            # timer
     file: "gfonts://Press Start 2P"
     size: 56
     bpp: 1
     glyphs: ["0123456789:"]
-  - id: piksel_vt             # all running text
+  - id: pixel_vt             # all running text
     file: "gfonts://VT323"
     size: 25
     bpp: 1
@@ -50,10 +50,10 @@ font:
 esphome:
   on_boot:
     # After the fonts and the UI object exist, before core.yaml applies the
-    # restored "Skórka" choice (-500).
+    # restored "Skin" choice (-500).
     - priority: -50
       then:
         - lambda: |-
-            id(ui).add_skin(new note4_ui::PikselSkin(
-                id(piksel_s), id(piksel_m), id(piksel_l), id(piksel_xl),
-                id(piksel_xxl), id(piksel_vt)));
+            id(ui).add_skin(new note4_ui::PixelSkin(
+                id(pixel_s), id(pixel_m), id(pixel_l), id(pixel_xl),
+                id(pixel_xxl), id(pixel_vt)));
