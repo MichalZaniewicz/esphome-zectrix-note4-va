@@ -1,0 +1,129 @@
+# Skin "kafelki": rounded tiles in a few greys, big friendly Manrope numbers,
+# pill buttons. Fonts are prefixed kafelki_.
+#
+# Text fonts: GF_Latin_Kernel plus the Polish letters and „ (Kernel has ” ° · … –).
+# Big numerals carry only the glyphs they show.
+
+font:
+  - id: kafelki_clock
+    file: "gfonts://Manrope@800"
+    size: 72
+    bpp: 4
+    glyphs: ["0123456789:"]
+  - id: kafelki_temp
+    file: "gfonts://Manrope@800"
+    size: 44
+    bpp: 4
+    glyphs: ["0123456789°-–"]
+  - id: kafelki_next
+    file: "gfonts://Manrope@800"
+    size: 28
+    bpp: 4
+    glyphs: ["0123456789:°/ -–"]
+  - id: kafelki_card
+    file: "gfonts://Manrope@800"
+    size: 32
+    bpp: 4
+    glyphs: ["0123456789:SłuchamCwil…–"]
+  - id: kafelki_timer
+    file: "gfonts://Manrope@800"
+    size: 48
+    bpp: 4
+    glyphs: ["0123456789:"]
+  - id: kafelki_fc_hi
+    file: "gfonts://Manrope@800"
+    size: 60
+    bpp: 4
+    glyphs: ["0123456789°-–"]
+  - id: kafelki_fc_lo
+    file: "gfonts://Manrope@800"
+    size: 22
+    bpp: 4
+    glyphs: ["0123456789°/ -–"]
+  - id: kafelki_answer
+    file: "gfonts://Manrope@600"
+    size: 18
+    bpp: 4
+    glyphsets: [GF_Latin_Kernel]
+    glyphs: ["ĄąĆćĘęŁłŃńÓóŚśŹźŻż„"]
+  - id: kafelki_m15
+    file: "gfonts://Manrope@800"
+    size: 15
+    bpp: 4
+    glyphsets: [GF_Latin_Kernel]
+    glyphs: ["ĄąĆćĘęŁłŃńÓóŚśŹźŻż„"]
+  - id: kafelki_m14
+    file: "gfonts://Manrope@800"
+    size: 14
+    bpp: 4
+    glyphsets: [GF_Latin_Kernel]
+    glyphs: ["ĄąĆćĘęŁłŃńÓóŚśŹźŻż„"]
+  - id: kafelki_m14m
+    file: "gfonts://Manrope@700"
+    size: 14
+    bpp: 4
+    glyphsets: [GF_Latin_Kernel]
+    glyphs: ["ĄąĆćĘęŁłŃńÓóŚśŹźŻż„"]
+  - id: kafelki_m13
+    file: "gfonts://Manrope@800"
+    size: 13
+    bpp: 4
+    glyphsets: [GF_Latin_Kernel]
+    glyphs: ["ĄąĆćĘęŁłŃńÓóŚśŹźŻż„"]
+  - id: kafelki_m12
+    file: "gfonts://Manrope@800"
+    size: 12
+    bpp: 4
+    glyphsets: [GF_Latin_Kernel]
+    glyphs: ["ĄąĆćĘęŁłŃńÓóŚśŹźŻż„"]
+  - id: kafelki_m12m
+    file: "gfonts://Manrope@700"
+    size: 12
+    bpp: 4
+    glyphsets: [GF_Latin_Kernel]
+    glyphs: ["ĄąĆćĘęŁłŃńÓóŚśŹźŻż„"]
+  - id: kafelki_m11
+    file: "gfonts://Manrope@800"
+    size: 11
+    bpp: 4
+    glyphsets: [GF_Latin_Kernel]
+    glyphs: ["ĄąĆćĘęŁłŃńÓóŚśŹźŻż„"]
+  - id: kafelki_m11m
+    file: "gfonts://Manrope@700"
+    size: 11
+    bpp: 4
+    glyphsets: [GF_Latin_Kernel]
+    glyphs: ["ĄąĆćĘęŁłŃńÓóŚśŹźŻż„"]
+  - id: kafelki_m10
+    file: "gfonts://Manrope@800"
+    size: 10
+    bpp: 4
+    glyphsets: [GF_Latin_Kernel]
+    glyphs: ["ĄąĆćĘęŁłŃńÓóŚśŹźŻż„"]
+
+esphome:
+  on_boot:
+    # After the fonts and the UI object exist, before core.yaml applies the
+    # restored "Skórka" choice (-500).
+    - priority: -50
+      then:
+        - lambda: |-
+            note4_ui::KafelkiFonts f;
+            f.clock = id(kafelki_clock);
+            f.temp = id(kafelki_temp);
+            f.next = id(kafelki_next);
+            f.card = id(kafelki_card);
+            f.timer = id(kafelki_timer);
+            f.fc_hi = id(kafelki_fc_hi);
+            f.fc_lo = id(kafelki_fc_lo);
+            f.answer = id(kafelki_answer);
+            f.m15 = id(kafelki_m15);
+            f.m14 = id(kafelki_m14);
+            f.m14m = id(kafelki_m14m);
+            f.m13 = id(kafelki_m13);
+            f.m12 = id(kafelki_m12);
+            f.m12m = id(kafelki_m12m);
+            f.m11 = id(kafelki_m11);
+            f.m11m = id(kafelki_m11m);
+            f.m10 = id(kafelki_m10);
+            id(ui).add_skin(new note4_ui::KafelkiSkin(f));

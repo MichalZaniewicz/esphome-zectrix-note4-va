@@ -1,0 +1,112 @@
+# Skin "instrument": a measuring device. IBM Plex Mono with numbered fields,
+# scales and a dot grid; IBM Plex Sans for the answer text. Fonts are prefixed
+# instrument_.
+#
+# Text fonts: GF_Latin_Kernel plus the Polish letters and „ (Kernel has ” ° · … –).
+# Big numerals carry only the glyphs they show.
+
+font:
+  # ---- IBM Plex Mono ----
+  - id: instrument_clock
+    file: "gfonts://IBM Plex Mono@600"
+    size: 78
+    bpp: 4
+    glyphs: ["0123456789:"]
+  - id: instrument_next
+    file: "gfonts://IBM Plex Mono@600"
+    size: 26
+    bpp: 4
+    glyphs: ["0123456789:–"]
+  - id: instrument_card
+    file: "gfonts://IBM Plex Mono@600"
+    size: 28
+    bpp: 4
+    glyphs: ["0123456789:+-/°–"]
+  - id: instrument_fc_hi
+    file: "gfonts://IBM Plex Mono@600"
+    size: 54
+    bpp: 4
+    glyphs: ["0123456789+-°–"]
+  - id: instrument_timer
+    file: "gfonts://IBM Plex Mono@600"
+    size: 42
+    bpp: 4
+    glyphs: ["0123456789:"]
+  - id: instrument_m20s
+    file: "gfonts://IBM Plex Mono@600"
+    size: 20
+    bpp: 4
+    glyphs: ["0123456789:% +-T–"]
+  - id: instrument_m13s
+    file: "gfonts://IBM Plex Mono@600"
+    size: 13
+    bpp: 4
+    glyphsets: [GF_Latin_Kernel]
+    glyphs: ["ĄąĆćĘęŁłŃńÓóŚśŹźŻż„"]
+  - id: instrument_m12s
+    file: "gfonts://IBM Plex Mono@600"
+    size: 12
+    bpp: 4
+    glyphsets: [GF_Latin_Kernel]
+    glyphs: ["ĄąĆćĘęŁłŃńÓóŚśŹźŻż„"]
+  - id: instrument_m10s
+    file: "gfonts://IBM Plex Mono@600"
+    size: 10
+    bpp: 4
+    glyphsets: [GF_Latin_Kernel]
+    glyphs: ["ĄąĆćĘęŁłŃńÓóŚśŹźŻż„"]
+  - id: instrument_m10
+    file: "gfonts://IBM Plex Mono@400"
+    size: 10
+    bpp: 4
+    glyphsets: [GF_Latin_Kernel]
+    glyphs: ["ĄąĆćĘęŁłŃńÓóŚśŹźŻż„"]
+  - id: instrument_m9s
+    file: "gfonts://IBM Plex Mono@600"
+    size: 9
+    bpp: 4
+    glyphsets: [GF_Latin_Kernel]
+    glyphs: ["ĄąĆćĘęŁłŃńÓóŚśŹźŻż„"]
+  - id: instrument_m9
+    file: "gfonts://IBM Plex Mono@500"
+    size: 9
+    bpp: 4
+    glyphsets: [GF_Latin_Kernel]
+    glyphs: ["ĄąĆćĘęŁłŃńÓóŚśŹźŻż„"]
+  - id: instrument_m8s
+    file: "gfonts://IBM Plex Mono@600"
+    size: 8
+    bpp: 4
+    glyphsets: [GF_Latin_Kernel]
+    glyphs: ["ĄąĆćĘęŁłŃńÓóŚśŹźŻż„"]
+  # ---- IBM Plex Sans ----
+  - id: instrument_answer
+    file: "gfonts://IBM Plex Sans@400"
+    size: 19
+    bpp: 4
+    glyphsets: [GF_Latin_Kernel]
+    glyphs: ["ĄąĆćĘęŁłŃńÓóŚśŹźŻż„"]
+
+esphome:
+  on_boot:
+    # After the fonts and the UI object exist, before core.yaml applies the
+    # restored "Skórka" choice (-500).
+    - priority: -50
+      then:
+        - lambda: |-
+            note4_ui::InstrumentFonts f;
+            f.clock = id(instrument_clock);
+            f.next = id(instrument_next);
+            f.card = id(instrument_card);
+            f.fc_hi = id(instrument_fc_hi);
+            f.timer = id(instrument_timer);
+            f.m20s = id(instrument_m20s);
+            f.m13s = id(instrument_m13s);
+            f.m12s = id(instrument_m12s);
+            f.m10s = id(instrument_m10s);
+            f.m10 = id(instrument_m10);
+            f.m9s = id(instrument_m9s);
+            f.m9 = id(instrument_m9);
+            f.m8s = id(instrument_m8s);
+            f.answer = id(instrument_answer);
+            id(ui).add_skin(new note4_ui::InstrumentSkin(f));

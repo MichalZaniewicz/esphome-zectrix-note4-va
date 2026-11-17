@@ -1,0 +1,173 @@
+# Skin "szwajcaria": strict grid, huge Inter Tight numerals, thick rules and
+# one black block per screen. Fonts are prefixed szwajcaria_.
+#
+# Text fonts: GF_Latin_Kernel plus the Polish letters and „ (Kernel has ” ° · … –).
+# Big numerals carry only the glyphs they show.
+
+font:
+  # ---- Inter Tight ----
+  - id: szwajcaria_clock
+    file: "gfonts://Inter Tight@800"
+    size: 122
+    bpp: 4
+    glyphs: ["0123456789:"]
+  - id: szwajcaria_next
+    file: "gfonts://Inter Tight@700"
+    size: 32
+    bpp: 4
+    glyphs: ["0123456789:–"]
+  - id: szwajcaria_title
+    file: "gfonts://Inter Tight@800"
+    size: 28
+    bpp: 4
+    glyphsets: [GF_Latin_Kernel]
+    glyphs: ["ĄąĆćĘęŁłŃńÓóŚśŹźŻż„"]
+  - id: szwajcaria_card
+    file: "gfonts://Inter Tight@800"
+    size: 34
+    bpp: 4
+    glyphs: ["0123456789:°/ -–"]
+  - id: szwajcaria_question
+    file: "gfonts://Inter Tight@700"
+    size: 21
+    bpp: 4
+    glyphsets: [GF_Latin_Kernel]
+    glyphs: ["ĄąĆćĘęŁłŃńÓóŚśŹźŻż„"]
+  - id: szwajcaria_fact
+    file: "gfonts://Inter Tight@800"
+    size: 30
+    bpp: 4
+    glyphsets: [GF_Latin_Kernel]
+    glyphs: ["ĄąĆćĘęŁłŃńÓóŚśŹźŻż„"]
+  - id: szwajcaria_fc_hi
+    file: "gfonts://Inter Tight@800"
+    size: 104
+    bpp: 4
+    glyphs: ["0123456789°-–"]
+  - id: szwajcaria_fc_lo
+    file: "gfonts://Inter Tight@700"
+    size: 38
+    bpp: 4
+    glyphs: ["0123456789°-–"]
+  - id: szwajcaria_h26
+    file: "gfonts://Inter Tight@800"
+    size: 26
+    bpp: 4
+    glyphsets: [GF_Latin_Kernel]
+    glyphs: ["ĄąĆćĘęŁłŃńÓóŚśŹźŻż„"]
+  - id: szwajcaria_end
+    file: "gfonts://Inter Tight@800"
+    size: 24
+    bpp: 4
+    glyphs: ["0123456789:–"]
+  - id: szwajcaria_big
+    file: "gfonts://Inter Tight@800"
+    size: 56
+    bpp: 4
+    glyphs: ["SłuchamCwil…"]
+  # ---- Inter ----
+  - id: szwajcaria_i9b
+    file: "gfonts://Inter@700"
+    size: 9
+    bpp: 4
+    glyphsets: [GF_Latin_Kernel]
+    glyphs: ["ĄąĆćĘęŁłŃńÓóŚśŹźŻż„"]
+  - id: szwajcaria_i10b
+    file: "gfonts://Inter@700"
+    size: 10
+    bpp: 4
+    glyphsets: [GF_Latin_Kernel]
+    glyphs: ["ĄąĆćĘęŁłŃńÓóŚśŹźŻż„"]
+  - id: szwajcaria_i10s
+    file: "gfonts://Inter@600"
+    size: 10
+    bpp: 4
+    glyphsets: [GF_Latin_Kernel]
+    glyphs: ["ĄąĆćĘęŁłŃńÓóŚśŹźŻż„"]
+  - id: szwajcaria_i11b
+    file: "gfonts://Inter@700"
+    size: 11
+    bpp: 4
+    glyphsets: [GF_Latin_Kernel]
+    glyphs: ["ĄąĆćĘęŁłŃńÓóŚśŹźŻż„"]
+  - id: szwajcaria_i11s
+    file: "gfonts://Inter@600"
+    size: 11
+    bpp: 4
+    glyphsets: [GF_Latin_Kernel]
+    glyphs: ["ĄąĆćĘęŁłŃńÓóŚśŹźŻż„"]
+  - id: szwajcaria_i12
+    file: "gfonts://Inter@400"
+    size: 12
+    bpp: 4
+    glyphsets: [GF_Latin_Kernel]
+    glyphs: ["ĄąĆćĘęŁłŃńÓóŚśŹźŻż„"]
+  - id: szwajcaria_i12s
+    file: "gfonts://Inter@600"
+    size: 12
+    bpp: 4
+    glyphsets: [GF_Latin_Kernel]
+    glyphs: ["ĄąĆćĘęŁłŃńÓóŚśŹźŻż„"]
+  - id: szwajcaria_i12b
+    file: "gfonts://Inter@700"
+    size: 12
+    bpp: 4
+    glyphsets: [GF_Latin_Kernel]
+    glyphs: ["ĄąĆćĘęŁłŃńÓóŚśŹźŻż„"]
+  - id: szwajcaria_i13s
+    file: "gfonts://Inter@600"
+    size: 13
+    bpp: 4
+    glyphsets: [GF_Latin_Kernel]
+    glyphs: ["ĄąĆćĘęŁłŃńÓóŚśŹźŻż„"]
+  - id: szwajcaria_i14b
+    file: "gfonts://Inter@700"
+    size: 14
+    bpp: 4
+    glyphsets: [GF_Latin_Kernel]
+    glyphs: ["ĄąĆćĘęŁłŃńÓóŚśŹźŻż„"]
+  - id: szwajcaria_i15s
+    file: "gfonts://Inter@600"
+    size: 15
+    bpp: 4
+    glyphsets: [GF_Latin_Kernel]
+    glyphs: ["ĄąĆćĘęŁłŃńÓóŚśŹźŻż„"]
+  - id: szwajcaria_i19
+    file: "gfonts://Inter@400"
+    size: 19
+    bpp: 4
+    glyphsets: [GF_Latin_Kernel]
+    glyphs: ["ĄąĆćĘęŁłŃńÓóŚśŹźŻż„"]
+
+esphome:
+  on_boot:
+    # After the fonts and the UI object exist, before core.yaml applies the
+    # restored "Skórka" choice (-500).
+    - priority: -50
+      then:
+        - lambda: |-
+            note4_ui::SzwajcariaFonts f;
+            f.clock = id(szwajcaria_clock);
+            f.next = id(szwajcaria_next);
+            f.title = id(szwajcaria_title);
+            f.card = id(szwajcaria_card);
+            f.question = id(szwajcaria_question);
+            f.fact = id(szwajcaria_fact);
+            f.fc_hi = id(szwajcaria_fc_hi);
+            f.fc_lo = id(szwajcaria_fc_lo);
+            f.h26 = id(szwajcaria_h26);
+            f.end = id(szwajcaria_end);
+            f.big = id(szwajcaria_big);
+            f.i9b = id(szwajcaria_i9b);
+            f.i10b = id(szwajcaria_i10b);
+            f.i10s = id(szwajcaria_i10s);
+            f.i11b = id(szwajcaria_i11b);
+            f.i11s = id(szwajcaria_i11s);
+            f.i12 = id(szwajcaria_i12);
+            f.i12s = id(szwajcaria_i12s);
+            f.i12b = id(szwajcaria_i12b);
+            f.i13s = id(szwajcaria_i13s);
+            f.i14b = id(szwajcaria_i14b);
+            f.i15s = id(szwajcaria_i15s);
+            f.i19 = id(szwajcaria_i19);
+            id(ui).add_skin(new note4_ui::SzwajcariaSkin(f));

@@ -1,0 +1,81 @@
+# Skin "plakat": poster geometry. A big black circle with the clock, quarter
+# circles as background, black bars, data shown as shapes.
+# Archivo Black + Archivo. Fonts are prefixed plakat_ so several skins can be
+# compiled in.
+#
+# Text fonts: GF_Latin_Kernel plus the Polish letters and „ (Kernel has ” ° · … – —).
+# Big numerals carry only the glyphs they show.
+# Rough flash for all fonts below: ~105 KB.
+
+font:
+  # ---- Archivo Black: numerals ----
+  - id: plakat_clock          # idle clock in the circle ("00:00" = 167 px), idle temperature
+    file: "gfonts://Archivo Black"
+    size: 56
+    bpp: 4
+    glyphs: ["0123456789:-°"]
+  - id: plakat_huge           # tomorrow's high
+    file: "gfonts://Archivo Black"
+    size: 118
+    bpp: 4
+    glyphs: ["0123456789-°"]
+  - id: plakat_timer          # timer screen, elapsed seconds while listening
+    file: "gfonts://Archivo Black"
+    size: 44
+    bpp: 4
+    glyphs: ["0123456789:"]
+  - id: plakat_num            # idle timer card, tomorrow's low, doorbell time
+    file: "gfonts://Archivo Black"
+    size: 30
+    bpp: 4
+    glyphs: ["0123456789:-°"]
+  # ---- Archivo Black: text ----
+  - id: plakat_head           # question, next event time, headlines
+    file: "gfonts://Archivo Black"
+    size: 22
+    bpp: 4
+    glyphsets: [GF_Latin_Kernel]
+    glyphs: ["ĄąĆćĘęŁłŃńÓóŚśŹźŻż„"]
+  - id: plakat_val            # values inside the shapes
+    file: "gfonts://Archivo Black"
+    size: 14
+    bpp: 4
+    glyphsets: [GF_Latin_Kernel]
+    glyphs: ["ĄąĆćĘęŁłŃńÓóŚśŹźŻż„"]
+  # ---- Archivo ----
+  - id: plakat_body           # answer text
+    file: "gfonts://Archivo@400"
+    size: 19
+    bpp: 4
+    glyphsets: [GF_Latin_Kernel]
+    glyphs: ["ĄąĆćĘęŁłŃńÓóŚśŹźŻż„"]
+  - id: plakat_bold
+    file: "gfonts://Archivo@700"
+    size: 13
+    bpp: 4
+    glyphsets: [GF_Latin_Kernel]
+    glyphs: ["ĄąĆćĘęŁłŃńÓóŚśŹźŻż„"]
+  - id: plakat_small
+    file: "gfonts://Archivo@600"
+    size: 12
+    bpp: 4
+    glyphsets: [GF_Latin_Kernel]
+    glyphs: ["ĄąĆćĘęŁłŃńÓóŚśŹźŻż„"]
+  - id: plakat_label          # spaced capitals
+    file: "gfonts://Archivo@700"
+    size: 10
+    bpp: 4
+    glyphsets: [GF_Latin_Kernel]
+    glyphs: ["ĄąĆćĘęŁłŃńÓóŚśŹźŻż„"]
+
+esphome:
+  on_boot:
+    # After the fonts and the UI object exist, before core.yaml applies the
+    # restored "Skórka" choice (-500).
+    - priority: -50
+      then:
+        - lambda: |-
+            id(ui).add_skin(new note4_ui::PlakatSkin(
+                id(plakat_clock), id(plakat_huge), id(plakat_timer), id(plakat_num),
+                id(plakat_head), id(plakat_val), id(plakat_body), id(plakat_bold),
+                id(plakat_small), id(plakat_label)));

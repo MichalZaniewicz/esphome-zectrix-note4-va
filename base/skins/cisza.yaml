@@ -1,0 +1,50 @@
+# Skin "cisza": an almost empty screen. One big thing, the rest whispered in
+# grey; no frames, no icons, lots of air.
+# Instrument Serif + Instrument Sans. Fonts are prefixed cisza_ so several
+# skins can be compiled in.
+#
+# Text fonts: GF_Latin_Kernel plus the Polish letters and „ (Kernel has ” ° · … – —).
+# The huge numerals carry only the glyphs they show.
+# Rough flash for all fonts below: ~82 KB.
+
+font:
+  - id: cisza_huge            # clock ("00:00" = 320 px), timer, tomorrow's high
+    file: "gfonts://Instrument Serif"
+    size: 156
+    bpp: 4
+    glyphs: ["0123456789:-°"]
+  - id: cisza_body            # answer, card values, heard question
+    file: "gfonts://Instrument Serif"
+    size: 28
+    bpp: 4
+    glyphsets: [GF_Latin_Kernel]
+    glyphs: ["ĄąĆćĘęŁłŃńÓóŚśŹźŻż„"]
+  - id: cisza_italic          # question, timer name, captions
+    file: { type: gfonts, family: Instrument Serif, weight: 400, italic: true }
+    size: 26
+    bpp: 4
+    glyphsets: [GF_Latin_Kernel]
+    glyphs: ["ĄąĆćĘęŁłŃńÓóŚśŹźŻż„"]
+  - id: cisza_small           # grey whispers
+    file: "gfonts://Instrument Sans@500"
+    size: 13
+    bpp: 4
+    glyphsets: [GF_Latin_Kernel]
+    glyphs: ["ĄąĆćĘęŁłŃńÓóŚśŹźŻż„"]
+  - id: cisza_tiny
+    file: "gfonts://Instrument Sans@500"
+    size: 11
+    bpp: 4
+    glyphsets: [GF_Latin_Kernel]
+    glyphs: ["ĄąĆćĘęŁłŃńÓóŚśŹźŻż„"]
+
+esphome:
+  on_boot:
+    # After the fonts and the UI object exist, before core.yaml applies the
+    # restored "Skórka" choice (-500).
+    - priority: -50
+      then:
+        - lambda: |-
+            id(ui).add_skin(new note4_ui::CiszaSkin(
+                id(cisza_huge), id(cisza_body), id(cisza_italic), id(cisza_small),
+                id(cisza_tiny)));

@@ -1,0 +1,2589 @@
+###############################################################################
+# Zectrix Note 4 - Home Assistant voice assistant (core)
+#
+# Always-on core: one ES8311 codec as both microphone ADC and speaker DAC, full
+# duplex through esp_audio_stack + esp_aec, on-device wake word
+# (micro_wake_word), the full HA Assist pipeline, voice timers, and a 4.2"
+# 400x300 e-paper "page of the day" drawn by the note4_ui component.
+#
+# WHERE THIS COMES FROM
+# A port of the ESP32-S3-BOX-3 core (esphome-esp32-s3-box-3-va). The audio
+# stack, the pipeline handlers, barge-in, the stop word, the timer alarm, TTS
+# routing and the deaf-device watchdog are that core's, with its measurements
+# and its scars kept in the comments, because most of them are about the
+# audio stack and the pipeline and not about the Box. Everything LVGL, touch,
+# backlight, characters, screens and language packages is gone: an e-paper
+# panel is a different problem, and note4_ui (components/note4_ui) owns it.
+#
+# NOTHING IN THIS FILE HAS RUN ON A NOTE 4 YET. Every number carried over from
+# the Box-3 says so where it matters; the ones that are guesses for this board
+# say that too. docs/HARDWARE.md has the bring-up list.
+#
+# HOW TTS IS ROUTED
+# `voice_assistant:` has a `media_player:`, so ESPHome plays the TTS URL itself at
+# TTS_END (voice_assistant.cpp: `media_player_->make_call().set_media_url(url)`).
+# That attachment is not only about audio: `get_feature_flags()` only advertises
+# ANNOUNCE when a media player is present, and Home Assistant only asks a
+# satellite for its configuration - the wake word list - inside
+# `if feature_flags & ANNOUNCE`. No media player therefore means no wake word
+# picker in HA and a satellite that never returns to `idle`.
+#
+# The cost is that a long reply is downloaded and decoded on the device. So when
+# `TTS output` is `External player`, the amplifier is cut for the reply and
+# `on_tts_end` keeps cancelling the local playback: the external speaker gets
+# the URL and the device stops fetching it.
+#
+# HOW THE SCREEN IS DRIVEN
+# The UI is a model (components/note4_ui/note4_ui.h) plus a skin that draws it.
+# This file only fills the model and says what changed: `show(screen)` for a
+# new screen (full refresh), `changed(true)` when only the live regions moved
+# (clock digits, timer, waveform, typed answer: partial refresh),
+# `changed(false)` when the layout moved (full refresh of the same screen).
+# E-paper makes every full refresh a visible flash of a second or more, so
+# most of what follows is about calling the cheap one whenever it is enough.
+#
+# Pinout and hardware notes: docs/HARDWARE.md.
+###############################################################################
+
+substitutions:
+  name: note4-va
+  friendly_name: "Note 4 Voice"
+
+  # ---------------------------------------------------------------------------
+  # What the device looks like and where it is. All four are normally set in
+  # the thin config.
+  # ---------------------------------------------------------------------------
+  # Boot default of the "Skórka" select. Only skins whose package is in the
+  # build can be chosen; picking another one keeps the current skin and says
+  # so in the log.
+  skin: szwajcaria
+  room: "Kuchnia"
+  # The weather entity for the idle screen: its state is the condition, its
+  # `temperature` attribute the temperature now.
+  weather_entity: weather.forecast_home
+  # Today's high / low, if you have sensors for them (HA no longer puts the
+  # forecast in the weather entity's attributes). `sensor.none` exists in no
+  # Home Assistant: the value just stays blank, same trick as
+  # `external_media_player_id` below.
+  weather_high_entity: sensor.none
+  weather_low_entity: sensor.none
+  # POSIX timezone for the battery-backed RTC. See TIME for why this is here
+  # when the Box-3 core deliberately had none.
+  timezone: "CET-1CEST,M3.5.0,M10.5.0/3"
+
+  # ---------------------------------------------------------------------------
+  # Voice assistant phases. No page hangs off them any more (the UI has its own
+  # Screen enum); they survive because the wake word engine switch, the stop
+  # word and the UP/DOWN buttons all need to know whether the assistant is
+  # resting.
+  # ---------------------------------------------------------------------------
+  voice_assist_idle_phase_id: '1'            # ready, waiting for a wake word
+  voice_assist_listening_phase_id: '2'       # woken, recording the command
+  voice_assist_thinking_phase_id: '3'        # STT / LLM running
+  voice_assist_replying_phase_id: '4'        # TTS playing
+  voice_assist_not_ready_phase_id: '10'      # no HA connection
+  voice_assist_error_phase_id: '11'          # pipeline error
+  voice_assist_timer_finished_phase_id: '20' # a timer is ringing
+
+  # ---------------------------------------------------------------------------
+  # Pins - Zectrix Note 4 (docs/HARDWARE.md), taken from the vendor's own board
+  # config (zectrix_board_config.h), not guessed. Do not change unless you are
+  # porting to another board. GPIO0/3/45/46 are strapping pins, hence the
+  # ignore_strapping_warning flags below. The e-paper pins live in the
+  # zectrix_epd driver's defaults (CS 11, DC 10, RST 9, BUSY 8, PWR 6, CLK 12,
+  # MOSI 13), so they are not repeated here.
+  # ---------------------------------------------------------------------------
+  i2c_sda: GPIO47           # shared: ES8311 0x18, PCF8563 0x51, NFC 0x55
+  i2c_scl: GPIO48
+  i2s_mclk: GPIO14
+  i2s_bclk: GPIO15
+  i2s_lrclk: GPIO38
+  i2s_din: GPIO16           # ES8311 ADC -> ESP (mic, and the DAC feedback)
+  i2s_dout: GPIO45          # ESP -> ES8311 DAC (speaker), strapping pin
+  amp_enable: GPIO46        # speaker power amplifier, active high, strapping pin
+  button_ok: GPIO0          # OK / voice, active low, strapping pin
+  button_up: GPIO39         # active low
+  button_down: GPIO18       # active low
+  status_led: GPIO3         # green, active LOW, strapping pin
+  battery_adc: GPIO4        # through a 1:2 divider
+  charge_detect: GPIO2      # LOW while charging
+  charge_full: GPIO1        # HIGH when charged
+  # These two are driven from a raw ESP-IDF lambda before any component is up
+  # (see on_boot), so they are bare GPIO numbers, not pin names.
+  power_latch_gpio: '17'    # HIGH keeps the board on when running on battery
+  audio_power_gpio: '42'    # codec / I2C power rail, must be HIGH first
+
+  # ---------------------------------------------------------------------------
+  # Home Assistant / network
+  # ---------------------------------------------------------------------------
+  hidden_ssid: 'false'      # true = fast_connect, required for a hidden SSID
+
+  # Media player volume clamps for the onboard speaker. esp_audio_stack maps the
+  # 0..1 slider linearly in dB between a -49 dB floor and 0 dB, so a ceiling of
+  # 0.8 tops out at -9.8 dB, audibly quiet at "100%". On the Box-3 1.0 was
+  # checked on hardware for clipping. NOT on the Note 4: its speaker and
+  # amplifier are smaller and unmeasured, so if it distorts at the top, back
+  # off towards 0.8.
+  volume_min: '0.5'
+  volume_max: '1.0'
+
+  # The timer alarm. Fetched at COMPILE time and baked into flash as a byte
+  # array, so it needs no network at ring time and always comes out of the
+  # device's own speaker, whatever `TTS output` is set to. Any URL or local
+  # path; MP3/FLAC/WAV all decode.
+  #
+  # Ships with this repo (48 kHz mono 16-bit, 2.73 s, 85 KB). A copy of Home
+  # Assistant Voice PE's timer_finished.flac, vendored deliberately: the
+  # original lives on that project's `dev` branch, where it can move or change
+  # and break a build here without anything changing on our side.
+  timer_finished_sound_file: https://github.com/MichalZaniewicz/esphome-zectrix-note4-va/raw/main/base/sounds/timer_finished.flac
+
+  # Played when the wake word fires, if the "Wake sound" switch is on. 180 ms on
+  # purpose: the beep has to be over before the user starts talking, and Home
+  # Assistant Voice PE's own wake sound is 0.95 s, which would put nearly a
+  # second between the wake word and the assistant hearing anything.
+  wake_sound_file: https://github.com/MichalZaniewicz/esphome-zectrix-note4-va/raw/main/base/sounds/wake.wav
+
+  # Played once, when the device is first ready after a boot, if the "Boot
+  # sound" switch is on. The same 3.5 s chime the Box-3 and the Waveshare
+  # satellite ship (11 KB MP3), so a house with several hears one sound.
+  boot_sound_file: https://github.com/MichalZaniewicz/esphome-zectrix-note4-va/raw/main/base/sounds/boot.mp3
+
+  # Input gain for the wake word only (1-64). See the micro_wake_word block for
+  # why this exists and why it is not 1.
+  mww_gain_factor: '4'
+
+  # Post-AEC software mic gain trim, in dB (-20..30), applied by esp_audio_stack
+  # AFTER echo cancellation - not the ES8311 hardware PGA (that is
+  # `codec.input.gain_db`, left at its 30 dB default, which is also exactly what
+  # the vendor firmware sets: esp_codec_dev_set_in_gain(dev_, 30)).
+  #
+  # 0, NOT THE BOX-3's 12. The Box-3 raised it to 12 to match the old ES7210
+  # default of 24 dB in audible sensitivity, and then measured false wakes
+  # around that. None of that transfers: different ADC, different capsule,
+  # different enclosure. 0 means "the vendor's own analogue level, untouched",
+  # which is the only defensible starting point. If the wake word needs
+  # shouting at, raise `mww_gain_factor` first (it does not make HA hear more);
+  # if STT is quiet, raise this. Exposed as a live `number` that restores across
+  # reboots and overrides this at boot.
+  mic_gain_default: '0'
+
+  # Which esp_aec mode runs by default. `sr_low_cost` is the only one measured
+  # safe on the Box-3: `sr_high_perf` needs 40 KB of contiguous DMA-capable RAM
+  # for its extra filter taps and was found on 2026-07-29 to silently refuse the
+  # switch once the heap fragments post-boot. `fd_low_cost` has never been
+  # measured at all. Exposed as a live `select` for anyone who wants to try.
+  aec_mode_default: 'sr_low_cost'
+
+  # Speaker ring-buffer depth for the esp_audio_stack driver. 500ms is the
+  # component's own default and what the whole audio-stack spike was proven on
+  # (on the Box-3, 100ms once left I2S unable to start at all). Not worth
+  # re-deviating without a reason.
+  speaker_buffer_duration: 500ms
+
+  # THE I2S BUS RATE, AND IT IS THE FIRST THING TO CONFIRM ON HARDWARE.
+  #
+  # Two pieces of evidence point opposite ways:
+  # - The vendor firmware runs this exact codec on this exact board at 16 kHz,
+  #   ADC and DAC both (ZECTRIX_AUDIO_SAMPLE_RATE 16000).
+  # - On the Box-3, a 16 kHz bus "initialises fine and plays total silence" -
+  #   and the DAC there is the same ES8311. That was a TDM bus shared with an
+  #   ES7210, so it may not apply here, but it was measured and the 16 kHz
+  #   claim for esp_audio_stack on this board is not. esp_audio_stack's own
+  #   ES8311 reference (examples/02) also runs a 48 kHz bus.
+  #
+  # But on THIS board 16 kHz is what everything that ships runs: the vendor
+  # demo, xiaozhi-zectrix (boards/zectrix/zectrix-s3-epaper-4.2/config.h),
+  # slate (16-bit mono, MCLK 256 x fs) and the ESPHome NOTE4C config all drive
+  # the ES8311 at 16000, and kerray/zectrix-epaper-rs measured the stereo
+  # feedback at that rate (mic in the left slot, DAC reference in the right).
+  # Mic and speaker share one WS line, so it is one rate for both.
+  #
+  # So 16000, no decimation. If the speaker turns out silent through this
+  # audio stack (the Box-3 symptom), set 48000: `output_sample_rate` stays
+  # 16000 either way and the announcement pipeline follows this value.
+  audio_bus_rate: '16000'
+
+  # Wake word tuning, carried over from the Box-3 unchanged. The cutoff is
+  # compared against the average probability over the sliding window, NOT the
+  # peak. Measured on an S3-Box-3: the peak hits 1.00 on every utterance, but
+  # averaged over the stock 5 windows it lands around 0.6, because the quiet
+  # frames either side of the word dilute it. A shorter window keeps the peak
+  # frames and drops the padding.
+  #
+  # WINDOW 1 on `alexa`: a 3-frame average diluted the one-frame-wide peak
+  # enough to miss the wake word WHILE the Box was talking, which is the one
+  # thing full duplex is for. 0.7 was the Box-3's compromise between two missed
+  # real hits and fewer false wakes, with `vad:` on. Every one of these numbers
+  # is a Box-3 measurement; the Note 4 has one mic in a different enclosure,
+  # so watch the log for near misses (drop `Wake word cutoff` live and the log
+  # starts printing probabilities) before trusting them here.
+  alexa_probability_cutoff: '0.7'
+  alexa_sliding_window: '1'
+  okay_nabu_probability_cutoff: '0.7'
+  okay_nabu_sliding_window: '3'
+  hey_jarvis_probability_cutoff: '0.7'
+  hey_jarvis_sliding_window: '3'
+  # The "Stop" word (see STOP WORD under micro_wake_word). The model manifest's
+  # own values, which is also what Home Assistant Voice PE ships. It only runs
+  # while something is ringing, replying or playing, so a false "stop" can at
+  # worst cut a reply short - it can never start a conversation.
+  stop_probability_cutoff: '0.5'
+  stop_sliding_window: '5'
+
+  # ---------------------------------------------------------------------------
+  # THE SPEAKER THIS ROOM HAS, if it has one besides the device. The Note 4's
+  # own speaker is small; a room with a real one will want replies there.
+  #
+  # THE DEFAULT IS "THERE ISN'T ONE". `media_player.none` exists in no Home
+  # Assistant - it is spelled as an entity because the components below insist
+  # on that shape - and everything degrades quietly around it: replies stay on
+  # the device. Do NOT point this at the device's own media player: it would
+  # let "External player" hand the reply back to the device through Home
+  # Assistant, which is the one thing that mode exists to avoid.
+  #
+  # `tts_output_default` picks the boot default of the "TTS output" select; the
+  # user can change it live in HA, and the choice is restored from flash.
+  #   "This device"     - the device speaks (upstream behaviour)
+  #   "External player" - only ${external_media_player_id} speaks
+  #   "Both"            - both, at the cost of the local decode
+  # The last two do nothing at all while this is `media_player.none`.
+  # ---------------------------------------------------------------------------
+  external_media_player_id: media_player.none
+  tts_output_default: "This device"
+
+  # When TTS plays on an external speaker the device hands over a URL and hears
+  # nothing back, so it has no idea how long the reply lasts. So estimate it
+  # from the text: a cast-buffering lead, a base delay, so much per character,
+  # capped. Used only when the external player's own state cannot be trusted.
+  # See on_end for why the cap, not the rate, is what cuts a long reply short.
+  tts_wait_start_ms: '4000'
+  tts_hold_lead_ms: '1200'
+  tts_hold_base_ms: '700'
+  tts_hold_ms_per_char: '70'
+  tts_hold_max_ms: '60000'
+
+  # ---------------------------------------------------------------------------
+  # Screen timing
+  # ---------------------------------------------------------------------------
+  # How long the question and answer stay up after the reply. Long on purpose:
+  # e-paper costs nothing to keep showing something, and the reason to have a
+  # screen at all is to read the answer again.
+  ui_return_idle: 60s
+  # The doorbell snapshot, same idea.
+  doorbell_return_idle: 60s
+  # The tomorrow-forecast screen goes back to the page of the day by itself,
+  # because the clock lives there and an e-paper left on the forecast looks
+  # exactly as alive as one that is.
+  weather_return_idle: 5min
+  # The answer is typed word by word while it is spoken. The speech rate is a
+  # guess at Polish TTS (2.6 words/s); the lead covers the gap between the TTS
+  # URL arriving and sound coming out, which the Box-3 log put at about 1.5 s
+  # (FLAC fetch + decode). The step is as fast as a partial refresh can
+  # usefully go; anything quicker is coalesced by the UI anyway.
+  answer_words_per_second: '2.6'
+  answer_typing_lead_ms: '1000'
+  answer_step_ms: '500'
+  # The online_image needs a URL at compile time. It is never fetched: the
+  # `doorbell` action replaces it before the first download.
+  doorbell_placeholder_url: "http://homeassistant.local:8123/local/doorbell.jpg"
+
+esphome:
+  name: ${name}
+  friendly_name: ${friendly_name}
+  # The Box-3 core's minimum, kept: 2026.7.0 is where `image:` became a platform
+  # component (`image: platform: online_image` below uses it), and the old
+  # syntax is removed in 2027.1.0.
+  min_version: 2026.7.0
+  name_add_mac_suffix: false
+  # List form, not a bare mapping: skin packages add their own on_boot, and
+  # ESPHome appends lists while two mappings under one key would collide.
+  on_boot:
+    # POWER LATCH AND AUDIO RAIL, BEFORE ANYTHING ELSE. On battery the board
+    # only stays on while GPIO17 is high - let go of it and it switches itself
+    # off - so this is the first thing the firmware does. GPIO42 powers the
+    # codec, and per the vendor's `BoardI2cForcePowerOn()` the I2C side with
+    # it, so it must be high before the I2C bus or the codec is touched.
+    #
+    # Priority 1100, above the 1000 the I2C bus itself sets up at: at an equal
+    # priority the order between this trigger and the bus is not defined, and
+    # the bus scanning a dead rail is exactly what this is here to avoid.
+    #
+    # Raw ESP-IDF calls rather than an ESPHome output, for the same reason:
+    # outputs set up at HARDWARE priority, long after the bus. The sequence is
+    # the vendor's (InitPowerAndGpio): release any hold, set the level BEFORE
+    # switching to output so the pin never glitches low, then hold it, so a
+    # soft reset (OTA, a crash) keeps the board powered through the reboot.
+    #
+    # Two more pins go LOW first. GPIO46, the amplifier enable, is a strapping
+    # pin and the amp pops if it is high when the rail comes up; slate drives it
+    # low before GPIO42 rises and only enables it once the codec is open (the
+    # speaker_enable switch does that later). GPIO21 powers the unused NFC chip.
+    - priority: 1100
+      then:
+        - lambda: |-
+            for (gpio_num_t pin : {GPIO_NUM_46, GPIO_NUM_21}) {
+              gpio_set_level(pin, 0);
+              gpio_set_direction(pin, GPIO_MODE_OUTPUT);
+              gpio_set_level(pin, 0);
+            }
+            for (gpio_num_t pin : {(gpio_num_t) ${power_latch_gpio}, (gpio_num_t) ${audio_power_gpio}}) {
+              gpio_hold_dis(pin);
+              gpio_set_level(pin, 1);
+              gpio_set_direction(pin, GPIO_MODE_OUTPUT);
+              gpio_set_level(pin, 1);
+              gpio_hold_en(pin);
+            }
+            // Let the codec rail settle before the bus probes it.
+            delay(10);
+    # THE REFRESH HANDLER, at 250: after the display has set up (400) and
+    # before note4_ui does (LATE, -100), so the UI's very first frame already
+    # has somewhere to go. The UI decides WHAT kind of refresh; this maps that
+    # onto the driver and nothing more.
+    - priority: 250
+      then:
+        # VERIFY against components/zectrix_epd: written against the requested
+        # API (RefreshMode, clear/add_partial_rect, update). Keep all of the
+        # driver coupling in this one lambda so a rename is fixed in one place.
+        - lambda: |-
+            id(ui).set_refresh_handler([](note4_ui::Refresh r, const std::vector<note4_ui::Rect> &rects) {
+              auto *epd = id(epd);
+              epd->clear_partial_rects();
+              switch (r) {
+                case note4_ui::Refresh::FULL_GRAY:
+                  epd->set_refresh_mode(zectrix_epd::RefreshMode::FULL_GRAY);
+                  break;
+                case note4_ui::Refresh::PARTIAL:
+                  epd->set_refresh_mode(zectrix_epd::RefreshMode::PARTIAL);
+                  for (const auto &q : rects) epd->add_partial_rect(q.x, q.y, q.w, q.h);
+                  break;
+                case note4_ui::Refresh::FULL_MONO:
+                default:
+                  epd->set_refresh_mode(zectrix_epd::RefreshMode::FULL_MONO);
+                  break;
+              }
+              epd->update();
+            });
+            auto &m = id(ui).model();
+            m.room = "${room}";
+            m.bell_image = id(bell_img);
+    # Apply the restored mic gain. The template number restores its value and
+    # publishes it, but setup() does not fire the set_action, so the audio stack
+    # would otherwise sit on the compiled default while HA showed the saved
+    # figure. Negative priority so this runs after esp_audio_stack and the
+    # number have both finished setting up.
+    #
+    # THE AEC MODE IS DELIBERATELY NOT RE-APPLIED HERE. Re-initialising the
+    # canceller during boot is a large contiguous DMA allocation at the worst
+    # possible moment - the same allocation that was measured refusing outright
+    # on the Box-3 once the heap fragments.
+    - priority: -100
+      then:
+        - lambda: |-
+            id(audio_stack)->set_mic_gain(powf(10.0f, id(mic_gain_number).state / 20.0f));
+    # THE SKIN, LAST OF ALL. Skin packages register themselves from their own
+    # on_boot (id(ui).add_skin(...)), so the restored "Skórka" value cannot be
+    # applied when the select restores it during setup: the skin it names does
+    # not exist yet, and set_skin() would refuse it. -500 is after LATE and
+    # after any reasonable skin on_boot; until here the select's on_value
+    # stands down (see `ui_ready`).
+    - priority: -500
+      then:
+        - lambda: |-
+            id(ui).set_gray_enabled(id(gray16).state);
+            id(ui_ready) = true;
+            const std::string want = id(skin_select).current_option().str();
+            if (!want.empty() && !id(ui).set_skin(want))
+              ESP_LOGW("skin", "Skin \"%s\" is not in this build (add base/skins/%s.yaml to packages); keeping \"%s\"",
+                       want.c_str(), want.c_str(), id(ui).skin_id().c_str());
+        - script.execute: ui_clock
+    - priority: 600
+      then:
+        # If HA never shows up, stop pretending we are still booting.
+        - delay: 30s
+        - lambda: id(init_in_progress) = false;
+
+esp32:
+  board: esp32-s3-devkitc-1
+  flash_size: 16MB
+  cpu_frequency: 240MHz
+  framework:
+    type: esp-idf
+    sdkconfig_options:
+      CONFIG_ESP32S3_DEFAULT_CPU_FREQ_240: "y"
+      CONFIG_ESP32S3_DATA_CACHE_64KB: "y"
+      CONFIG_ESP32S3_DATA_CACHE_LINE_64B: "y"
+      # THE THREE BELOW ARE WHY THE SPEAKER WORKED AT ALL ON THE BOX-3. Measured
+      # there on 2026-07-30 without them: after the audio stack prepared I2S
+      # there were 6736 bytes of internal RAM left, 2284 of it DMA-capable. The
+      # microphone path fit; the moment anything tried to play, the TX path
+      # could not be allocated, I2S dropped into an error state, and the box
+      # answered exactly one question and went deaf.
+      #
+      # All three move something out of internal RAM and into PSRAM:
+      # executable code, read-only data, and TLS buffers. They are the
+      # esp_audio_stack README's own starting profile for the S3. The Note 4
+      # has no LVGL and lighter fonts, so it may well have the headroom without
+      # them, but nobody has measured that and the failure is silent.
+      CONFIG_SPIRAM_FETCH_INSTRUCTIONS: "y"
+      CONFIG_SPIRAM_RODATA: "y"
+      CONFIG_MBEDTLS_EXTERNAL_MEM_ALLOC: "y"
+      # Lets plain malloc()/new fall back to PSRAM when internal RAM is full,
+      # instead of aborting. On the Box-3 a JPEG decoder object lost exactly
+      # that race with 14 MB of PSRAM idle; the doorbell snapshot here goes
+      # through the same decoder. DMA buffers are unaffected - they request
+      # MALLOC_CAP_DMA explicitly.
+      CONFIG_SPIRAM_USE_MALLOC: "y"
+    # ONE esp-dsp FOR TWO CALLERS THAT DISAGREE. `esp_aec` pulls esp-sr 2.4.x,
+    # which requires esp-dsp 1.8.0 exactly. ESPHome's own `runtime_image` pins
+    # esp-dsp to 1.7.1 for the SIMD paths in its JPEG decoder - which the
+    # doorbell `online_image` brings in. Component requests are last-write-wins
+    # and the IDF solver then refuses the build outright. Components declared
+    # here are applied at FINAL priority, so this settles it for both.
+    components:
+      - name: espressif/esp-dsp
+        ref: 1.8.0
+
+# Octal, 80 MHz (N16R8). Mandatory: esp_audio_stack and the e-paper driver both
+# require it, and the UI framebuffer and the doorbell image live here.
+psram:
+  mode: octal
+  speed: 80MHz
+
+logger:
+  hardware_uart: USB_SERIAL_JTAG
+
+api:
+  on_client_connected:
+    - lambda: id(ui).model().ha = true;
+    - script.execute: ui_status_changed
+  on_client_disconnected:
+    - lambda: id(ui).model().ha = false;
+    - script.execute: ui_status_changed
+
+  # ---------------------------------------------------------------------------
+  # DATA FROM HOME ASSISTANT. The device does not go looking for its calendar,
+  # its forecast or its "what matters now" line: Home Assistant decides what is
+  # worth saying and pushes it, with these actions (README.md has examples).
+  # Needs nothing on the HA side beyond calling them; no "allow actions" flag.
+  #
+  # Every chain here is synchronous (lambdas and script.execute only), so
+  # ESPHome hands the arguments over as zero-copy views into the receive
+  # buffer. The lambdas copy them with std::string(x), which also compiles
+  # should a `delay` ever be added and the arguments become owning strings.
+  # ---------------------------------------------------------------------------
+  actions:
+    # "Teraz ważne": one item, picked by priority in HA.
+    # level 0 = day brief, 1 = something to do, 2 = alarm (drawn in negative).
+    - action: set_now
+      variables:
+        level: int
+        title: string
+        body: string
+        detail: string
+        icon: string
+      then:
+        - lambda: |-
+            auto &m = id(ui).model();
+            m.now_level = (note4_ui::NowLevel) std::max(0, std::min(2, (int) level));
+            m.now_title = std::string(title);
+            m.now_body = std::string(body);
+            m.now_detail = std::string(detail);
+            m.now_icon = std::string(icon);
+            if (id(ui).screen() == note4_ui::Screen::IDLE) id(ui).changed(false);
+        # An alarm is worth interrupting the forecast or a finished answer for.
+        - if:
+            condition:
+              lambda: return level >= 2;
+            then:
+              - script.execute:
+                  id: ui_go
+                  target: idle
+
+    # Tomorrow's forecast. `temps` and `rain` are hourly, hours 6..24 (19
+    # values); shorter arrays fill from 6:00, longer ones are cut. `rain_start`
+    # is the hour rain begins (15.5 = 15:30), or anything negative for none.
+    - action: set_forecast
+      variables:
+        day: string
+        date: string
+        hi: float
+        lo: float
+        summary: string
+        detail: string
+        temps: float[]
+        rain: float[]
+        rain_start: float
+        wind: string
+        humidity: string
+        sunrise: string
+        sunset: string
+      then:
+        - lambda: |-
+            auto &m = id(ui).model();
+            m.fc_day = std::string(day);
+            m.fc_date = std::string(date);
+            m.fc_hi = hi;
+            m.fc_lo = lo;
+            m.fc_summary = std::string(summary);
+            m.fc_detail = std::string(detail);
+            m.fc_temp.fill(NAN);
+            m.fc_rain.fill(0.0f);
+            for (size_t i = 0; i < temps.size() && i < m.fc_temp.size(); i++) m.fc_temp[i] = temps[i];
+            for (size_t i = 0; i < rain.size() && i < m.fc_rain.size(); i++) m.fc_rain[i] = rain[i];
+            m.fc_rain_start_h = rain_start < 0 ? NAN : rain_start;
+            m.fc_wind = std::string(wind);
+            m.fc_humidity = std::string(humidity);
+            m.fc_sunrise = std::string(sunrise);
+            m.fc_sunset = std::string(sunset);
+            if (id(ui).screen() == note4_ui::Screen::WEATHER) id(ui).changed(false);
+
+    # Today's events for the day timeline (hours as floats, 9.5 = 9:30; the
+    # three arrays are read in step, up to the shortest), plus the "next" line.
+    - action: set_events
+      variables:
+        starts: float[]
+        ends: float[]
+        titles: string[]
+        next_time: string
+        next_title: string
+        next_in: string
+      then:
+        - lambda: |-
+            auto &m = id(ui).model();
+            m.events.clear();
+            const size_t n = std::min(starts.size(), std::min(ends.size(), titles.size()));
+            for (size_t i = 0; i < n; i++)
+              m.events.push_back({starts[i], ends[i], std::string(titles[i])});
+            m.next_time = std::string(next_time);
+            m.next_title = std::string(next_title);
+            m.next_in = std::string(next_in);
+            if (id(ui).screen() == note4_ui::Screen::IDLE) id(ui).changed(false);
+
+    # idle / weather / timer / doorbell. For an automation, or for Assist via
+    # a script exposed to it.
+    - action: show_screen
+      variables:
+        name: string
+      then:
+        - script.execute:
+            id: ui_go
+            target: !lambda return std::string(name);
+
+    # Someone at the door: a camera snapshot (any URL the device can reach -
+    # a camera_proxy URL with its token works), a caption (AI Task's
+    # description, say) and where. Shows for ${doorbell_return_idle}.
+    - action: doorbell
+      variables:
+        url: string
+        caption: string
+        place: string
+      then:
+        - lambda: |-
+            auto &m = id(ui).model();
+            m.bell_caption = std::string(caption);
+            if (!place.empty()) m.bell_place = std::string(place);
+            m.bell_image_ready = false;
+            const auto t = id(rtc_time).now();
+            m.bell_time = t.is_valid() ? note4_ui::hhmm(t.hour, t.minute) : std::string();
+        - online_image.set_url:
+            id: bell_img
+            url: !lambda return std::string(url);
+        - script.execute:
+            id: ui_go
+            target: doorbell
+
+ota:
+  - platform: esphome
+    id: ota_esphome
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+  fast_connect: ${hidden_ssid}
+  ap:
+  on_connect:
+    - lambda: id(ui).model().wifi = true;
+    - script.execute: ui_status_changed
+  on_disconnect:
+    - lambda: id(ui).model().wifi = false;
+    - script.execute: ui_status_changed
+
+captive_portal:
+
+# The doorbell snapshot is fetched by the device itself.
+http_request:
+  # A local Home Assistant on plain http, or https with a self-signed
+  # certificate, is the normal case for a camera_proxy URL; verifying it would
+  # refuse exactly that.
+  verify_ssl: false
+
+###############################################################################
+# TIME
+#
+# Two clocks, on purpose. The Box-3 had only Home Assistant's, and deliberately
+# no `timezone:`: ESPHome's homeassistant time platform takes the zone from HA
+# only when the option is absent. That stays true here - the homeassistant
+# platform has no timezone.
+#
+# But this is a clock on battery with an RTC on the board, and the page of the
+# day must be right after a reboot before Wi-Fi is up, or with HA down. So the
+# PCF8563 gets the POSIX zone: at boot it sets the system clock from the RTC
+# and applies that zone; once HA connects, HA's zone and time take over, and
+# every HA sync is written back to the RTC. Both read the same system clock, so
+# either id gives the same now().
+###############################################################################
+
+i2c:
+  - id: i2c_bus
+    scl: ${i2c_scl}
+    sda: ${i2c_sda}
+
+time:
+  - platform: pcf8563
+    id: rtc_time
+    i2c_id: i2c_bus
+    address: 0x51
+    timezone: ${timezone}
+    on_time_sync:
+      - script.execute: ui_clock
+    # The minute tick for the clock on the idle screen. Hung off the RTC clock
+    # rather than HA's so it keeps ticking with HA down; it fires off the
+    # shared system time either way.
+    on_time:
+      - seconds: 0
+        then:
+          - script.execute: ui_clock
+  - platform: homeassistant
+    id: ha_time
+    on_time_sync:
+      - pcf8563.write_time: rtc_time
+      - script.execute: ui_clock
+
+###############################################################################
+# DISPLAY
+#
+# The driver (components/zectrix_epd) owns the panel, its SPI and its refresh
+# task; note4_ui owns what is drawn and decides which refresh it needs. The
+# display never redraws on a timer (`update_interval: never`): every refresh
+# is one the UI asked for through the handler installed in on_boot.
+###############################################################################
+
+display:
+  - platform: zectrix_epd
+    id: epd
+    update_interval: never
+    lambda: id(ui).draw(it);
+
+note4_ui:
+  id: ui
+  display_id: epd
+
+# The doorbell snapshot. Greyscale and pre-sized to the slot the skins draw it
+# in, so the decode does the scaling once and the image costs 264x300 = 79 KB.
+# JPEG only: that is what camera_proxy serves, and each extra decoder is flash.
+image:
+  - platform: online_image
+    id: bell_img
+    url: ${doorbell_placeholder_url}
+    format: JPEG
+    type: GRAYSCALE
+    resize: 264x300
+    update_interval: never
+    on_download_finished:
+      - lambda: |-
+          id(ui).model().bell_image_ready = true;
+          if (id(ui).screen() == note4_ui::Screen::DOORBELL) id(ui).changed(false);
+    on_error:
+      - logger.log:
+          level: WARN
+          format: "Doorbell snapshot could not be downloaded - the screen shows the caption only"
+
+###############################################################################
+# AUDIO
+#
+# Full duplex, via the third-party `esp_audio_stack` component. It owns the
+# whole I2S bus and the codec directly and runs a hardware echo reference,
+# which is what lets the device hear its own wake word while it is talking.
+#
+# THE NOTE 4 HAS ONE CODEC FOR BOTH DIRECTIONS, so the echo reference is not
+# the Box-3's (ES8311 output looped into a separate ES7210 on TDM slot 1). It
+# is the ES8311's own "digital feedback" mode: the RX frame comes back stereo,
+# left = the microphone ADC, right = what the DAC is playing, sample-aligned
+# with the mic because it is the same I2S frame. `no_dac_ref: false` on the
+# codec is what asks the driver for that route (Espressif's REG44 = 0x58,
+# "ADCL + DACR"), and the stack's README calls it the recommended AEC path for
+# this codec. So: `num_channels: 2` for a stereo bus, the reference on the
+# right, and the codec declared as both input and output at the same address.
+#
+# UNTESTED ON THIS BOARD, all of it. See `audio_bus_rate` for the one setting
+# most likely to need changing.
+###############################################################################
+
+external_components:
+  # Our fork of n-IA-hane/esphome-audio-stack: tag v2026.7.0 plus one commit, the
+  # compile-time shim upstream added in v2026.10.3-dev for ESPHome 2026.10 (which
+  # turned RingBuffer::handle_ into a method). Builds on 2026.9.1 and 2026.10.x;
+  # the audio code is otherwise the v2026.7.0 every Box-3 measurement was made
+  # on. Go back to upstream once a stable tag carries the fix.
+  - source: github://MichalZaniewicz/esphome-audio-stack@v2026.7.0-esphome2026.10
+    components: [esp_audio_stack, esp_aec]
+    # esp_afe (the fuller ESP-SR front end - noise suppression, AGC, VAD) is
+    # deliberately not pulled in. Every false-wake and hit-rate number behind
+    # the wake word settings is against the lighter esp_aec; switching
+    # processors changes the spectral features the wake word model sees.
+
+esp_audio_stack:
+  id: audio_stack
+  i2s_mclk_pin: ${i2s_mclk}
+  i2s_bclk_pin: ${i2s_bclk}
+  i2s_lrclk_pin: ${i2s_lrclk}
+  i2s_din_pin: ${i2s_din}
+  i2s_dout_pin: ${i2s_dout}
+  sample_rate: ${audio_bus_rate}
+  # What the mic, the AEC, the wake word and STT run at. esp_aec hard-requires
+  # 16000. Equal to the bus rate is allowed (no conversion), so this stays put
+  # whichever way `audio_bus_rate` goes.
+  output_sample_rate: 16000
+  # 16-bit samples in 16-bit slots: what the vendor runs (I2S_DATA_BIT_WIDTH_16)
+  # and what the Box-3 settled on after 32-bit slots failed I2S init there.
+  bits_per_sample: 16
+  slot_bit_width: 16
+  # ES8311 DIGITAL FEEDBACK. A stereo bus carries the DAC copy back on the
+  # right channel; the public speaker stays mono (`speaker_channels` default 1).
+  num_channels: 2
+  use_stereo_aec_reference: true
+  reference_channel: right
+  # Moves the non-DMA audio buffers out of internal RAM. On the Box-3 this was
+  # the difference between two DMA channels fitting and one. Costs nothing
+  # measurable, so it is kept even though a stereo STD bus asks for far less
+  # than the Box-3's four TDM slots did (and `dma_desc_num: 4`, which was the
+  # other half of that fix, is left at the default here).
+  buffers_in_psram: true
+  codec:
+    i2c_id: i2c_bus
+    input:
+      type: es8311
+      address: 0x18
+      no_dac_ref: false      # false = route the DAC back on the right channel
+    output:
+      type: es8311
+      address: 0x18
+      no_dac_ref: false
+  processor_id: aec_processor
+
+esp_aec:
+  id: aec_processor
+  mode: ${aec_mode_default}
+  filter_length: 4
+  # sample_rate is NOT set here: the component hard-clamps it to exactly 16000
+  # (cv.int_range(min=16000, max=16000)) and rejects any other value.
+
+microphone:
+  - platform: esp_audio_stack
+    id: note_mic
+    esp_audio_stack_id: audio_stack
+    # Do not add sample_rate/bits_per_sample/num_channels here - the platform's
+    # own schema rejects them outright, because the stream format belongs to the
+    # parent esp_audio_stack bus, not to this child.
+    #
+    # THE WAVEFORM ON THE LISTENING SCREEN. Audio callbacks arrive on the audio
+    # task, not on the main loop, so nothing here touches the UI: it only folds
+    # the samples into one level per 200 ms and leaves it in a float, which is
+    # a single aligned 32-bit store and so safe to read from the main loop. The
+    # 200 ms interval below is what moves it onto the screen. The level is RMS
+    # in dB mapped onto 0..1 between -60 and -10 dBFS: a linear RMS would put
+    # ordinary speech in the bottom tenth of the bar.
+    on_data:
+      - lambda: |-
+          if (!id(ui_mic_active)) return;
+          static float acc = 0.0f;
+          static uint32_t n = 0;
+          static uint32_t last = 0;
+          const int16_t *s = reinterpret_cast<const int16_t *>(x.data());
+          const size_t cnt = x.size() / sizeof(int16_t);
+          for (size_t i = 0; i < cnt; i++) {
+            const float v = s[i] / 32768.0f;
+            acc += v * v;
+          }
+          n += cnt;
+          const uint32_t now = millis();
+          if (now - last >= 200 && n > 0) {
+            const float db = 20.0f * log10f(sqrtf(acc / n) + 1e-6f);
+            const float lvl = (db + 60.0f) / 50.0f;
+            id(mic_level) = lvl < 0.0f ? 0.0f : (lvl > 1.0f ? 1.0f : lvl);
+            acc = 0.0f;
+            n = 0;
+            last = now;
+          }
+
+speaker:
+  - platform: esp_audio_stack
+    id: note_speaker
+    esp_audio_stack_id: audio_stack
+    buffer_duration: ${speaker_buffer_duration}
+
+media_player:
+  - platform: speaker
+    id: speaker_media_player
+    name: None
+    volume_min: ${volume_min}
+    volume_max: ${volume_max}
+    announcement_pipeline:
+      speaker: note_speaker
+      format: FLAC
+      # The bus rate, so the stack has nothing left to resample on the way out.
+      sample_rate: ${audio_bus_rate}
+      num_channels: 1
+    files:
+      - id: timer_finished_sound
+        file: ${timer_finished_sound_file}
+      - id: wake_sound
+        file: ${wake_sound_file}
+      - id: boot_sound
+        file: ${boot_sound_file}
+    on_idle:
+      - if:
+          condition:
+            and:
+              - not:
+                  voice_assistant.is_running:
+              - lambda: return !id(tts_reply_active);
+          then:
+            - script.execute: start_wake_word
+            - script.execute: set_idle_phase
+
+###############################################################################
+# VOICE ASSISTANT
+###############################################################################
+
+micro_wake_word:
+  id: mww
+  # The wake word runs its inference locally on the RAW microphone stream, so it
+  # gets none of the `auto_gain` / `volume_multiplier` below - those are sent to
+  # Home Assistant and applied there, to the speech-to-text stream only. On a
+  # quiet mic that splits the two apart: dictation transcribes perfectly while
+  # the wake word never reaches its probability cutoff. `gain_factor` is the knob
+  # for it, and 4 is what Home Assistant Voice PE ships. On the Box-3 it turned
+  # out NOT to matter (identical at 1 and 4); kept because the reference
+  # hardware ships it, and this board's single mic is unmeasured.
+  microphone:
+    id: mww_mic_src
+    microphone: note_mic
+    channels: 0
+    gain_factor: ${mww_gain_factor}
+  # Three models, so Home Assistant offers a choice in its wake word picker: the
+  # device reports every model here as an available wake word, and allows one
+  # active at a time. Each costs inference per frame.
+  #
+  # VAD gates every detection - a wake word the VAD disagrees with is
+  # suppressed. On the Box-3 it was re-enabled on 2026-07-30 against false
+  # wakes from non-speech noise (fridge hum, running water); it cannot help
+  # with false wakes from actual voices (TV, conversation). If quiet real
+  # "Alexa" attempts go missing, revert this one line first.
+  vad:
+
+  # Cutoffs are exposed because they are the only way to see how close a wake
+  # word is getting: the component logs a detection and its probability, but
+  # logs NOTHING for a near miss.
+  models:
+    - model: alexa
+      id: mww_alexa
+      probability_cutoff: ${alexa_probability_cutoff}
+      sliding_window_size: ${alexa_sliding_window}
+    - model: okay_nabu
+      id: mww_okay_nabu
+      probability_cutoff: ${okay_nabu_probability_cutoff}
+      sliding_window_size: ${okay_nabu_sliding_window}
+    - model: hey_jarvis
+      id: mww_hey_jarvis
+      probability_cutoff: ${hey_jarvis_probability_cutoff}
+      sliding_window_size: ${hey_jarvis_sliding_window}
+    # STOP WORD. "Stop" on its own, no "Alexa" first: silences a ringing timer,
+    # cuts a reply short (on the device and on the external speaker), stops
+    # whatever the device itself is playing. The model Home Assistant Voice PE
+    # uses, and the same arrangement:
+    #
+    # - `internal: true` keeps it out of Home Assistant's wake word picker, and
+    #   out of what HA switches on and off.
+    # - It is OFF except while there is something to stop. `stop_word_sync`
+    #   (script, below) switches it on and off. A disabled model is skipped
+    #   per frame and its tensor arena freed, so at rest this costs nothing.
+    # - It is listed LAST on purpose: the component enables only the first model
+    #   by default, and internal models never save an enabled state to flash.
+    #
+    # Only with "Wake word engine location" = On device.
+    - model: https://github.com/kahrendt/microWakeWord/releases/download/stop/stop.json
+      id: mww_stop
+      internal: true
+      probability_cutoff: ${stop_probability_cutoff}
+      sliding_window_size: ${stop_sliding_window}
+  on_wake_word_detected:
+    # "Stop" stops and goes no further: no beep, no new conversation. ESPHome
+    # has no early return, so the normal path is the `else:`.
+    - if:
+        condition:
+          lambda: return wake_word == "Stop";
+        then:
+          - script.execute:
+              id: stop_all
+              source: "Stop word heard"
+        else:
+          - lambda: id(ui).model().wake_word = wake_word;
+          # TIMER ALARM. `timer_ringing`'s on_turn_on sets REPEAT_ONE plus a 1 s
+          # playlist delay on the media player, and stopping only the current
+          # announcement would leave that armed - the wake beep that plays
+          # next inherits it and loops forever (seen on the Box-3, 2026-07-31).
+          # `switch.turn_off: timer_ringing` is the complete cleanup; reuse it.
+          - if:
+              condition:
+                switch.is_on: timer_ringing
+              then:
+                - switch.turn_off: timer_ringing
+          # BARGE-IN. `voice_assistant.start:` below is `request_start()`, which
+          # is a no-op unless the component is already IDLE - so a wake word
+          # heard mid-reply used to do nothing at all. Stopping first forces the
+          # running response to end so the start below lands on IDLE.
+          #
+          # RISK, from the Box-3: interrupting local playback mid-flight once
+          # hung the NEXT pipeline in "listening" (with `speaker.mute_on`, a
+          # different mechanism). Watch for that symptom.
+          - if:
+              condition:
+                voice_assistant.is_running:
+              then:
+                # The external speaker is a separate `media_player.play_media`
+                # call that the device's own stop never reaches. Fired first:
+                # it is a network round trip, so give it the head start.
+                - if:
+                    condition:
+                      lambda: return id(tts_output).current_option() != "This device";
+                    then:
+                      - homeassistant.action:
+                          action: media_player.media_stop
+                          data:
+                            entity_id: ${external_media_player_id}
+                - voice_assistant.stop:
+                - wait_until:
+                    condition:
+                      not:
+                        voice_assistant.is_running:
+                    timeout: 2s
+          - if:
+              condition:
+                switch.is_on: wake_sound_enabled
+              then:
+                - lambda: id(wake_sound_active) = true;
+                - media_player.speaker.play_on_device_media_file:
+                    media_file: wake_sound
+                    announcement: true
+                - wait_until:
+                    condition:
+                      media_player.is_announcing:
+                    timeout: 300ms
+                - wait_until:
+                    condition:
+                      not:
+                        media_player.is_announcing:
+                    timeout: 3s
+                - lambda: id(wake_sound_active) = false;
+          - voice_assistant.start:
+              wake_word: !lambda return wake_word;
+
+voice_assistant:
+  id: va
+  microphone: note_mic
+  micro_wake_word: mww
+  # See the header: this is what makes Home Assistant offer the wake word picker
+  # and lets the satellite entity leave `responding`.
+  media_player: speaker_media_player
+  noise_suppression_level: 2
+  auto_gain: 31dBFS
+  volume_multiplier: 2.0
+  on_listening:
+    - lambda: id(voice_assistant_phase) = ${voice_assist_listening_phase_id};
+    - script.execute: ui_listen
+  on_stt_vad_end:
+    # The user stopped talking: the waveform has nothing more to say, so stop
+    # feeding it, and the light goes off at the moment the device stops
+    # listening rather than when the text comes back.
+    - lambda: |-
+        id(voice_assistant_phase) = ${voice_assist_thinking_phase_id};
+        id(ui_mic_active) = false;
+    - output.turn_off: led_out
+  on_stt_end:
+    - script.execute:
+        id: ui_think
+        text: !lambda return x;
+  # The LLM has started streaming: the "composing" step. Once per conversation,
+  # and partial - it is one line of the THINK screen.
+  on_intent_progress:
+    - lambda: |-
+        auto &m = id(ui).model();
+        if (id(ui).screen() == note4_ui::Screen::THINK && m.pipeline_step < 2) {
+          m.pipeline_step = 2;
+          id(ui).changed(true);
+        }
+  on_tts_start:
+    - lambda: |-
+        id(tts_chars) = x.length();
+        id(tts_started_ms) = millis();
+        id(tts_reply_active) = true;
+    # BARGE-IN, part 2. `micro_wake_word` turns itself off the instant a
+    # pipeline leaves IDLE and, left alone, only comes back after the reply -
+    # so for the ENTIRE reply nothing is listening at all (confirmed on the
+    # Box-3: zero detections in a ~15 s reply even with the cutoff at 0.25).
+    # Restarting HERE uses the ~1.5 s gap between the TTS URL arriving and the
+    # speaker producing sound: the mic consumer brings the shared audio stack
+    # up first, and the speaker joins an already-running session rather than
+    # both cold-starting DMA at once.
+    - if:
+        condition:
+          lambda: return id(wake_word_engine_location).current_option() == "On device";
+        then:
+          - micro_wake_word.start:
+    # CUT THE AMPLIFIER for an External-player reply. The device downloads and
+    # decodes every reply whatever the routing says (see the header), so
+    # "External player" would otherwise come out of both speakers. Cancelling
+    # the local playback does not work reliably - on the Box-3 the fetch alone
+    # took sixteen seconds and a stop issued during it was discarded. This
+    # kills the SOUND rather than the playback: GPIO46 is the amplifier enable,
+    # the decode continues and the room just does not hear it. Deliberately NOT
+    # `speaker.mute_on` - on the Box-3 that left the next pipeline hung in
+    # `listening`. Three paths switch it back on and two are unconditional.
+    - if:
+        condition:
+          lambda: return id(tts_output).current_option() == "External player";
+        then:
+          - switch.turn_off: speaker_enable
+    - lambda: id(voice_assistant_phase) = ${voice_assist_replying_phase_id};
+    - script.execute:
+        id: ui_answer
+        text: !lambda return x;
+  # `x` is the TTS media URL. This trigger also fires for HA's "announce" API
+  # when no media player is attached, so announcements follow the same routing.
+  on_tts_end:
+    # ESPHome has already started playing `x` on speaker_media_player by the time
+    # this runs. So local playback needs no action here - only the external hop,
+    # and cancelling the local one when the reply is not meant for this speaker.
+    - if:
+        condition:
+          lambda: return id(tts_output).current_option() != "This device";
+        then:
+          - homeassistant.action:
+              action: media_player.play_media
+              data:
+                entity_id: ${external_media_player_id}
+                media_content_id: !lambda 'return x;'
+                media_content_type: music
+                announce: "true"
+    - if:
+        condition:
+          lambda: return id(tts_output).current_option() == "External player";
+        then:
+          # KEEP ASKING UNTIL IT LETS GO. A single stop is useless: the
+          # announcement enters ANNOUNCING the moment the URL arrives, but a
+          # stop issued while it is still downloading is simply discarded.
+          - lambda: id(cancel_deadline) = millis() + 45000;
+          - while:
+              condition:
+                and:
+                  - media_player.is_announcing:
+                  - lambda: return millis() < id(cancel_deadline);
+              then:
+                - media_player.stop:
+                    announcement: true
+                - delay: 250ms
+  on_end:
+    # WAIT OUT THE LOCAL REPLY. `on_end` fires when the PIPELINE ends, which
+    # happens BEFORE the answer has even started playing ("Assist Pipeline
+    # ended" then "State changed to ANNOUNCING"). Without this wait the tail
+    # below would test "has the assistant finished" mid-reply, fail, and
+    # nothing else would ever send the screen back.
+    - wait_until:
+        condition:
+          - media_player.is_announcing:
+        timeout: 0.5s
+    # TIMEOUT, and it is not decorative. On the Box-3 this wait once had none,
+    # and after an "ISR event queue overflow" speaker.is_playing never went
+    # false - the device was deaf until a reboot.
+    - wait_until:
+        condition:
+          - and:
+              - not:
+                  media_player.is_announcing:
+              - not:
+                  speaker.is_playing:
+        timeout: 60s
+    # Nothing above waits for an EXTERNAL speaker - the device cannot hear it.
+    # Hold the replying phase for as long as the reply plausibly takes, so the
+    # wake word stays off until the speaker is done.
+    - if:
+        condition:
+          lambda: return id(tts_output).current_option() != "This device";
+        then:
+          # FOLLOW THE SPEAKER IF WE CAN SEE IT; the estimate becomes the
+          # deadline, measured FROM WHEN THE REPLY STARTED, not from here -
+          # above is a wait for local playback that can itself run the length
+          # of the reply, and counting from here doubled the deafness in "Both".
+          - if:
+              condition:
+                lambda: |-
+                  const std::string &st = id(external_player_state).state;
+                  return !st.empty() && st != "unknown" && st != "unavailable";
+              then:
+                - lambda: |-
+                    uint32_t ms = ${tts_hold_lead_ms} + ${tts_hold_base_ms}
+                                + (uint32_t) id(tts_chars) * ${tts_hold_ms_per_char};
+                    if (ms > ${tts_hold_max_ms}) ms = ${tts_hold_max_ms};
+                    id(hold_deadline) = id(tts_started_ms) + ms;
+                - wait_until:
+                    condition:
+                      lambda: |-
+                        return id(external_player_state).state == "playing"
+                            || millis() > id(hold_deadline);
+                    timeout: ${tts_wait_start_ms}ms
+                # IF IT NEVER SAID "playing", DO NOT TRUST IT. Some speakers
+                # report `off` throughout, which made "has it stopped yet"
+                # instantly true and let the wake word back in mid-reply.
+                - if:
+                    condition:
+                      lambda: return id(external_player_state).state == "playing";
+                    then:
+                      - wait_until:
+                          condition:
+                            lambda: |-
+                              return id(external_player_state).state != "playing"
+                                  || millis() > id(hold_deadline);
+                          timeout: ${tts_hold_max_ms}ms
+                    else:
+                      - wait_until:
+                          condition:
+                            lambda: return millis() > id(hold_deadline);
+                          timeout: ${tts_hold_max_ms}ms
+              else:
+                # What is left of the estimate counted from the start of the
+                # reply. Clamped at zero: by now the reply has often outlived it.
+                # THE CAP, NOT THE RATE, IS WHAT CUTS A LONG REPLY SHORT - a
+                # 30 s cap once expired mid-sentence on a 450-character answer.
+                - delay: !lambda |-
+                    uint32_t ms = ${tts_hold_lead_ms} + ${tts_hold_base_ms}
+                                + (uint32_t) id(tts_chars) * ${tts_hold_ms_per_char};
+                    if (ms > ${tts_hold_max_ms}) ms = ${tts_hold_max_ms};
+                    const uint32_t deadline = id(tts_started_ms) + ms;
+                    const uint32_t now = millis();
+                    return now >= deadline ? 0 : deadline - now;
+    # AMPLIFIER BACK ON, unconditionally. Not "if we turned it off" - if that ever
+    # disagreed with reality the device would be mute for good, timer alarm and
+    # wake beep included.
+    - switch.turn_on: speaker_enable
+    - lambda: id(tts_reply_active) = false;
+    # A safety reaffirmation, not a restart - start_wake_word's own guard
+    # against a still-running pipeline makes it harmless here.
+    - script.execute: start_wake_word
+    # THE TAIL NEEDS THE SAME GUARD. This handler can arrive a full minute late,
+    # by which time the user may have started a NEW conversation; the late tail
+    # must not force the idle phase over it. And it has to WAIT, not test once:
+    # on the Box-3, testing once was wrong by 24 ms (the pipeline was still in
+    # RESPONSE_FINISHED) and left the screen saying "speaking" indefinitely.
+    # Short timeout: long enough for the pipeline to settle, far too short to
+    # cover a real new conversation.
+    - wait_until:
+        condition:
+          not:
+            voice_assistant.is_running:
+        timeout: 2s
+    - if:
+        condition:
+          not:
+            voice_assistant.is_running:
+        then:
+          - script.execute: set_idle_phase
+          - lambda: id(ui_mic_active) = false;
+          - output.turn_off: led_out
+          # A reply on screen stays readable for a while; a conversation that
+          # ended without one (cancelled, nothing heard) goes straight back.
+          - if:
+              condition:
+                lambda: return id(ui).screen() == note4_ui::Screen::ANSWER;
+              then:
+                - script.execute: ui_typing_finish
+                - script.execute: ui_idle_later
+              else:
+                - script.execute: ui_rest
+  on_error:
+    - if:
+        condition:
+          lambda: return !id(init_in_progress);
+        then:
+          - lambda: |-
+              id(voice_assistant_phase) = ${voice_assist_error_phase_id};
+              id(ui_mic_active) = false;
+          - output.turn_off: led_out
+          # "Nothing heard" is what a false wake word ends in, and it is
+          # common. A minute-long error card for each one would be worse than
+          # the false wake itself, so that one just goes home. Anything else
+          # is worth saying, in the answer slot where the reply would be.
+          - if:
+              condition:
+                lambda: return code == "stt-no-text-recognized";
+              then:
+                - script.execute: ui_rest
+              else:
+                - lambda: |-
+                    auto &m = id(ui).model();
+                    m.answer = "Coś poszło nie tak (" + code + ").";
+                    m.answer_words_shown = -1;
+                    id(ui).show(note4_ui::Screen::ANSWER);
+                - script.execute: ui_idle_later
+          - delay: 1s
+          # A second is long enough for the next conversation to have begun -
+          # on_end restarts the wake word after an error - and forcing the idle
+          # phase on top of it would be wrong.
+          - if:
+              condition:
+                not:
+                  voice_assistant.is_running:
+              then:
+                - script.execute: set_idle_phase
+  on_client_connected:
+    - lambda: id(init_in_progress) = false;
+    - script.execute: start_wake_word
+    - script.execute: set_idle_phase
+    # Once per boot, not on every reconnect: HA restarting is not the device
+    # waking up, and nobody wants a chime for it.
+    - if:
+        condition:
+          lambda: return !id(chime_done);
+        then:
+          - lambda: id(chime_done) = true;
+          - script.execute: boot_chime
+  on_client_disconnected:
+    - script.execute: stop_wake_word
+    - lambda: id(voice_assistant_phase) = ${voice_assist_not_ready_phase_id};
+  on_timer_started:
+    - script.execute: ui_timer_sync
+  on_timer_cancelled:
+    - script.execute: ui_timer_sync
+  on_timer_updated:
+    - script.execute: ui_timer_sync
+  on_timer_tick:
+    - script.execute: ui_timer_sync
+  on_timer_finished:
+    - switch.turn_on: timer_ringing
+
+###############################################################################
+# STATE
+###############################################################################
+
+globals:
+  - id: init_in_progress
+    type: bool
+    restore_value: false
+    initial_value: "true"
+  - id: voice_assistant_phase
+    type: int
+    restore_value: false
+    initial_value: ${voice_assist_not_ready_phase_id}
+  # Set from the moment a reply starts until it has finished playing. The media
+  # player's own handlers must not touch the wake word in that window: at
+  # TTS_END the assistant has already gone IDLE, so without this they treat the
+  # reply as ordinary playback.
+  - id: tts_reply_active
+    type: bool
+    restore_value: false
+    initial_value: "false"
+  # How long to keep telling the local player to stop, in millis().
+  - id: cancel_deadline
+    type: uint32_t
+    restore_value: false
+    initial_value: "0"
+  # When the replying phase must end at the latest, in millis(). The external
+  # speaker's own state ends it sooner when that state can be trusted.
+  - id: hold_deadline
+    type: uint32_t
+    restore_value: false
+    initial_value: "0"
+  # Consecutive 10 s checks during which the assistant was idle and the wake word
+  # was not running. Four in a row and the watchdog restarts it.
+  - id: deaf_ticks
+    type: int
+    restore_value: false
+    initial_value: "0"
+  # Set while the wake beep plays, so the stop word does not arm for it.
+  - id: wake_sound_active
+    type: bool
+    restore_value: false
+    initial_value: "false"
+  # Length of the reply being spoken, for the external-playback hold.
+  - id: tts_chars
+    type: int
+    restore_value: false
+    initial_value: "0"
+  # When the reply began, in millis(). The hold is an estimate of how long the
+  # whole answer takes to SPEAK, so it has to be measured from here.
+  - id: tts_started_ms
+    type: uint32_t
+    restore_value: false
+    initial_value: "0"
+  # The boot chime: played once per boot (`chime_done`), and `chime_active`
+  # while it plays, so the stop word does not arm for it.
+  - id: chime_done
+    type: bool
+    restore_value: false
+    initial_value: "false"
+  - id: chime_active
+    type: bool
+    restore_value: false
+    initial_value: "false"
+  # The UI is up and the skins have registered (see on_boot -500). Until then
+  # the "Skórka" select only remembers its value; applying it would fail.
+  - id: ui_ready
+    type: bool
+    restore_value: false
+    initial_value: "false"
+  # The listening screen's waveform: whether the mic level is wanted, the last
+  # level (written on the audio task, read on the main loop), and when the
+  # listening started, for the seconds counter.
+  - id: ui_mic_active
+    type: bool
+    restore_value: false
+    initial_value: "false"
+  - id: mic_level
+    type: float
+    restore_value: false
+    initial_value: "0.0"
+  - id: listen_started_ms
+    type: uint32_t
+    restore_value: false
+    initial_value: "0"
+  # The typed answer: how many words it has and when typing began (in the
+  # future by the TTS lead, so it may be ahead of millis()).
+  - id: answer_words
+    type: int
+    restore_value: false
+    initial_value: "0"
+  - id: answer_started_ms
+    type: uint32_t
+    restore_value: false
+    initial_value: "0"
+
+script:
+  # --- SCREEN -----------------------------------------------------------------
+  #
+  # Every screen change goes through one of these, so the rules about which
+  # refresh to spend live in one place. `show()` is a full refresh and flashes
+  # the panel; `changed(true)` is a partial one and does not. Nothing calls
+  # show() for a screen that is already up.
+
+  # Woken: the waveform and the seconds counter, and the light on.
+  - id: ui_listen
+    then:
+      - script.stop: ui_idle_later
+      - script.stop: ui_typing
+      - lambda: |-
+          auto &m = id(ui).model();
+          m.question.clear();
+          m.answer.clear();
+          m.facts.clear();
+          m.answer_words_shown = -1;
+          m.pipeline_step = 0;
+          m.listen_seconds = 0;
+          m.mic_history.fill(0.0f);
+          id(mic_level) = 0.0f;
+          id(listen_started_ms) = millis();
+          id(ui_mic_active) = true;
+          id(ui).show(note4_ui::Screen::LISTEN);
+      - output.turn_on: led_out
+
+  # The question came back from STT: show it, with HA now working on it.
+  - id: ui_think
+    parameters:
+      text: string
+    then:
+      - lambda: |-
+          id(ui_mic_active) = false;
+          auto &m = id(ui).model();
+          m.question = text;
+          m.pipeline_step = 1;
+          id(ui).show(note4_ui::Screen::THINK);
+      - output.turn_off: led_out
+
+  # The reply text: the answer screen, typed word by word while it is spoken.
+  # Counted in words because that is what the skin reveals; the TTS lead puts
+  # the start of the typing where the sound starts, not where the text arrived.
+  - id: ui_answer
+    mode: restart
+    parameters:
+      text: string
+    then:
+      - script.stop: ui_idle_later
+      - lambda: |-
+          auto &m = id(ui).model();
+          m.answer = text;
+          int words = 0;
+          bool in_word = false;
+          for (char c : text) {
+            const bool space = c == ' ' || c == '\n' || c == '\t';
+            if (!space && !in_word) words++;
+            in_word = !space;
+          }
+          id(answer_words) = words;
+          id(answer_started_ms) = millis() + ${answer_typing_lead_ms};
+          // A one-word answer has nothing to type.
+          m.answer_words_shown = words > 1 ? 0 : -1;
+          id(ui).show(note4_ui::Screen::ANSWER);
+      - script.execute: ui_typing
+
+  # The typing itself. Partial refreshes only, one per step and only when the
+  # word count moved; the last word is followed by one full refresh, because
+  # partial refreshes leave ghosting and the finished answer is the frame that
+  # stays on the panel for the next minute.
+  - id: ui_typing
+    mode: restart
+    then:
+      - while:
+          condition:
+            lambda: |-
+              return id(ui).screen() == note4_ui::Screen::ANSWER &&
+                     id(ui).model().answer_words_shown >= 0;
+          then:
+            - delay: ${answer_step_ms}ms
+            - lambda: |-
+                auto &m = id(ui).model();
+                if (m.answer_words_shown < 0) return;
+                int32_t el = (int32_t) (millis() - id(answer_started_ms));
+                if (el < 0) el = 0;
+                const int shown = (int) (el * ${answer_words_per_second} / 1000.0f);
+                if (shown >= id(answer_words)) {
+                  m.answer_words_shown = -1;
+                  id(ui).changed(false);
+                } else if (shown != m.answer_words_shown) {
+                  m.answer_words_shown = shown;
+                  id(ui).changed(true);
+                }
+
+  # The speech ended before the estimate did (a fast voice, a reply cut short
+  # with "Stop"): show the rest of the answer now rather than keep typing it at
+  # a room that has gone quiet.
+  - id: ui_typing_finish
+    then:
+      - script.stop: ui_typing
+      - lambda: |-
+          auto &m = id(ui).model();
+          if (m.answer_words_shown >= 0 && id(ui).screen() == note4_ui::Screen::ANSWER) {
+            m.answer_words_shown = -1;
+            id(ui).changed(false);
+          }
+
+  # Back to the page of the day after a conversation, once it has been read.
+  # Only from the conversation screens: if the user moved on (UP/DOWN, a
+  # doorbell), they meant it.
+  - id: ui_idle_later
+    mode: restart
+    then:
+      - delay: ${ui_return_idle}
+      - if:
+          condition:
+            and:
+              - not:
+                  voice_assistant.is_running:
+              - lambda: |-
+                  const auto s = id(ui).screen();
+                  return s == note4_ui::Screen::ANSWER || s == note4_ui::Screen::THINK ||
+                         s == note4_ui::Screen::LISTEN;
+          then:
+            - lambda: id(ui).show(note4_ui::Screen::IDLE);
+
+  # Back to the page of the day now: a conversation with nothing to show.
+  - id: ui_rest
+    then:
+      - script.stop: ui_typing
+      - lambda: |-
+          const auto s = id(ui).screen();
+          if (s == note4_ui::Screen::LISTEN || s == note4_ui::Screen::THINK)
+            id(ui).show(note4_ui::Screen::IDLE);
+
+  # Show a screen by name: idle, weather, timer, doorbell. Used by the
+  # show_screen action, the buttons and the doorbell. A conversation keeps the
+  # screen; the doorbell is the one thing allowed to interrupt it.
+  - id: ui_go
+    mode: queued
+    parameters:
+      target: string
+    then:
+      - lambda: |-
+          using note4_ui::Screen;
+          Screen s;
+          if (target == "idle") s = Screen::IDLE;
+          else if (target == "weather") s = Screen::WEATHER;
+          else if (target == "timer") s = Screen::TIMER;
+          else if (target == "doorbell") s = Screen::DOORBELL;
+          else {
+            ESP_LOGW("ui", "Unknown screen \"%s\" (idle, weather, timer, doorbell)", target.c_str());
+            return;
+          }
+          if (s == Screen::TIMER && !id(ui).model().timer_active) {
+            ESP_LOGW("ui", "No timer is running - not showing the timer screen");
+            return;
+          }
+          const Screen cur = id(ui).screen();
+          const bool talking = cur == Screen::LISTEN || cur == Screen::THINK ||
+                               (cur == Screen::ANSWER && id(tts_reply_active));
+          if (talking && s != Screen::DOORBELL) return;
+          if (s != cur) id(ui).show(s);
+          else id(ui).changed(false);
+      - script.stop: ui_idle_later
+      - if:
+          condition:
+            lambda: return id(ui).screen() == note4_ui::Screen::WEATHER;
+          then:
+            - script.execute: ui_weather_timeout
+      - if:
+          condition:
+            lambda: return id(ui).screen() == note4_ui::Screen::DOORBELL;
+          then:
+            - script.execute: ui_doorbell_timeout
+
+  # UP / DOWN: step through IDLE -> WEATHER -> TIMER and wrap; TIMER only
+  # exists while a timer runs. From anywhere off that ring (a finished answer,
+  # the doorbell) the first press goes home. Ignored mid-conversation and
+  # while the alarm rings, where a stray press must not hide what is going on.
+  - id: ui_nav
+    parameters:
+      dir: int
+    then:
+      - if:
+          condition:
+            and:
+              - not:
+                  voice_assistant.is_running:
+              - switch.is_off: timer_ringing
+              - lambda: return !id(tts_reply_active);
+          then:
+            - script.execute:
+                id: ui_go
+                target: !lambda |-
+                  using note4_ui::Screen;
+                  std::vector<Screen> ring = {Screen::IDLE, Screen::WEATHER};
+                  if (id(ui).model().timer_active) ring.push_back(Screen::TIMER);
+                  const int n = ring.size();
+                  const Screen cur = id(ui).screen();
+                  int idx = -1;
+                  for (int i = 0; i < n; i++)
+                    if (ring[i] == cur) idx = i;
+                  const Screen next = idx < 0 ? Screen::IDLE : ring[((idx + dir) % n + n) % n];
+                  if (next == Screen::WEATHER) return std::string("weather");
+                  if (next == Screen::TIMER) return std::string("timer");
+                  return std::string("idle");
+
+  - id: ui_weather_timeout
+    mode: restart
+    then:
+      - delay: ${weather_return_idle}
+      - if:
+          condition:
+            lambda: return id(ui).screen() == note4_ui::Screen::WEATHER;
+          then:
+            - lambda: id(ui).show(note4_ui::Screen::IDLE);
+
+  # The snapshot goes away after a minute, and so does its 79 KB of PSRAM.
+  - id: ui_doorbell_timeout
+    mode: restart
+    then:
+      - delay: ${doorbell_return_idle}
+      - if:
+          condition:
+            lambda: return id(ui).screen() == note4_ui::Screen::DOORBELL;
+          then:
+            - lambda: id(ui).show(note4_ui::Screen::IDLE);
+      - lambda: id(ui).model().bell_image_ready = false;
+      - online_image.release: bell_img
+
+  # The clock: hour, minute, Polish weekday and date. Partial, and only on the
+  # page of the day - the other screens have no clock. Midnight is a full
+  # refresh: the date line changes and the day timeline starts over.
+  - id: ui_clock
+    then:
+      - lambda: |-
+          const auto t = id(rtc_time).now();
+          if (!t.is_valid()) return;
+          static const char *const DAYS[] = {"niedziela", "poniedziałek", "wtorek", "środa",
+                                             "czwartek", "piątek", "sobota"};
+          static const char *const MONTHS[] = {"stycznia", "lutego", "marca", "kwietnia",
+                                               "maja", "czerwca", "lipca", "sierpnia",
+                                               "września", "października", "listopada", "grudnia"};
+          auto &m = id(ui).model();
+          const bool new_day = m.date.empty() || (t.hour == 0 && t.minute == 0);
+          m.hour = t.hour;
+          m.minute = t.minute;
+          m.second = t.second;
+          if (t.day_of_week >= 1 && t.day_of_week <= 7) m.weekday = DAYS[t.day_of_week - 1];
+          if (t.month >= 1 && t.month <= 12) m.date = std::to_string(t.day_of_month) + " " + MONTHS[t.month - 1];
+          if (!id(ui_ready) || id(ui).screen() != note4_ui::Screen::IDLE) return;
+          id(ui).changed(!new_day);
+
+  # Wi-Fi or HA came or went. Rare, and the status marks are not a live
+  # region, so a full refresh of the page of the day - but only once the
+  # device is past booting, or every boot would flash the panel three times.
+  - id: ui_status_changed
+    then:
+      - if:
+          condition:
+            lambda: |-
+              return id(ui_ready) && !id(init_in_progress) &&
+                     id(ui).screen() == note4_ui::Screen::IDLE;
+          then:
+            - lambda: id(ui).changed(false);
+
+  # Timers into the model. The soonest running timer wins; a paused one is
+  # shown only when nothing runs. While the alarm rings the timer is gone from
+  # the list, so `timer_active` also covers "ringing" - the TIMER screen stays
+  # up until someone silences it.
+  #
+  # Refresh: the card appearing or disappearing changes the page layout (full);
+  # the countdown moving is a live region (partial); and nothing at all when
+  # neither screen with a timer on it is up.
+  - id: ui_timer_sync
+    then:
+      - lambda: |-
+          const auto &timers = id(va).get_timers();
+          auto &m = id(ui).model();
+          const bool was = m.timer_active;
+          const voice_assistant::Timer *best = nullptr;
+          for (const auto &t : timers)
+            if (t.is_active && (best == nullptr || t.seconds_left < best->seconds_left)) best = &t;
+          if (best == nullptr)
+            for (const auto &t : timers)
+              if (best == nullptr || t.seconds_left < best->seconds_left) best = &t;
+          const bool ringing = id(timer_ringing).state;
+          if (best != nullptr) {
+            m.timer_name = best->name.empty() ? std::string("Minutnik") : best->name;
+            m.timer_remaining = best->seconds_left;
+            m.timer_total = best->total_seconds;
+            const auto now = id(rtc_time).now();
+            if (now.is_valid()) {
+              const time_t ts = now.timestamp;
+              const ESPTime s = ESPTime::from_epoch_local(ts - (time_t) (best->total_seconds - best->seconds_left));
+              const ESPTime e = ESPTime::from_epoch_local(ts + (time_t) best->seconds_left);
+              m.timer_start = note4_ui::hhmm(s.hour, s.minute);
+              m.timer_end = note4_ui::hhmm(e.hour, e.minute);
+            }
+          } else if (ringing) {
+            m.timer_remaining = 0;
+          }
+          m.timer_active = best != nullptr || ringing;
+          if (!id(ui_ready)) return;
+          const auto scr = id(ui).screen();
+          if (scr == note4_ui::Screen::TIMER && !m.timer_active) id(ui).show(note4_ui::Screen::IDLE);
+          else if (scr == note4_ui::Screen::IDLE && was != m.timer_active) id(ui).changed(false);
+          else if (scr == note4_ui::Screen::IDLE || scr == note4_ui::Screen::TIMER) id(ui).changed(true);
+
+  # --- AUDIO ------------------------------------------------------------------
+
+  # The boot chime, once per boot from the first API connection - the moment
+  # the device is actually usable. NOT between 22:00 and 7:00: a battery
+  # device reboots after a power cut or an OTA, and the Box-3's rule was that
+  # a reboot at 3 am must not chime the house awake (there it was night mode;
+  # there is no night mode here, so it is the clock).
+  - id: boot_chime
+    then:
+      - if:
+          condition:
+            and:
+              - switch.is_on: boot_sound_enabled
+              - lambda: |-
+                  const auto t = id(rtc_time).now();
+                  return !t.is_valid() || (t.hour >= 7 && t.hour < 22);
+          then:
+            - lambda: id(chime_active) = true;
+            - media_player.speaker.play_on_device_media_file:
+                media_file: boot_sound
+                announcement: true
+            - delay: 3500ms
+            - lambda: id(chime_active) = false;
+
+  # Starts whichever wake word engine is selected. mWW runs on the device;
+  # "In Home Assistant" streams audio continuously instead.
+  - id: start_wake_word
+    # RESTART, not the default single. A pending call below can be waiting out a
+    # pipeline that is still finishing; if a new interaction begins meanwhile,
+    # `single` would DROP the fresh call and let the stale one proceed against
+    # the wrong state. Restart supersedes it.
+    mode: restart
+    then:
+      # WAIT for a pipeline to finish rather than giving up on it. Refusing
+      # SILENTLY and never trying again is what made the Box-3 go deaf after
+      # every reply: on_end reached here two seconds before the pipeline went
+      # idle, and the wake word stayed off until the watchdog noticed.
+      - wait_until:
+          condition:
+            and:
+              - not:
+                  - voice_assistant.is_running:
+              - not:
+                  - speaker.is_playing:
+          timeout: 30s
+      - if:
+          condition:
+            and:
+              - not:
+                  - voice_assistant.is_running:
+              - lambda: return id(wake_word_engine_location).current_option() == "On device";
+          then:
+            - lambda: id(va).set_use_wake_word(false);
+            - micro_wake_word.start:
+      - if:
+          condition:
+            and:
+              - not:
+                  - voice_assistant.is_running:
+              - lambda: return id(wake_word_engine_location).current_option() == "In Home Assistant";
+          then:
+            - lambda: id(va).set_use_wake_word(true);
+            - voice_assistant.start_continuous:
+
+  - id: stop_wake_word
+    then:
+      - if:
+          condition:
+            lambda: return id(wake_word_engine_location).current_option() == "In Home Assistant";
+          then:
+            - lambda: id(va).set_use_wake_word(false);
+            - voice_assistant.stop:
+      - if:
+          condition:
+            lambda: return id(wake_word_engine_location).current_option() == "On device";
+          then:
+            - micro_wake_word.stop:
+
+  # STOP: everything it can stop, in the order that matters: the alarm first
+  # (it is the loudest and the most likely reason to reach for it), then a
+  # reply, then plain playback. Each step is guarded, so one "Stop" while two
+  # things are going stops both. Called by the stop word and the OK button.
+  - id: stop_all
+    mode: single
+    parameters:
+      source: string
+    then:
+      - logger.log:
+          level: INFO
+          format: "%s - stopping"
+          args: ['source.c_str()']
+      - if:
+          condition:
+            switch.is_on: timer_ringing
+          then:
+            - switch.turn_off: timer_ringing
+      - if:
+          condition:
+            lambda: return id(tts_reply_active);
+          then:
+            - if:
+                condition:
+                  lambda: return id(tts_output).current_option() != "This device";
+                then:
+                  - homeassistant.action:
+                      action: media_player.media_stop
+                      data:
+                        entity_id: ${external_media_player_id}
+            # on_end may already be past the pipeline and only HOLDING the
+            # replying phase for the external speaker, against these deadlines.
+            # Expiring them now ends that hold (and the 45 s cancel loop) on its
+            # next check.
+            - lambda: |-
+                id(hold_deadline) = millis();
+                id(cancel_deadline) = millis();
+      - if:
+          condition:
+            voice_assistant.is_running:
+          then:
+            - voice_assistant.stop:
+            - wait_until:
+                condition:
+                  not:
+                    voice_assistant.is_running:
+                timeout: 2s
+      - if:
+          condition:
+            media_player.is_announcing:
+          then:
+            - media_player.stop:
+                announcement: true
+      - if:
+          condition:
+            media_player.is_playing:
+          then:
+            - media_player.stop:
+      - script.execute: ui_typing_finish
+      # BRING THE WAKE WORD BACK. micro_wake_word stops itself after ANY
+      # detection, "Stop" included, and nothing follows a "Stop" to restart it
+      # - silencing an alarm ends no pipeline, so on_end never runs. It has to
+      # WAIT for the stop to land first: start() while the component is still
+      # stopping is rejected as "already running" and simply dropped.
+      - wait_until:
+          condition:
+            not:
+              micro_wake_word.is_running:
+          timeout: 1s
+      - script.execute: start_wake_word
+      - script.execute: stop_word_sync
+
+  # STOP WORD: whether the model should be listening, applied only on a change.
+  # Run from a short interval rather than hung off every trigger that starts or
+  # ends something: there are half a dozen of those, and missing one would
+  # leave the model on for nothing, or off when it was wanted.
+  - id: stop_word_sync
+    then:
+      - lambda: |-
+          const auto st = id(speaker_media_player)->state;
+          const bool playing = (st == media_player::MEDIA_PLAYER_STATE_PLAYING ||
+                                st == media_player::MEDIA_PLAYER_STATE_ANNOUNCING) &&
+                               !id(wake_sound_active) && !id(chime_active);
+          const bool want = id(stop_word_enabled).state &&
+                            id(wake_word_engine_location).current_option() == "On device" &&
+                            (id(timer_ringing).state || id(tts_reply_active) || playing);
+          if (want == id(mww_stop)->is_enabled()) return;
+          if (want) id(mww_stop)->enable();
+          else id(mww_stop)->disable();
+          ESP_LOGD("stop_word", "%s", want ? "Listening for \"Stop\"" : "Not listening for \"Stop\"");
+
+  # The resting phase. Mute has no phase of its own (see the Mute switch).
+  - id: set_idle_phase
+    then:
+      - lambda: id(voice_assistant_phase) = ${voice_assist_idle_phase_id};
+
+  # Press-to-talk: same entry point as a wake word, minus the wake word.
+  # Ignored while muted, without HA, or while a pipeline is already running.
+  - id: tap_to_talk
+    then:
+      - if:
+          condition:
+            and:
+              - api.connected:
+              - switch.is_off: mute
+              - not:
+                  voice_assistant.is_running:
+          then:
+            # Says so in the log. A pipeline that starts with no "Detected" line
+            # and no wake beep looks identical whether it came from the button
+            # or from Home Assistant, and those need very different debugging.
+            - logger.log:
+                level: INFO
+                format: "Assistant started by the OK button"
+            - voice_assistant.start:
+
+  # OK, short press. Three things, in order of what is most urgent to
+  # interrupt: a ringing alarm (you are reaching for the device to make it
+  # stop - it must not also start listening), then a conversation or a reply
+  # in progress (the way out of a false wake), and only then a new one.
+  - id: ok_short
+    then:
+      - if:
+          condition:
+            switch.is_on: timer_ringing
+          then:
+            - switch.turn_off: timer_ringing
+          else:
+            - if:
+                condition:
+                  or:
+                    - voice_assistant.is_running:
+                    - lambda: return id(tts_reply_active);
+                then:
+                  - script.execute:
+                      id: stop_all
+                      source: "OK button"
+                else:
+                  - script.execute: tap_to_talk
+
+# A DEAF DEVICE IS THE ONE FAILURE THAT MATTERS HERE, so this is the backstop.
+#
+# Everything that starts the wake word hangs off a trigger - a pipeline ending,
+# an announcement finishing, a mute being lifted. Any one of those paths getting
+# stuck leaves the device listening for nothing until it is rebooted. If the
+# assistant is idle and the wake word simply is not running, after 40 seconds
+# start it, whatever the reason. It deliberately does NOT consult
+# tts_reply_active or any of our own flags - those are precisely what get stuck.
+#
+# SCOPE: the "On device" engine ONLY. With "In Home Assistant" the listener is
+# voice_assistant.start_continuous and "is the assistant running" means
+# something else entirely; getting that test wrong would restart the stream
+# every 40 seconds forever. Left deliberately uncovered rather than guessed.
+interval:
+  # STOP WORD on and off. A quarter of a second is well inside the time it takes
+  # to say "stop" after an alarm starts.
+  - interval: 250ms
+    then:
+      - script.execute: stop_word_sync
+
+  # THE WAVEFORM. The level the audio task left behind, pushed onto the screen
+  # five times a second while listening, with the seconds counter. Partial.
+  - interval: 200ms
+    then:
+      - if:
+          condition:
+            lambda: |-
+              return id(ui_mic_active) && id(ui).screen() == note4_ui::Screen::LISTEN;
+          then:
+            - lambda: |-
+                auto &m = id(ui).model();
+                std::rotate(m.mic_history.begin(), m.mic_history.begin() + 1, m.mic_history.end());
+                m.mic_history.back() = id(mic_level);
+                m.listen_seconds = (millis() - id(listen_started_ms)) / 1000;
+                id(ui).changed(true);
+
+  # THE THIRD WAY BACK for the amplifier. An External reply cuts it; `on_end`
+  # and the timer alarm restore it unconditionally. This covers `on_end` never
+  # arriving at all - a reboot mid-reply, or a handler that died before its
+  # tail. Unconditional on purpose: a flag can disagree with the hardware,
+  # which is exactly how a device ends up permanently silent.
+  - interval: 30s
+    then:
+      - if:
+          condition:
+            lambda: return !id(tts_reply_active);
+          then:
+            - switch.turn_on: speaker_enable
+
+  - interval: 10s
+    then:
+      - if:
+          condition:
+            and:
+              - not:
+                  voice_assistant.is_running:
+              - not:
+                  micro_wake_word.is_running:
+              - switch.is_off: mute
+              - lambda: return id(wake_word_engine_location).current_option() == "On device";
+          then:
+            - lambda: id(deaf_ticks)++;
+          else:
+            - lambda: id(deaf_ticks) = 0;
+      - if:
+          condition:
+            lambda: return id(deaf_ticks) >= 4;
+          then:
+            - logger.log:
+                level: WARN
+                format: "Wake word has been off for 40s with the assistant idle - restarting it"
+            - lambda: id(deaf_ticks) = 0;
+            - script.execute: start_wake_word
+
+###############################################################################
+# ENTITIES
+###############################################################################
+
+output:
+  # The green LED by the buttons: on while the device is listening, so you can
+  # see from across the room that it heard you - the e-paper needs a second to
+  # say the same thing.
+  - platform: gpio
+    id: led_out
+    pin:
+      number: ${status_led}
+      inverted: true
+      ignore_strapping_warning: true
+
+binary_sensor:
+  # OK: short press talks or stops (see `ok_short`), a 2 s hold silences the
+  # alarm. The hold exists because the alarm is the one thing that must be
+  # stoppable without thinking about what a short press will do next.
+  #
+  # The Box-3's touch button needed a measured debounce and a press/release
+  # split against phantom touches. A mechanical key has neither problem, so
+  # this is a plain multi-click.
+  - platform: gpio
+    id: ok_button
+    internal: true
+    pin:
+      number: ${button_ok}
+      mode: INPUT_PULLUP
+      inverted: true
+      ignore_strapping_warning: true
+    on_multi_click:
+      - timing:
+          - ON for at most 1s
+          - OFF for at least 50ms
+        then:
+          - script.execute: ok_short
+      - timing:
+          - ON for at least 2s
+        then:
+          - switch.turn_off: timer_ringing
+
+  - platform: gpio
+    id: up_button
+    internal: true
+    pin:
+      number: ${button_up}
+      mode: INPUT_PULLUP
+      inverted: true
+    filters:
+      - delayed_on: 20ms
+    on_press:
+      - script.execute:
+          id: ui_nav
+          dir: -1
+
+  # DOWN is also the hardware power key: holding it is what switches the board
+  # on (slate firmware/README.md), so the press that booted us is still down
+  # when this sensor starts. Short clicks after the first 4 s navigate; a 3 s
+  # hold powers off, the vendor convention (hearth docs/VOICE.md). On USB power
+  # releasing the latch does nothing, so the hold just appears to be ignored.
+  - platform: gpio
+    id: down_button
+    internal: true
+    pin:
+      number: ${button_down}
+      mode: INPUT_PULLUP
+      inverted: true
+    filters:
+      - delayed_on: 20ms
+    on_click:
+      - min_length: 20ms
+        max_length: 1s
+        then:
+          - if:
+              condition:
+                lambda: return millis() > 4000;
+              then:
+                - script.execute:
+                    id: ui_nav
+                    dir: 1
+      - min_length: 3s
+        max_length: 20s
+        then:
+          - if:
+              condition:
+                lambda: return millis() > 4000;
+              then:
+                - button.press: power_off_btn
+
+  # The charger's two status lines, read the way the vendor firmware reads
+  # them: plain inputs, no pulls (the board has its own).
+  - platform: gpio
+    id: charging
+    name: Charging
+    device_class: battery_charging
+    entity_category: diagnostic
+    pin:
+      number: ${charge_detect}
+      mode: INPUT
+      inverted: true
+    filters:
+      - delayed_on_off: 500ms
+    on_state:
+      - lambda: id(ui).model().charging = x;
+  - platform: gpio
+    id: charge_complete
+    name: Charged
+    icon: mdi:battery-check
+    entity_category: diagnostic
+    pin:
+      number: ${charge_full}
+      mode: INPUT
+    filters:
+      - delayed_on_off: 500ms
+
+button:
+  # A plain reboot from Home Assistant. Worth having because the audio stack can
+  # latch into an I2S error state it does not recover from on its own while WiFi
+  # and the API stay up.
+  - platform: restart
+    id: restart_btn
+    name: Restart
+    icon: mdi:restart
+    entity_category: config
+
+  # Lets go of the power latch. On battery the board switches off; on USB it
+  # keeps running, because USB powers it regardless of the latch. Half a second
+  # first so HA sees the press acknowledged and the log line gets out.
+  - platform: template
+    id: power_off_btn
+    name: Power off
+    icon: mdi:power
+    entity_category: config
+    on_press:
+      - logger.log:
+          level: WARN
+          format: "Power off requested - releasing the power latch"
+      - delay: 500ms
+      - lambda: |-
+          const gpio_num_t latch = (gpio_num_t) ${power_latch_gpio};
+          gpio_hold_dis(latch);
+          gpio_set_level(latch, 0);
+          gpio_hold_en(latch);
+
+number:
+  # Live mic sensitivity, in dB, post-AEC. See `mic_gain_default` up top for what
+  # this actually moves. Kept as a template (not the esp_audio_stack platform's
+  # own built-in number) because that native entity has no config-time default
+  # and uses its own separate flash preference.
+  # `set_mic_gain` takes linear gain; this converts from the dB shown in HA.
+  - platform: template
+    id: mic_gain_number
+    name: Mic gain
+    icon: mdi:microphone-settings
+    entity_category: config
+    unit_of_measurement: dB
+    mode: slider
+    min_value: -20
+    max_value: 30
+    step: 1
+    initial_value: ${mic_gain_default}
+    restore_value: true
+    optimistic: true
+    set_action:
+      - lambda: |-
+          id(audio_stack)->set_mic_gain(powf(10.0f, x / 20.0f));
+
+  # Live wake-word detection threshold, applied to every loaded model at once
+  # (alexa/okay_nabu/hey_jarvis). Moving it also moves the other two off their
+  # own substitution defaults - accepted trade-off, not an oversight.
+  - platform: template
+    id: mww_cutoff
+    name: Wake word cutoff
+    icon: mdi:tune-variant
+    entity_category: config
+    mode: box
+    min_value: 0.20
+    max_value: 0.95
+    step: 0.01
+    initial_value: ${alexa_probability_cutoff}
+    restore_value: true
+    optimistic: true
+    set_action:
+      - lambda: |-
+          uint8_t q = (uint8_t) roundf(x * 255.0f);
+          for (auto *m : id(mww).get_wake_words())
+            m->set_probability_cutoff(q);
+
+  # Live gain applied to the wake-word model's own input, BEFORE inference -
+  # separate from `Mic gain` above, which also affects STT.
+  - platform: template
+    id: mww_gain
+    name: Wake word gain
+    icon: mdi:tune-variant
+    entity_category: config
+    mode: box
+    min_value: 1
+    max_value: 16
+    step: 1
+    initial_value: ${mww_gain_factor}
+    restore_value: true
+    optimistic: true
+    set_action:
+      - lambda: |-
+          id(mww_mic_src)->set_gain_factor((uint8_t) x);
+
+switch:
+  - platform: gpio
+    id: speaker_enable
+    name: Speaker enable
+    pin:
+      number: ${amp_enable}
+      ignore_strapping_warning: true
+    restore_mode: RESTORE_DEFAULT_ON
+    entity_category: config
+    disabled_by_default: true
+
+  - platform: template
+    id: wake_sound_enabled
+    name: Wake sound
+    icon: "mdi:bell-ring"
+    optimistic: true
+    restore_mode: RESTORE_DEFAULT_ON
+    entity_category: config
+
+  # "Stop" on its own silences an alarm or a reply (see STOP WORD). On by
+  # default; the off switch is here for a room where something keeps saying it.
+  - platform: template
+    id: stop_word_enabled
+    name: Stop word
+    icon: "mdi:hand-back-left"
+    optimistic: true
+    restore_mode: RESTORE_DEFAULT_ON
+    entity_category: config
+
+  - platform: template
+    id: boot_sound_enabled
+    name: Boot sound
+    icon: "mdi:music-note"
+    optimistic: true
+    restore_mode: RESTORE_DEFAULT_ON
+    entity_category: config
+
+  - platform: template
+    id: mute
+    name: Mute
+    icon: "mdi:microphone-off"
+    optimistic: true
+    restore_mode: RESTORE_DEFAULT_OFF
+    entity_category: config
+    # Mute does ONE thing: it mutes the microphone, which also stops the wake
+    # word from hearing anything. No screen of its own.
+    on_turn_on:
+      - microphone.mute:
+    on_turn_off:
+      - microphone.unmute:
+
+  # 16 GREYS OR TWO. With this on, screens without live regions (the forecast,
+  # the doorbell) get a 16-grey full refresh; off, everything is 1-bit with the
+  # Bayer raster. Screens with a clock, a timer or a waveform are 1-bit either
+  # way - the panel driver forbids a partial refresh after a grey one - so this
+  # mostly decides how the weather and doorbell look, and how long their
+  # refresh takes.
+  - platform: template
+    id: gray16
+    name: "16 szarości"
+    icon: mdi:gradient-horizontal
+    optimistic: true
+    restore_mode: RESTORE_DEFAULT_ON
+    entity_category: config
+    on_turn_on:
+      - lambda: |-
+          id(ui).set_gray_enabled(true);
+          if (id(ui_ready)) id(ui).changed(false);
+    on_turn_off:
+      - lambda: |-
+          id(ui).set_gray_enabled(false);
+          if (id(ui_ready)) id(ui).changed(false);
+
+  # Exposed (not `internal:`) so an HA automation can silence a timer that is
+  # ringing in an empty kitchen.
+  - platform: template
+    id: timer_ringing
+    name: Timer ringing
+    icon: "mdi:timer-alert"
+    optimistic: true
+    restore_mode: ALWAYS_OFF
+    on_turn_on:
+      # The alarm ALWAYS rings on the device, whatever `TTS output` says: an
+      # alarm should be interruptible and insistent, and only the local speaker
+      # can be either.
+      #
+      # AMPLIFIER ON FIRST, unconditionally. An External reply cuts it; if that
+      # ever failed to restore, the alarm would ring into a dead amplifier.
+      - switch.turn_on: speaker_enable
+      - lambda: id(voice_assistant_phase) = ${voice_assist_timer_finished_phase_id};
+      # A muted or turned-down media player makes the alarm play silently, and
+      # both survive reboots (the speaker media player persists volume and
+      # mute to flash). Say so in the log rather than leaving someone to wonder.
+      - lambda: |-
+          if (id(speaker_media_player)->is_muted()) {
+            ESP_LOGW("timer", "Alarm is ringing but the media player is MUTED - unmute it in Home Assistant");
+          } else if (id(speaker_media_player)->volume < 0.15f) {
+            ESP_LOGW("timer", "Alarm is ringing at volume %.2f - probably inaudible", id(speaker_media_player)->volume);
+          }
+      - script.execute: ui_timer_sync
+      - lambda: |-
+          if (id(ui_ready) && id(ui).screen() != note4_ui::Screen::TIMER)
+            id(ui).show(note4_ui::Screen::TIMER);
+      # Repeat with a 1 s gap until something turns this off.
+      - lambda: |-
+          id(speaker_media_player)
+            ->make_call()
+            .set_command(media_player::MediaPlayerCommand::MEDIA_PLAYER_COMMAND_REPEAT_ONE)
+            .set_announcement(true)
+            .perform();
+          id(speaker_media_player)->set_playlist_delay_ms(speaker::AudioPipelineType::ANNOUNCEMENT, 1000);
+      - media_player.speaker.play_on_device_media_file:
+          media_file: timer_finished_sound
+          announcement: true
+      # Safety net for a timer nobody silences. Home Assistant normally turns the
+      # switch off long before this.
+      - delay: 15min
+      - switch.turn_off: timer_ringing
+    on_turn_off:
+      - lambda: |-
+          id(speaker_media_player)
+            ->make_call()
+            .set_command(media_player::MediaPlayerCommand::MEDIA_PLAYER_COMMAND_REPEAT_OFF)
+            .set_announcement(true)
+            .perform();
+          id(speaker_media_player)->set_playlist_delay_ms(speaker::AudioPipelineType::ANNOUNCEMENT, 0);
+      - media_player.stop:
+          announcement: true
+      # `restore_mode: ALWAYS_OFF` makes this automation run once during setup(),
+      # so the screen and phase work has to be gated.
+      - if:
+          condition:
+            lambda: return !id(init_in_progress);
+          then:
+            - script.execute: set_idle_phase
+            - script.execute: ui_timer_sync
+
+select:
+  # Live esp_aec mode switch - reconfigures the canceller without a rebuild.
+  # NOT persistent, on purpose: restoring it would mean re-initialising the
+  # canceller at boot, and that allocation is exactly what was measured
+  # refusing on a fragmented heap. On the Box-3 all three modes measured
+  # identical, so this is a diagnostic knob, not a setting anyone needs to keep.
+  - platform: template
+    id: aec_mode
+    name: AEC mode
+    icon: "mdi:waveform"
+    entity_category: config
+    optimistic: true
+    restore_value: false
+    options:
+      - sr_low_cost
+      - sr_high_perf
+      - fd_low_cost
+    initial_option: ${aec_mode_default}
+    on_value:
+      - esp_aec.set_mode:
+          id: aec_processor
+          mode: !lambda return x;
+
+  - platform: template
+    id: wake_word_engine_location
+    name: Wake word engine location
+    icon: "mdi:account-voice"
+    entity_category: config
+    optimistic: true
+    restore_value: true
+    options:
+      - In Home Assistant
+      - On device
+    initial_option: On device
+    on_value:
+      - if:
+          condition:
+            lambda: return !id(init_in_progress);
+          then:
+            # Wait out a conversation before swapping engines - up to thirty
+            # seconds. wait_until CONTINUES when its timeout expires, so a
+            # conversation still running after thirty seconds gets the switch
+            # anyway: the lesser evil, since the select already shows the new
+            # value.
+            - wait_until:
+                condition:
+                  lambda: return id(voice_assistant_phase) == ${voice_assist_idle_phase_id};
+                timeout: 30s
+            # Stop the engine being LEFT. Not through stop_wake_word: that
+            # script reads the select, which already holds the new value - it
+            # would stop the engine we are about to start.
+            - if:
+                condition:
+                  lambda: return x == "In Home Assistant";
+                then:
+                  - micro_wake_word.stop:
+                else:
+                  - lambda: id(va).set_use_wake_word(false);
+                  - voice_assistant.stop:
+            - delay: 500ms
+            - if:
+                condition:
+                  switch.is_off: mute
+                then:
+                  - script.execute: start_wake_word
+
+  # Where spoken replies come out. (The timer alarm ignores this and always
+  # rings on the device.)
+  - platform: template
+    id: tts_output
+    name: TTS output
+    icon: "mdi:speaker-message"
+    entity_category: config
+    optimistic: true
+    restore_value: true
+    options:
+      - This device
+      - External player
+      - Both
+    initial_option: ${tts_output_default}
+
+  # THE LOOK. All eight are listed whether or not they are in the build, so the
+  # entity is the same on every device; a skin that is not compiled in is
+  # refused by set_skin(), and the select goes back to the one still showing.
+  - platform: template
+    id: skin_select
+    name: "Skórka"
+    icon: mdi:palette-outline
+    entity_category: config
+    optimistic: true
+    restore_value: true
+    options:
+      - papier
+      - szwajcaria
+      - instrument
+      - kafelki
+      - plakat
+      - tarcza
+      - piksel
+      - cisza
+    initial_option: ${skin}
+    on_value:
+      - lambda: |-
+          if (!id(ui_ready)) return;   // applied at on_boot -500, see there
+          const std::string want = x.str();
+          if (want == id(ui).skin_id()) return;
+          if (id(ui).set_skin(want)) return;
+          const std::string keep = id(ui).skin_id();
+          ESP_LOGW("skin", "Skin \"%s\" is not in this build (add base/skins/%s.yaml to packages); keeping \"%s\"",
+                   want.c_str(), want.c_str(), keep.c_str());
+          if (!keep.empty()) {
+            auto call = id(skin_select).make_call();
+            call.set_option(keep);
+            call.perform();
+          }
+
+text_sensor:
+  # What the external speaker is doing. Used to end the replying phase exactly
+  # when it stops, instead of estimating - see on_end.
+  - platform: homeassistant
+    id: external_player_state
+    entity_id: ${external_media_player_id}
+    internal: true
+
+  # Weather now: the condition, as the HA keyword (for the skin's icon) and as
+  # Polish words (for the line under it). A full refresh, but only when the
+  # condition actually changed and the page of the day is up.
+  - platform: homeassistant
+    id: weather_condition
+    entity_id: ${weather_entity}
+    internal: true
+    on_value:
+      - lambda: |-
+          auto &m = id(ui).model();
+          if (x == m.condition_icon) return;
+          static const std::pair<const char *, const char *> NAMES[] = {
+            {"clear-night", "Bezchmurnie"}, {"cloudy", "Pochmurno"}, {"exceptional", "Uwaga na pogodę"},
+            {"fog", "Mgła"}, {"hail", "Grad"}, {"lightning", "Burza"},
+            {"lightning-rainy", "Burza z deszczem"}, {"partlycloudy", "Częściowe zachmurzenie"},
+            {"pouring", "Ulewa"}, {"rainy", "Deszcz"}, {"snowy", "Śnieg"},
+            {"snowy-rainy", "Deszcz ze śniegiem"}, {"sunny", "Słonecznie"}, {"windy", "Wietrznie"},
+            {"windy-variant", "Wietrznie, pochmurno"},
+          };
+          m.condition_icon = x;
+          m.condition.clear();
+          for (const auto &n : NAMES)
+            if (x == n.first) m.condition = n.second;
+          if (id(ui_ready) && id(ui).screen() == note4_ui::Screen::IDLE) id(ui).changed(false);
+
+# Instrumentacja wydajnosci. Wszystko `disabled_by_default`, wiec domyslnie nie
+# kosztuje nic poza kilkoma bajtami RAM - wlaczasz encje w HA tylko wtedy, gdy
+# cos mierzysz. `block` (najwiekszy ciagly wolny blok) obok `free` nie jest
+# nadmiarem: sterta potrafi miec duzo wolnego miejsca i mimo to nie oddac bufora
+# dekodera, bo jest pofragmentowana.
+debug:
+  update_interval: 30s
+
+sensor:
+  - platform: wifi_signal
+    name: Wi-Fi signal
+    entity_category: diagnostic
+    update_interval: 60s
+    disabled_by_default: true
+
+  # Weather now. Temperature changes are only worth a full refresh when the
+  # displayed whole degree changes; anything finer would flash the panel for a
+  # tenth of a degree every time HA polls the weather service.
+  - platform: homeassistant
+    id: weather_temp
+    entity_id: ${weather_entity}
+    attribute: temperature
+    internal: true
+    on_value:
+      - lambda: |-
+          auto &m = id(ui).model();
+          const bool moved = std::isnan(m.temp_now) || lroundf(m.temp_now) != lroundf(x);
+          m.temp_now = x;
+          if (moved && id(ui_ready) && id(ui).screen() == note4_ui::Screen::IDLE) id(ui).changed(false);
+  - platform: homeassistant
+    id: weather_high
+    entity_id: ${weather_high_entity}
+    internal: true
+    on_value:
+      - lambda: id(ui).model().temp_hi = x;
+  - platform: homeassistant
+    id: weather_low
+    entity_id: ${weather_low_entity}
+    internal: true
+    on_value:
+      - lambda: id(ui).model().temp_lo = x;
+
+  # BATTERY. The pin sees half the cell through a 1:2 divider. The percentage
+  # is the vendor's own curve, a quadratic fitted to their cell in mV, clamped
+  # to 0..100 - not a linear 3.0-4.2 V guess. Into the model too, but without a
+  # refresh of its own: the status mark updates with the next one anyway, and a
+  # battery is not worth flashing an e-paper for.
+  - platform: adc
+    id: battery_voltage
+    name: Battery voltage
+    pin: ${battery_adc}
+    attenuation: 12db
+    update_interval: 30s
+    accuracy_decimals: 2
+    device_class: voltage
+    unit_of_measurement: V
+    entity_category: diagnostic
+    filters:
+      - multiply: 2.0
+      - median:
+          window_size: 5
+          send_every: 1
+          send_first_at: 1
+  - platform: template
+    id: battery_percent
+    name: Battery
+    device_class: battery
+    unit_of_measurement: "%"
+    accuracy_decimals: 0
+    entity_category: diagnostic
+    update_interval: 30s
+    lambda: |-
+      const float v = id(battery_voltage).state;
+      if (std::isnan(v)) return NAN;
+      const double mv = v * 1000.0;
+      const double p = (-mv * mv + 9016.0 * mv - 19189000.0) / 10000.0;
+      return (float) std::max(0.0, std::min(100.0, p));
+    on_value:
+      - lambda: |-
+          if (!std::isnan(x)) id(ui).model().battery = (int) lroundf(x);
+
+  # How long the panel takes, per kind of refresh, as last measured by the
+  # driver. The numbers that say whether a skin's live regions are small
+  # enough, and what the 16-grey switch costs.
+  - platform: template
+    name: "Diag: full refresh (1-bit)"
+    unit_of_measurement: ms
+    accuracy_decimals: 0
+    entity_category: diagnostic
+    update_interval: 30s
+    lambda: return id(epd).last_full_mono_ms();
+  - platform: template
+    name: "Diag: full refresh (16 grey)"
+    unit_of_measurement: ms
+    accuracy_decimals: 0
+    entity_category: diagnostic
+    update_interval: 30s
+    lambda: return id(epd).last_full_gray_ms();
+  - platform: template
+    name: "Diag: partial refresh"
+    unit_of_measurement: ms
+    accuracy_decimals: 0
+    entity_category: diagnostic
+    update_interval: 30s
+    lambda: return id(epd).last_partial_ms();
+
+  - platform: debug
+    free:
+      name: "Diag: free heap"
+      entity_category: diagnostic
+      disabled_by_default: true
+    block:
+      name: "Diag: largest free block"
+      entity_category: diagnostic
+      disabled_by_default: true
+    loop_time:
+      name: "Diag: loop time max"
+      entity_category: diagnostic
+      disabled_by_default: true
+    psram:
+      name: "Diag: free PSRAM"
+      entity_category: diagnostic
+      disabled_by_default: true

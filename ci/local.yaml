@@ -1,0 +1,38 @@
+# Build target for CI (.github/workflows/build.yml) and for validating a working
+# tree. Unlike note4-va.yaml, which pulls the core, the skins and the
+# components from GitHub (main), this takes all of them from disk, so the commit
+# under test is what gets compiled:
+#
+#   esphome config ci/local.yaml
+#   esphome compile ci/local.yaml
+#
+# ci/secrets.yaml holds placeholder Wi-Fi credentials; the workflow also copies
+# secrets.example.yaml over it before building.
+
+substitutions:
+  name: note4-va-ci
+  friendly_name: "Note 4 Voice CI"
+  skin: szwajcaria
+  # The sounds from the working tree too, not from GitHub: a build of a branch
+  # must not depend on what `main` happens to hold. Paths are relative to this
+  # file.
+  timer_finished_sound_file: ../base/sounds/timer_finished.flac
+  wake_sound_file: ../base/sounds/wake.wav
+  boot_sound_file: ../base/sounds/boot.mp3
+
+external_components:
+  - source:
+      type: local
+      path: ../components
+    components: [zectrix_epd, note4_ui]
+
+packages:
+  core: !include ../base/core.yaml
+  skin_papier: !include ../base/skins/papier.yaml
+  skin_szwajcaria: !include ../base/skins/szwajcaria.yaml
+  skin_instrument: !include ../base/skins/instrument.yaml
+  skin_kafelki: !include ../base/skins/kafelki.yaml
+  skin_plakat: !include ../base/skins/plakat.yaml
+  skin_tarcza: !include ../base/skins/tarcza.yaml
+  skin_piksel: !include ../base/skins/piksel.yaml
+  skin_cisza: !include ../base/skins/cisza.yaml

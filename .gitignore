@@ -1,0 +1,18 @@
+# Secrets — never commit Wi-Fi / API / OTA credentials
+secrets.yaml
+# ...except the CI placeholders, which are not secrets and which ci/local.yaml
+# needs to validate from a fresh checkout.
+!ci/secrets.yaml
+
+# ESPHome build cache & artifacts
+.esphome/
+*.bin
+
+# Python
+__pycache__/
+*.pyc
+
+# OS junk
+.DS_Store
+Thumbs.db
+desktop.ini
