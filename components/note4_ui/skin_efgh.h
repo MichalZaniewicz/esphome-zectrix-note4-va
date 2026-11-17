@@ -206,7 +206,7 @@ inline std::string ddmm(const std::string &date) {
   int d = day_of(date), mo = month_of(date);
   if (d <= 0)
     return date;
-  char b[12];
+  char b[24];
   if (mo > 0)
     snprintf(b, sizeof(b), "%02d.%02d", d, mo);
   else

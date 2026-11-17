@@ -12,8 +12,9 @@ side is a port of
 [esphome-esp32-s3-box-3-va](https://github.com/MichalZaniewicz/esphome-esp32-s3-box-3-va).
 
 > **🚧 Work in progress - not ready to flash.** The device has not arrived yet:
-> nothing here has run on a Note 4, and the C++ has not been through a full
-> compile. Follow along, but do not install it expecting a working assistant.
+> nothing here has run on a Note 4. It compiles in CI (ESPHome 2026.10.2, all
+> eight skins, 2.97 MB image), but compiling is all that is proven. Follow
+> along, but do not install it expecting a working assistant.
 >
 > **Status: untested on hardware.** The configuration validates with ESPHome
 > 2026.10.2 and that is all that is claimed. The pin map comes from Zectrix's
