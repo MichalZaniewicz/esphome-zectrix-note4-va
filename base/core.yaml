@@ -347,22 +347,22 @@ esphome:
         # driver coupling in this one lambda so a rename is fixed in one place.
         - lambda: |-
             id(ui).set_refresh_handler([](note4_ui::Refresh r, const std::vector<note4_ui::Rect> &rects) {
-              auto *epd = id(epd);
-              epd->clear_partial_rects();
+              auto *panel = id(epd);
+              panel->clear_partial_rects();
               switch (r) {
                 case note4_ui::Refresh::FULL_GRAY:
-                  epd->set_refresh_mode(zectrix_epd::RefreshMode::FULL_GRAY);
+                  panel->set_refresh_mode(zectrix_epd::RefreshMode::FULL_GRAY);
                   break;
                 case note4_ui::Refresh::PARTIAL:
-                  epd->set_refresh_mode(zectrix_epd::RefreshMode::PARTIAL);
-                  for (const auto &q : rects) epd->add_partial_rect(q.x, q.y, q.w, q.h);
+                  panel->set_refresh_mode(zectrix_epd::RefreshMode::PARTIAL);
+                  for (const auto &q : rects) panel->add_partial_rect(q.x, q.y, q.w, q.h);
                   break;
                 case note4_ui::Refresh::FULL_MONO:
                 default:
-                  epd->set_refresh_mode(zectrix_epd::RefreshMode::FULL_MONO);
+                  panel->set_refresh_mode(zectrix_epd::RefreshMode::FULL_MONO);
                   break;
               }
-              epd->update();
+              panel->update();
             });
             auto &m = id(ui).model();
             m.room = "${room}";
