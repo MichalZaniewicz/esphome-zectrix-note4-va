@@ -1,7 +1,7 @@
 # Skin "paper": Literata + Atkinson Hyperlegible, thin frames, warm and
 # editorial. Fonts are prefixed paper_ so several skins can be compiled in.
 #
-# Text fonts: GF_Latin_Kernel plus the Polish letters and „ (Kernel has ” ° · … –).
+# Text fonts: GF_Latin_Kernel plus the Polish letters and „ for `language: pl` (Kernel has ” ° · … –).
 # Big numerals carry only the glyphs they show.
 
 font:
@@ -81,7 +81,8 @@ font:
     file: { type: gfonts, family: Literata, weight: 500, italic: true }
     size: 50
     bpp: 4
-    glyphs: ["SłuchamCwil…"]
+    # the Listening / Thinking… word, every language in strings.cpp
+    glyphs: ["SłuchamCwil…LstengTk"]
   - id: paper_bell_time
     file: "gfonts://Literata@700"
     size: 34
@@ -110,7 +111,8 @@ font:
     file: { type: gfonts, family: Atkinson Hyperlegible, weight: 400, italic: true }
     size: 10
     bpp: 4
-    glyphs: [" AIacdeijopszę"]
+    # the AI caption note, every language in strings.cpp
+    glyphs: [" AIacdehijnopstzę…"]
   - id: paper_l11
     file: "gfonts://Atkinson Hyperlegible@400"
     size: 11
@@ -132,7 +134,8 @@ font:
     file: "gfonts://Atkinson Hyperlegible@400"
     size: 12
     bpp: 4
-    glyphs: [" 0123456789:z"]
+    # timer total ("of 10:00" / "z 10:00")
+    glyphs: [" 0123456789:fosz"]
   - id: paper_l12b
     file: "gfonts://Atkinson Hyperlegible@700"
     size: 12

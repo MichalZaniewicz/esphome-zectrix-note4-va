@@ -1,5 +1,5 @@
 // Shared helpers for the paper, swiss, instrument and tiles skins:
-// Polish text utilities, forecast maths, answer typing layout and a few
+// text utilities (case mapping, language-aware date bits), forecast maths, answer typing layout and a few
 // pictograms that several mockups share (cloud, sun, keycap).
 #pragma once
 
@@ -18,12 +18,15 @@ namespace uu {
 inline Color grey(uint8_t g) { return ink(g < 120 ? g : 120); }
 
 // ---- text ----
-std::string upper(const std::string &s);        // ASCII, Latin-1, Latin Extended-A (Polish)
-std::string cap_first(const std::string &s);    // "środa" -> "Środa"
-std::string lower_first(const std::string &s);  // "Deszcz od 15:00" -> "deszcz od 15:00"
-std::string weekday_short(const std::string &weekday);  // "wtorek" -> "wt"
-std::string ddmm(const std::string &date);               // "17 listopada" -> "17.11"
-std::string first_clause(const std::string &s);          // "Mgła, potem słońce" -> "Mgła"
+// Case mapping covers ASCII, Latin-1 and Latin Extended-A (strings.h).
+std::string upper(const std::string &s);
+std::string lower(const std::string &s);
+std::string cap_first(const std::string &s);    // "wednesday" -> "Wednesday"
+std::string lower_first(const std::string &s);  // "Rain from 15:00" -> "rain from 15:00"
+// A weekday name in either language -> T's short form ("Tuesday" -> "tue").
+std::string weekday_short(const Strings &T, const std::string &weekday);
+std::string ddmm(const std::string &date);               // "17 November" -> "17.11"
+std::string first_clause(const std::string &s);          // "Fog, then sun" -> "Fog"
 // Cut `s` with a trailing ellipsis so it fits in max_w.
 std::string fit(Font *f, const std::string &s, int max_w, float ls = 0);
 // wrap() limited to max_lines; the last kept line gets an ellipsis if text was cut.
@@ -48,7 +51,7 @@ float fc_rain_max(const Model &m);
 float fc_rain_sum(const Model &m);
 bool fc_has_rain(const Model &m);
 std::string brief_text(const Model &m);       // NowLevel::BRIEF sentence: now_body, else now_title
-std::string now_kind(const std::string &icon);  // "window" -> "Okno", "wind" -> "Ostrzeżenie", ...
+std::string now_kind(const Strings &T, const std::string &icon);  // "window" -> "Window", "wind" -> "Warning", ...
 // "T-02:18" style countdown to next_time, or "" when it cannot be computed.
 std::string countdown(const Model &m);
 

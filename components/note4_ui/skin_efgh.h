@@ -10,6 +10,7 @@
 #include <vector>
 
 #include "note4_ui.h"
+#include "strings.h"
 
 namespace esphome {
 namespace note4_ui {
@@ -18,59 +19,17 @@ namespace efgh {
 static const float PI_F = 3.14159265f;
 static const float TAU_F = 6.28318531f;
 
-// The three pipeline steps shown on the THINK screen.
-static const char *const STEPS[3] = {"Rozpoznano mowę", "Pytam Home Assistant", "Układam odpowiedź"};
-static const char *const STEPS_SHORT[3] = {"mowa", "Home Assistant", "odpowiedź"};
-
 inline int clampi(int v, int lo, int hi) { return v < lo ? lo : (v > hi ? hi : v); }
 inline float clampf(float v, float lo, float hi) { return v < lo ? lo : (v > hi ? hi : v); }
 
 // ---------------------------------------------------------------- UTF-8 text
-struct CasePair {
-  const char *lo, *up;
-};
-static const CasePair PL_CASE[9] = {{"ą", "Ą"}, {"ć", "Ć"}, {"ę", "Ę"}, {"ł", "Ł"}, {"ń", "Ń"},
-                                    {"ó", "Ó"}, {"ś", "Ś"}, {"ź", "Ź"}, {"ż", "Ż"}};
-
-inline std::string recase_(const std::string &s, bool to_upper, size_t limit = std::string::npos) {
-  std::string out;
-  out.reserve(s.size());
-  size_t i = 0, chars = 0;
-  while (i < s.size()) {
-    unsigned char c = s[i];
-    bool apply = chars < limit;
-    if (c < 0x80) {
-      char ch = (char) c;
-      if (apply) {
-        if (to_upper && ch >= 'a' && ch <= 'z')
-          ch = (char) (ch - 'a' + 'A');
-        else if (!to_upper && ch >= 'A' && ch <= 'Z')
-          ch = (char) (ch - 'A' + 'a');
-      }
-      out += ch;
-      i++;
-      chars++;
-      continue;
-    }
-    size_t n = (c >= 0xF0) ? 4 : (c >= 0xE0) ? 3 : 2;
-    std::string seq = s.substr(i, n);
-    if (apply) {
-      for (const auto &p : PL_CASE) {
-        if (seq == (to_upper ? p.lo : p.up)) {
-          seq = to_upper ? p.up : p.lo;
-          break;
-        }
-      }
-    }
-    out += seq;
-    i += n;
-    chars++;
-  }
-  return out;
-}
-inline std::string upper(const std::string &s) { return recase_(s, true); }
-inline std::string lower(const std::string &s) { return recase_(s, false); }
-inline std::string cap_first(const std::string &s) { return recase_(s, true, 1); }
+// Case mapping for ASCII, Latin-1 and Latin Extended-A (strings.h).
+inline std::string upper(const std::string &s) { return to_upper(s); }
+inline std::string lower(const std::string &s) { return to_lower(s); }
+inline std::string cap_first(const std::string &s) { return to_cap_first(s); }
+// Language-aware lower case for names: weekday names stay capitalised in
+// English ("Tomorrow, Wednesday") and go lower case in Polish.
+inline std::string lower_name(const Strings &T, const std::string &s) { return T.lowercase_names ? lower(s) : s; }
 
 inline void pop_utf8(std::string &s) {
   while (!s.empty()) {
@@ -109,7 +68,7 @@ inline std::vector<std::string> wrap_n(Font *f, const std::string &s, int max_w,
   return lines;
 }
 
-// First segment of "Mgła, potem słońce" -> "Mgła".
+// First segment of "Fog, then sun" -> "Fog".
 inline std::string first_part(const std::string &s) {
   size_t p = s.find(',');
   return p == std::string::npos ? s : s.substr(0, p);
@@ -175,36 +134,25 @@ inline float timer_frac(const Model &m) {
   return clampf((float) m.timer_remaining / (float) m.timer_total, 0, 1);
 }
 
-// Polish weekday name -> short caps ("wtorek" -> "WT").
-inline std::string short_day(const std::string &wd) {
-  std::string l = lower(wd);
-  static const char *const K[7][2] = {{"pon", "PN"}, {"wt", "WT"}, {"śr", "ŚR"}, {"czw", "CZ"},
-                                      {"pi", "PT"},  {"sob", "SB"}, {"nie", "ND"}};
-  for (const auto &k : K)
-    if (l.compare(0, strlen(k[0]), k[0]) == 0)
-      return k[1];
-  return upper(wd.substr(0, 2));
+// A weekday name in either language -> T's two-letter caps ("Tuesday" -> "TU").
+inline std::string short_day(const Strings &T, const std::string &wd) {
+  int i = weekday_index(wd);
+  if (i >= 0)
+    return T.weekday_2[i];
+  std::string t = wd;
+  while (t.size() > 2)
+    pop_utf8(t);
+  return upper(t);
 }
-// "17 listopada" -> day 17, month 11 (0 when unknown).
+// "17 November" -> day 17, month 11 (0 when unknown).
 inline int day_of(const std::string &date) {
-  int d = 0;
-  sscanf(date.c_str(), "%d", &d);
+  int d = 0, mo = 0;
+  parse_date(date, d, mo);
   return d;
 }
-inline int month_of(const std::string &date) {
-  static const char *const M[12] = {"sty", "lut", "mar", "kwi", "maj", "cze", "lip", "sie", "wrz", "paź", "lis", "gru"};
-  size_t p = date.find(' ');
-  if (p == std::string::npos)
-    return 0;
-  std::string mn = lower(date.substr(p + 1));
-  for (int i = 0; i < 12; i++)
-    if (mn.compare(0, strlen(M[i]), M[i]) == 0)
-      return i + 1;
-  return 0;
-}
 inline std::string ddmm(const std::string &date) {
-  int d = day_of(date), mo = month_of(date);
-  if (d <= 0)
+  int d = 0, mo = 0;
+  if (!parse_date(date, d, mo))
     return date;
   char b[24];
   if (mo > 0)
@@ -253,7 +201,7 @@ inline void fc_temp_range(const Model &m, float &lo, float &hi) {
     hi = 1;
   }
 }
-inline std::string mm_str(float mm, bool space = true) {
+inline std::string mm_str(float mm, bool space = true, char decimal_sep = '.') {
   char b[16];
   bool whole = mm >= 10 || fabsf(mm - roundf(mm)) < 0.05f;
   if (whole)
@@ -264,7 +212,7 @@ inline std::string mm_str(float mm, bool space = true) {
   if (!whole)
     for (auto &c : out)
       if (c == '.')
-        c = ',';
+        c = decimal_sep;
   return out + (space ? " mm" : "mm");
 }
 
@@ -275,7 +223,7 @@ inline float fact_frac(const std::string &v) {
     return clampf(h / 24.0f, 0, 1);
   float x = 0;
   if (sscanf(v.c_str(), "%f", &x) != 1) {
-    // Polish decimal comma
+    // decimal comma ("4,5 mm")
     std::string t = v;
     for (auto &c : t)
       if (c == ',')
@@ -302,24 +250,8 @@ inline std::string join_dot(const std::vector<std::string> &parts, const char *s
   return out;
 }
 
-// What the "Teraz ważne" card is about, as a short label.
-inline const char *now_topic(const std::string &icon) {
-  if (icon == "window")
-    return "dom";
-  if (icon == "wind")
-    return "pogoda";
-  if (icon == "plant")
-    return "rośliny";
-  if (icon == "vacuum")
-    return "sprzątanie";
-  if (icon == "school")
-    return "szkoła";
-  if (icon == "flood")
-    return "zalanie";
-  if (icon == "smoke")
-    return "dym";
-  return "dom";
-}
+// What the "Now" card is about, as a short label.
+inline const char *now_topic(const Strings &T, const std::string &icon) { return T.now_topic[now_icon_index(icon)]; }
 // BRIEF: the sentence lives in now_body, falling back to now_title.
 inline const std::string &brief_text(const Model &m) { return m.now_body.empty() ? m.now_title : m.now_body; }
 

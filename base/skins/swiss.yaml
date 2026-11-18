@@ -1,7 +1,7 @@
 # Skin "swiss": strict grid, huge Inter Tight numerals, thick rules and
 # one black block per screen. Fonts are prefixed swiss_.
 #
-# Text fonts: GF_Latin_Kernel plus the Polish letters and „ (Kernel has ” ° · … –).
+# Text fonts: GF_Latin_Kernel plus the Polish letters and „ for `language: pl` (Kernel has ” ° · … –).
 # Big numerals carry only the glyphs they show.
 
 font:
@@ -64,7 +64,8 @@ font:
     file: "gfonts://Inter Tight@800"
     size: 56
     bpp: 4
-    glyphs: ["SłuchamCwil…"]
+    # the Listening / Thinking… word, every language in strings.cpp
+    glyphs: ["SłuchamCwil…LstengTk"]
   # ---- Inter ----
   - id: swiss_i9b
     file: "gfonts://Inter@700"

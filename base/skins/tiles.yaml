@@ -1,7 +1,7 @@
 # Skin "tiles": rounded tiles in a few greys, big friendly Manrope numbers,
 # pill buttons. Fonts are prefixed tiles_.
 #
-# Text fonts: GF_Latin_Kernel plus the Polish letters and „ (Kernel has ” ° · … –).
+# Text fonts: GF_Latin_Kernel plus the Polish letters and „ for `language: pl` (Kernel has ” ° · … –).
 # Big numerals carry only the glyphs they show.
 
 font:
@@ -24,7 +24,8 @@ font:
     file: "gfonts://Manrope@800"
     size: 32
     bpp: 4
-    glyphs: ["0123456789:SłuchamCwil…–"]
+    # digits plus the Listening / Thinking… word, every language in strings.cpp
+    glyphs: ["0123456789:SłuchamCwil…LstengTk–"]
   - id: tiles_timer
     file: "gfonts://Manrope@800"
     size: 48

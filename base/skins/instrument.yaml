@@ -2,7 +2,7 @@
 # scales and a dot grid; IBM Plex Sans for the answer text. Fonts are prefixed
 # instrument_.
 #
-# Text fonts: GF_Latin_Kernel plus the Polish letters and „ (Kernel has ” ° · … –).
+# Text fonts: GF_Latin_Kernel plus the Polish letters and „ for `language: pl` (Kernel has ” ° · … –).
 # Big numerals carry only the glyphs they show.
 
 font:

@@ -51,6 +51,25 @@ picked.
 `paper`, `swiss`, `instrument`, `tiles`, `poster`, `dial`, `pixel`,
 `quiet`
 
+## Screen language
+
+Everything the panel draws is English by default. Set `language: pl` in the
+thin config's `substitutions:` for Polish:
+
+```yaml
+substitutions:
+  language: pl    # en (default) or pl
+```
+
+This is only the on-screen text (labels, weekday and month names, weather
+words, hints). Home Assistant entity names stay English, and what the assistant
+hears and says is the language of the Assist pipeline you pick in Home
+Assistant. The text you push with the actions below (event titles, the "Now"
+card, the forecast summary) is shown as sent, so send it in the same language.
+All phrases live in one table per language in
+[components/note4_ui/strings.cpp](components/note4_ui/strings.cpp); a new
+language is one more table there.
+
 The **16 greys** switch lets screens without live regions (forecast,
 doorbell) use a 16-grey refresh; everything with a clock or a countdown is
 1-bit (see [docs/HARDWARE.md](docs/HARDWARE.md) for why).
@@ -61,7 +80,7 @@ doorbell) use a 16-grey refresh; everything with a clock or a countdown is
 
 1. Copy `secrets.example.yaml` to `secrets.yaml` and fill in your Wi-Fi.
 2. Copy **`note4-va.yaml`** next to it and edit the `substitutions:` at the top
-   (name, skin, room, weather entity, timezone). Delete the skin lines you will
+   (name, skin, room, language, weather entity, timezone). Delete the skin lines you will
    never use: each one costs flash and build time.
 3. First flash over USB, then updates go wireless:
    ```
@@ -97,7 +116,7 @@ Home Assistant pushes what the page of the day shows. The actions appear as
 
 | Action | Variables | What it does |
 |---|---|---|
-| `set_now` | `level` int (0 brief, 1 to do, 2 alarm), `title`, `body`, `detail`, `icon` | The "Teraz ważne" card. Level 2 is drawn in negative and brings the page of the day up. Icons: `window`, `wind`, `plant`, `vacuum`, `school`, `flood`, `smoke`, `brief` |
+| `set_now` | `level` int (0 brief, 1 to do, 2 alarm), `title`, `body`, `detail`, `icon` | The "Now" card: what matters right now. Level 2 is drawn in negative and brings the page of the day up. Icons: `window`, `wind`, `plant`, `vacuum`, `school`, `flood`, `smoke`, `brief` |
 | `set_forecast` | `day`, `date`, `hi` float, `lo` float, `summary`, `detail`, `temps` float[19], `rain` float[19], `rain_start` float, `wind`, `humidity`, `sunrise`, `sunset` | Tomorrow's forecast. `temps` / `rain` (mm) are hourly for 6:00-24:00; `rain_start` is an hour (15.5 = 15:30), negative for none |
 | `set_events` | `starts` float[], `ends` float[], `titles` string[], `next_time`, `next_title`, `next_in` | Today's timeline (hours as floats) and the "next" line |
 | `show_screen` | `name`: `idle`, `weather`, `timer`, `doorbell` | Switch screen. Ignored during a conversation (except `doorbell`) |
@@ -109,18 +128,18 @@ Example:
 action: esphome.note4_va_set_now
 data:
   level: 1
-  title: "Okno otwarte"
-  body: "Łazienka · 12 min"
-  detail: "grzanie wstrzymane"
+  title: "Window open"
+  body: "Bathroom · 12 min"
+  detail: "heating paused"
   icon: window
 ```
 
 ```yaml
 action: esphome.note4_va_doorbell
 data:
-  url: "http://homeassistant.local:8123{{ state_attr('camera.furtka', 'entity_picture') }}"
-  caption: "Kurier z paczką"
-  place: "Furtka"
+  url: "http://homeassistant.local:8123{{ state_attr('camera.front_gate', 'entity_picture') }}"
+  caption: "Courier with a parcel"
+  place: "Gate"
 ```
 
 Weather now comes from `weather_entity` on its own (its state and its

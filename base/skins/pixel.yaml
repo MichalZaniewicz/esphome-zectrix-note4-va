@@ -6,7 +6,7 @@
 # the baseline (ascender 800) on a whole pixel. Fonts are prefixed pixel_ so
 # several skins can be compiled in.
 #
-# Text fonts: GF_Latin_Kernel plus the Polish letters and „. Press Start 2P has
+# Text fonts: GF_Latin_Kernel plus the Polish letters and „ for `language: pl`. Press Start 2P has
 # no U+2212 minus from the Kernel set, hence ignore_missing_glyphs.
 # Rough flash for all fonts below: ~25 KB.
 

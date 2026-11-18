@@ -27,120 +27,26 @@ static uint32_t decode(const std::string &s, size_t &i) {
   return cp;
 }
 
-static void encode(uint32_t cp, std::string &out) {
-  if (cp < 0x80) {
-    out += (char) cp;
-  } else if (cp < 0x800) {
-    out += (char) (0xC0 | (cp >> 6));
-    out += (char) (0x80 | (cp & 0x3F));
-  } else if (cp < 0x10000) {
-    out += (char) (0xE0 | (cp >> 12));
-    out += (char) (0x80 | ((cp >> 6) & 0x3F));
-    out += (char) (0x80 | (cp & 0x3F));
-  } else {
-    out += (char) (0xF0 | (cp >> 18));
-    out += (char) (0x80 | ((cp >> 12) & 0x3F));
-    out += (char) (0x80 | ((cp >> 6) & 0x3F));
-    out += (char) (0x80 | (cp & 0x3F));
-  }
-}
+std::string upper(const std::string &s) { return to_upper(s); }
+std::string lower(const std::string &s) { return to_lower(s); }
+std::string cap_first(const std::string &s) { return to_cap_first(s); }
+std::string lower_first(const std::string &s) { return to_lower_first(s); }
 
-static uint32_t cp_upper(uint32_t c) {
-  if (c >= 'a' && c <= 'z')
-    return c - 32;
-  if (c >= 0xE0 && c <= 0xFE && c != 0xF7)
-    return c - 32;
-  // Latin Extended-A: pairs (upper even) 0100-0137 and 014A-0177,
-  // (upper odd) 0139-0148 and 0179-017E.
-  if ((c >= 0x100 && c <= 0x137) || (c >= 0x14A && c <= 0x177))
-    return (c & 1) ? c - 1 : c;
-  if ((c >= 0x139 && c <= 0x148) || (c >= 0x179 && c <= 0x17E))
-    return (c & 1) ? c : c - 1;
-  return c;
-}
-
-static uint32_t cp_lower(uint32_t c) {
-  if (c >= 'A' && c <= 'Z')
-    return c + 32;
-  if (c >= 0xC0 && c <= 0xDE && c != 0xD7)
-    return c + 32;
-  if ((c >= 0x100 && c <= 0x137) || (c >= 0x14A && c <= 0x177))
-    return (c & 1) ? c : c + 1;
-  if ((c >= 0x139 && c <= 0x148) || (c >= 0x179 && c <= 0x17E))
-    return (c & 1) ? c + 1 : c;
-  return c;
-}
-
-std::string upper(const std::string &s) {
-  std::string out;
-  out.reserve(s.size());
-  for (size_t i = 0; i < s.size();)
-    encode(cp_upper(decode(s, i)), out);
-  return out;
-}
-
-static std::string map_first(const std::string &s, uint32_t (*fn)(uint32_t)) {
-  if (s.empty())
-    return s;
-  size_t i = 0;
-  uint32_t c = decode(s, i);
-  std::string out;
-  encode(fn(c), out);
-  out += s.substr(i);
-  return out;
-}
-
-std::string cap_first(const std::string &s) { return map_first(s, cp_upper); }
-std::string lower_first(const std::string &s) { return map_first(s, cp_lower); }
-
-static std::string lower(const std::string &s) {
-  std::string out;
-  for (size_t i = 0; i < s.size();)
-    encode(cp_lower(decode(s, i)), out);
-  return out;
-}
-
-static bool starts(const std::string &s, const char *p) { return s.compare(0, strlen(p), p) == 0; }
-
-std::string weekday_short(const std::string &weekday) {
+std::string weekday_short(const Strings &T, const std::string &weekday) {
+  int i = weekday_index(weekday);
+  if (i >= 0)
+    return T.weekday_short[i];
   std::string w = lower(weekday);
-  if (starts(w, "pon"))
-    return "pon";
-  if (starts(w, "wt"))
-    return "wt";
-  if (starts(w, "śr"))
-    return "śr";
-  if (starts(w, "czw"))
-    return "czw";
-  if (starts(w, "pi") || starts(w, "pt"))
-    return "pt";
-  if (starts(w, "sob"))
-    return "sob";
-  if (starts(w, "nie"))
-    return "niedz";
   return w.substr(0, std::min<size_t>(3, w.size()));
 }
 
 std::string ddmm(const std::string &date) {
-  static const char *const MONTHS[12] = {"sty", "lut", "mar", "kwi", "maj", "cze",
-                                         "lip", "sie", "wrz", "paź", "lis", "gru"};
-  char *end = nullptr;
-  long day = strtol(date.c_str(), &end, 10);
-  if (end == date.c_str() || day < 1 || day > 31)
+  int day, month;
+  if (!parse_date(date, day, month) || month == 0)
     return date;
-  std::string rest = lower(std::string(end));
-  size_t p = rest.find_first_not_of(" .");
-  if (p == std::string::npos)
-    return date;
-  rest = rest.substr(p);
-  for (int k = 0; k < 12; k++) {
-    if (starts(rest, MONTHS[k])) {
-      char buf[32];
-      snprintf(buf, sizeof(buf), "%02ld.%02d", day, k + 1);
-      return buf;
-    }
-  }
-  return date;
+  char buf[32];
+  snprintf(buf, sizeof(buf), "%02d.%02d", day, month);
+  return buf;
 }
 
 std::string first_clause(const std::string &s) {
@@ -340,25 +246,7 @@ bool fc_has_rain(const Model &m) { return fc_rain_max(m) >= 0.05f; }
 
 std::string brief_text(const Model &m) { return m.now_body.empty() ? m.now_title : m.now_body; }
 
-std::string now_kind(const std::string &icon) {
-  if (icon == "window")
-    return "Okno";
-  if (icon == "wind")
-    return "Ostrzeżenie";
-  if (icon == "plant")
-    return "Roślina";
-  if (icon == "vacuum")
-    return "Odkurzacz";
-  if (icon == "school")
-    return "Szkoła";
-  if (icon == "flood")
-    return "Zalanie";
-  if (icon == "smoke")
-    return "Dym";
-  if (icon == "brief")
-    return "Dzień";
-  return "Uwaga";
-}
+std::string now_kind(const Strings &T, const std::string &icon) { return T.now_kind[now_icon_index(icon)]; }
 
 std::string countdown(const Model &m) {
   int h, mi;

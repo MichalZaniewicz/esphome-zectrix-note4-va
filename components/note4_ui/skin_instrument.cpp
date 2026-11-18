@@ -23,8 +23,6 @@ const Color WH = ink(255);
 // black on 1-bit, mid grey on 16 grey.
 const Color DOT = ink(115);
 
-const char *const STEPS[3] = {"Rozpoznano mowę", "Pytam Home Assistant", "Układam odpowiedź"};
-
 const int ANS_Y = 108, ANS_PITCH = 26, ANS_W = 368;
 
 std::string pad2(int v) {
@@ -81,9 +79,10 @@ void InstrumentSkin::module_(Display &d, int x, int w, const std::string &title)
 }
 
 void InstrumentSkin::status_(Display &d, const Model &m, const std::string &left) {
+  const Strings &T = *m.tr;
   text(d, f_.m10s, 16, 16, K, fit(f_.m10s, left, 280), Align::LEFT);
   std::string pct = m.battery >= 0 ? std::to_string(m.battery) + "%" : "–";
-  text(d, f_.m10s, 384, 16, K, std::string(m.charging ? "ŁAD " : "BAT ") + pct, Align::RIGHT);
+  text(d, f_.m10s, 384, 16, K, (m.charging ? upper(T.charging_abbr) : std::string("BAT")) + " " + pct, Align::RIGHT);
   static const int HS[4] = {3, 5, 7, 9};
   for (int i = 0; i < 4; i++) {
     if (m.wifi || i == 0)
@@ -155,19 +154,20 @@ std::vector<Rect> InstrumentSkin::live_regions(Screen s, const Model &m) const {
 
 // ---------------------------------------------------------------------------
 void InstrumentSkin::idle_(Display &d, const Model &m) {
+  const Strings &T = *m.tr;
   frame_(d, m, "NOTE4 · " + upper(m.room) + " · " + ddmm(m.date));
   clear(d, 12, 30, 240, 84);
-  tag_(d, "[01] CZAS", 16, 42);
+  tag_(d, "[01] " + upper(T.time_label), 16, 42);
   text(d, f_.clock, 13, 104, K, hhmm(m.hour, m.minute), Align::LEFT, paper(), -3);
 
   clear(d, 258, 30, 132, 92);
-  tag_(d, "[02] WARUNKI", 262, 42);
+  tag_(d, fit(f_.m9s, "[02] " + upper(T.conditions), 120), 262, 42);
   const std::string rows[5][2] = {
-      {"DZIEŃ", upper(weekday_short(m.weekday))},
+      {upper(T.day), upper(weekday_short(T, m.weekday))},
       {"TEMP", deg_c(m.temp_now)},
       {"MIN/MAX", num(m.temp_lo) + "/" + num(m.temp_hi)},
-      {"STAN", upper(first_clause(m.condition))},
-      {"JUTRO", num(m.fc_lo) + "/" + num(m.fc_hi)},
+      {upper(T.sky), upper(first_clause(m.condition))},
+      {upper(T.tomorrow), num(m.fc_lo) + "/" + num(m.fc_hi)},
   };
   for (int i = 0; i < 5; i++) {
     const int y = 60 + i * 15;
@@ -180,7 +180,7 @@ void InstrumentSkin::idle_(Display &d, const Model &m) {
   // [03] day 06-22
   auto X = [](float h) { return (int) std::lround(16 + (h - 6) / 16 * 368); };
   clear(d, 12, 120, 378, 62);
-  tag_(d, "[03] DZIEŃ 06–22", 16, 132);
+  tag_(d, "[03] " + upper(T.day) + " 06–22", 16, 132);
   for (size_t i = 0; i < m.events.size(); i++) {
     const auto &e = m.events[i];
     float a = std::max(6.0f, e.start_h), b = std::min(22.0f, e.end_h);
@@ -211,7 +211,7 @@ void InstrumentSkin::idle_(Display &d, const Model &m) {
   fill_rect(d, nx - 2, 134, 5, 3, K);
 
   // [04] next
-  module_(d, 16, 116, "[04] NASTĘPNE");
+  module_(d, 16, 116, fit(f_.m9s, "[04] " + upper(T.next), 106));
   if (!m.next_time.empty() || !m.next_title.empty()) {
     text(d, f_.next, 22, 232, K, m.next_time, Align::LEFT, paper(), -1);
     auto t = wrap_lines(f_.m10s, upper(m.next_title), 104, 2);
@@ -221,15 +221,15 @@ void InstrumentSkin::idle_(Display &d, const Model &m) {
     text(d, f_.m10, 22, 280, grey(110), fit(f_.m10, cd.empty() ? upper(m.next_in) : cd, 104));
   } else {
     text(d, f_.next, 22, 232, K, "–", Align::LEFT, paper(), -1);
-    text(d, f_.m10s, 22, 250, K, "BRAK");
-    text(d, f_.m10s, 22, 263, K, "WYDARZEŃ");
+    text(d, f_.m10s, 22, 250, K, fit(f_.m10s, upper(T.no_events_1), 104));
+    text(d, f_.m10s, 22, 263, K, fit(f_.m10s, upper(T.no_events_2), 104));
   }
 
   now_module_(d, m);
 
   // [06] timer, or tomorrow
   if (m.timer_active) {
-    module_(d, 260, 124, "[06] TIMER");
+    module_(d, 260, 124, "[06] " + upper(T.timer));
     text(d, f_.card, 266, 234, K, mmss(m.timer_remaining), Align::LEFT, paper(), -1);
     text(d, f_.m10s, 266, 252, K, fit(f_.m10s, upper(m.timer_name), 112));
     const int on = (int) std::ceil(timer_frac(m) * 10 - 1e-4f);
@@ -241,7 +241,7 @@ void InstrumentSkin::idle_(Display &d, const Model &m) {
         stroke_rect(d, x, 264, 9, 14, K);
     }
   } else {
-    module_(d, 260, 124, "[06] JUTRO · " + upper(weekday_short(m.fc_day)));
+    module_(d, 260, 124, fit(f_.m9s, "[06] " + upper(T.tomorrow) + " · " + upper(weekday_short(T, m.fc_day)), 114));
     text(d, f_.card, 266, 234, K, num(m.fc_lo) + "/" + num(m.fc_hi), Align::LEFT, paper(), -1);
     text(d, f_.m8s, 266, 248, grey(110), "MIN/MAX °C");
     auto t = wrap_lines(f_.m10s, upper(m.fc_summary), 112, 2);
@@ -250,23 +250,24 @@ void InstrumentSkin::idle_(Display &d, const Model &m) {
   }
 }
 
-// [05] "Teraz ważne": TODO as the mockup (tag + two lines + source), ALARM
+// [05] The "Now" card: TODO as the mockup (tag + two lines + source), ALARM
 // the same in negative, BRIEF the sentence in plain mono.
 void InstrumentSkin::now_module_(Display &d, const Model &m) {
+  const Strings &T = *m.tr;
   const int x = 138, w = 116, tx = 144, tw = 104;
   if (m.now_level == NowLevel::BRIEF) {
-    module_(d, x, w, "[05] DZIEŃ");
+    module_(d, x, w, "[05] " + upper(T.day));
     auto lines = wrap_lines(f_.m10s, brief_text(m), tw, 5);
     for (size_t i = 0; i < lines.size(); i++)
       text(d, f_.m10s, tx, 218 + (int) i * 14, K, lines[i]);
     return;
   }
   const bool alarm = m.now_level == NowLevel::ALARM;
-  module_(d, x, w, alarm ? "[05] ALARM   !2" : "[05] TERAZ   !1");
+  module_(d, x, w, fit(f_.m9s, "[05] " + upper(alarm ? T.alarm : T.now) + (alarm ? "   !2" : "   !1"), 106));
   const Color fg = alarm ? WH : K, bg = alarm ? K : paper();
   if (alarm)
     fill_rect(d, x, 202, w, 86, K);
-  tag_(d, fit(f_.m9s, upper(now_kind(m.now_icon)), tw - 8), tx, 222, true, alarm);
+  tag_(d, fit(f_.m9s, upper(now_kind(T, m.now_icon)), tw - 8), tx, 222, true, alarm);
   text(d, f_.m12s, tx, 242, fg, fit(f_.m12s, upper(m.now_title), tw), Align::LEFT, bg);
   text(d, f_.m12s, tx, 258, fg, fit(f_.m12s, upper(m.now_body), tw), Align::LEFT, bg);
   text(d, f_.m8s, tx, 280, alarm ? WH : grey(110), fit(f_.m8s, upper(m.now_detail), tw), Align::LEFT, bg);
@@ -274,6 +275,7 @@ void InstrumentSkin::now_module_(Display &d, const Model &m) {
 
 // ---------------------------------------------------------------------------
 void InstrumentSkin::answer_(Display &d, const Model &m) {
+  const Strings &T = *m.tr;
   frame_(d, m, hhmm(m.hour, m.minute) + " · " + upper(m.room));
   clear(d, 12, 30, 378, 260);
   const int w = tag_(d, "IN", 16, 46);
@@ -296,20 +298,22 @@ void InstrumentSkin::answer_(Display &d, const Model &m) {
     }
   }
   text(d, f_.m9, 16, 287, grey(110), "SRC HOME ASSISTANT");
-  keycap(d, f_.m10s, Sym::DOWN, "SZCZEGÓŁY", 384, 288, Align::RIGHT);
+  keycap(d, f_.m10s, Sym::DOWN, upper(T.details), 384, 288, Align::RIGHT);
 }
 
 // ---------------------------------------------------------------------------
 void InstrumentSkin::weather_(Display &d, const Model &m) {
-  frame_(d, m, hhmm(m.hour, m.minute) + " · POGODA");
+  const Strings &T = *m.tr;
+  frame_(d, m, hhmm(m.hour, m.minute) + " · " + upper(T.weather));
   clear(d, 12, 30, 378, 82);
-  tag_(d, "[PROGNOZA] JUTRO · " + upper(weekday_short(m.fc_day)) + " " + ddmm(m.fc_date), 16, 42);
+  tag_(d, "[" + upper(T.forecast) + "] " + upper(T.tomorrow) + " · " + upper(weekday_short(T, m.fc_day)) + " " + ddmm(m.fc_date),
+       16, 42);
   text(d, f_.fc_hi, 13, 98, K, std::isnan(m.fc_hi) ? "–" : signed_deg(m.fc_hi), Align::LEFT, paper(), -3);
   const std::string rows[4][2] = {
       {"MIN", deg_c(m.fc_lo)},
-      {"OPAD", fmt1(fc_rain_sum(m)) + " MM"},
-      {"WIATR", upper(m.fc_wind)},
-      {"WILG.", upper(m.fc_humidity)},
+      {upper(T.precip), fmt1(fc_rain_sum(m)) + " MM"},
+      {upper(T.wind), upper(m.fc_wind)},
+      {upper(T.humidity_abbr) + ".", upper(m.fc_humidity)},
   };
   for (int i = 0; i < 4; i++) {
     const int y = 60 + i * 15;
@@ -364,25 +368,26 @@ void InstrumentSkin::weather_(Display &d, const Model &m) {
     const int rx = (int) std::lround(X(m.fc_rain_start_h));
     vline(d, rx, py0, py1, K);
     float sh = m.fc_rain_start_h;
-    std::string t = "DESZCZ " + hhmm(((int) sh) % 24, (int) std::lround((sh - (int) sh) * 60) % 60);
+    std::string t = upper(T.rain) + " " + hhmm(((int) sh) % 24, (int) std::lround((sh - (int) sh) * 60) % 60);
     int tw = measure(f_.m9s, t) + 8;
     tag_(d, t, rx + 4 + tw <= px1 ? rx + 4 : rx - 4 - tw, py0 + 14);
   }
   for (int h = 6; h <= 24; h += 3)
     text(d, f_.m9, (int) std::lround(X(h)), 252, K, pad2(h), Align::CENTER);
-  text(d, f_.m9, 16, 284, grey(115), "WSCHÓD");
+  text(d, f_.m9, 16, 284, grey(115), fit(f_.m9, upper(T.sunrise), 44));
   text(d, f_.m10s, 62, 284, K, m.fc_sunrise);
-  text(d, f_.m9, 120, 284, grey(115), "ZACHÓD");
+  text(d, f_.m9, 120, 284, grey(115), fit(f_.m9, upper(T.sunset), 44));
   text(d, f_.m10s, 166, 284, K, m.fc_sunset);
-  text(d, f_.m9, 228, 284, grey(115), "OPIS");
+  text(d, f_.m9, 228, 284, grey(115), fit(f_.m9, upper(T.summary_label), 32));
   text(d, f_.m10s, 262, 284, K, fit(f_.m10s, upper(first_clause(m.fc_summary)), 122));
 }
 
 // ---------------------------------------------------------------------------
 void InstrumentSkin::timer_(Display &d, const Model &m) {
-  frame_(d, m, hhmm(m.hour, m.minute) + " · TIMER");
+  const Strings &T = *m.tr;
+  frame_(d, m, hhmm(m.hour, m.minute) + " · " + upper(T.timer));
   clear(d, 12, 30, 378, 262);
-  tag_(d, fit(f_.m9s, "[TIMER] " + upper(m.timer_name), 230), 16, 44);
+  tag_(d, fit(f_.m9s, "[" + upper(T.timer) + "] " + upper(m.timer_name), 230), 16, 44);
   const float cx = 138, cy = 166, R = 98;
   const float fr = timer_frac(m);
   const int on = (int) std::ceil(fr * 60 - 1e-4f);
@@ -401,9 +406,9 @@ void InstrumentSkin::timer_(Display &d, const Model &m) {
   dotted_vline(d, 262, 64, 268, K);
   const std::string rows[4][2] = {
       {"START", m.timer_start},
-      {"KONIEC", m.timer_end},
-      {"CAŁOŚĆ", mmss(m.timer_total)},
-      {"ZOSTAŁO", std::to_string((int) std::lround(fr * 100)) + " %"},
+      {upper(T.end), m.timer_end},
+      {upper(T.total), mmss(m.timer_total)},
+      {upper(T.left), std::to_string((int) std::lround(fr * 100)) + " %"},
   };
   for (int i = 0; i < 4; i++) {
     const int y = 82 + i * 44;
@@ -411,15 +416,16 @@ void InstrumentSkin::timer_(Display &d, const Model &m) {
     text(d, f_.m20s, 276, y + 22, K, rows[i][1], Align::LEFT, paper(), -1);
   }
   keycap(d, f_.m10s, Sym::UP, "+1MIN", 276, 289, Align::LEFT);
-  keycap(d, f_.m10s, Sym::DOT, "STOP", 384, 289, Align::RIGHT);
+  keycap(d, f_.m10s, Sym::DOT, upper(T.stop), 384, 289, Align::RIGHT);
 }
 
 // ---------------------------------------------------------------------------
 // LISTEN: an oscilloscope field with the voice level, elapsed time T+.
 void InstrumentSkin::listen_(Display &d, const Model &m) {
+  const Strings &T = *m.tr;
   frame_(d, m, hhmm(m.hour, m.minute) + " · " + upper(m.room));
   clear(d, 12, 30, 378, 262);
-  tag_(d, "[REC] SŁUCHAM", 16, 44);
+  tag_(d, "[REC] " + upper(T.listening), 16, 44);
   fill_circle(d, 296, 42, 3.5f, K);
   text(d, f_.m20s, 384, 50, K, "T+" + mmss(m.listen_seconds), Align::RIGHT, paper(), -1);
   stroke_rect(d, 16, 62, 368, 122, K);
@@ -431,24 +437,25 @@ void InstrumentSkin::listen_(Display &d, const Model &m) {
     int h = std::max(2, (int) std::lround(2 + l * 108));
     fill_rect(d, 17 + (int) i * 4, (int) std::lround(123 - h / 2.0f), 2, h, K);
   }
-  text(d, f_.m8s, 16, 196, grey(110), "POZIOM MIKROFONU");
+  text(d, f_.m8s, 16, 196, grey(110), upper(T.mic_level));
   const std::string rows[3][2] = {
-      {"WAKE", upper(m.wake_word)}, {"POKÓJ", upper(m.room)}, {"KONIEC", "PO CISZY"}};
+      {"WAKE", upper(m.wake_word)}, {upper(T.room), upper(m.room)}, {upper(T.end), upper(T.after_silence)}};
   for (int i = 0; i < 3; i++) {
     const int y = 216 + i * 15;
     text(d, f_.m10, 16, y, grey(115), rows[i][0]);
     text(d, f_.m10s, 100, y, K, fit(f_.m10s, rows[i][1], 280));
   }
-  text(d, f_.m10, 16, 266, grey(115), "MÓW NATURALNIE. SKOŃCZĘ, GDY UCICHNIESZ.");
-  keycap(d, f_.m10s, Sym::DOT, "ZAKOŃCZ", 16, 289, Align::LEFT);
-  keycap(d, f_.m10s, Sym::DOWN, "ANULUJ", 384, 289, Align::RIGHT);
+  text(d, f_.m10, 16, 266, grey(115), fit(f_.m10, upper(std::string(T.speak_naturally) + ". " + T.stop_when_quiet), 368));
+  keycap(d, f_.m10s, Sym::DOT, upper(T.finish), 16, 289, Align::LEFT);
+  keycap(d, f_.m10s, Sym::DOWN, upper(T.cancel), 384, 289, Align::RIGHT);
 }
 
 // THINK: the heard question tagged IN, the pipeline as a process table.
 void InstrumentSkin::think_(Display &d, const Model &m) {
+  const Strings &T = *m.tr;
   frame_(d, m, hhmm(m.hour, m.minute) + " · " + upper(m.room));
   clear(d, 12, 30, 378, 262);
-  tag_(d, "[PROC] CHWILA…", 16, 44);
+  tag_(d, "[PROC] " + upper(T.thinking), 16, 44);
   const int w = tag_(d, "IN", 16, 72);
   auto q = wrap_lines(f_.m12s, upper(m.question), 368 - w - 8, 2);
   for (size_t i = 0; i < q.size(); i++)
@@ -463,42 +470,43 @@ void InstrumentSkin::think_(Display &d, const Model &m) {
     else
       dotted_hline(d, 16, 384, y + 7, K);
     text(d, f_.m10s, 22, y, fg, "[" + std::to_string(i + 1) + "]", Align::LEFT, bg);
-    text(d, f_.m12s, 56, y, fg, upper(STEPS[i]), Align::LEFT, bg);
-    text(d, f_.m10s, 378, y, active ? WH : (done ? K : grey(115)), done ? "GOTOWE" : active ? "TRWA…" : "–",
+    text(d, f_.m12s, 56, y, fg, upper(T.steps[i]), Align::LEFT, bg);
+    text(d, f_.m10s, 378, y, active ? WH : (done ? K : grey(115)), done ? upper(T.step_done) : active ? upper(T.step_running) : std::string("–"),
          Align::RIGHT, bg);
   }
   text(d, f_.m9, 16, 287, grey(110), "SRC HOME ASSISTANT · ASSIST");
-  keycap(d, f_.m10s, Sym::DOWN, "ANULUJ", 384, 288, Align::RIGHT);
+  keycap(d, f_.m10s, Sym::DOWN, upper(T.cancel), 384, 288, Align::RIGHT);
 }
 
 // DOORBELL: snapshot left, a labelled panel right.
 void InstrumentSkin::doorbell_(Display &d, const Model &m) {
+  const Strings &T = *m.tr;
   if (m.bell_image != nullptr && m.bell_image_ready) {
     d.start_clipping(0, 0, 264, H);
     d.image(0, 0, m.bell_image);
     d.end_clipping();
   } else {
     fill_rect(d, 0, 0, 264, H, tone(190));
-    text(d, f_.m10s, 132, 154, K, "CZEKAM NA OBRAZ…", Align::CENTER, tone(190));
+    text(d, f_.m10s, 132, 154, K, upper(T.waiting_image) + "…", Align::CENTER, tone(190));
   }
   tag_(d, fit(f_.m9s, "[CAM] " + upper(m.bell_place), 240), 8, 20);
   clear(d, 264, 0, 136, H);
   vline(d, 264, 0, H, K);
   corners(d, false);
   const int x = 276;
-  tag_(d, "[DZWONEK]", x, 22);
-  text(d, f_.m9, x, 46, grey(115), "GODZINA");
+  tag_(d, fit(f_.m9s, "[" + upper(T.doorbell) + "]", 104), x, 22);
+  text(d, f_.m9, x, 46, grey(115), upper(T.clock_time));
   text(d, f_.card, x - 1, 76, K, m.bell_time, Align::LEFT, paper(), -1);
   dotted_hline(d, x, 388, 88, K);
   auto cap = wrap_lines(f_.m12s, upper(m.bell_caption), 112, 4);
   for (size_t i = 0; i < cap.size(); i++)
     text(d, f_.m12s, x, 108 + (int) i * 16, K, cap[i]);
   if (!cap.empty())
-    text(d, f_.m8s, x, 176, grey(110), "OPIS: AI TASK");
+    text(d, f_.m8s, x, 176, grey(110), fit(f_.m8s, upper(T.caption_source), 112));
   dotted_hline(d, x, 388, 186, K);
-  keycap(d, f_.m10s, Sym::UP, "OTWÓRZ", x, 214, Align::LEFT);
-  keycap(d, f_.m10s, Sym::DOT, "MÓW", x, 240, Align::LEFT);
-  keycap(d, f_.m10s, Sym::DOWN, "ZAMKNIJ", x, 266, Align::LEFT);
+  keycap(d, f_.m10s, Sym::UP, upper(T.open_door), x, 214, Align::LEFT);
+  keycap(d, f_.m10s, Sym::DOT, upper(T.talk), x, 240, Align::LEFT);
+  keycap(d, f_.m10s, Sym::DOWN, upper(T.close_door), x, 266, Align::LEFT);
 }
 
 }  // namespace note4_ui

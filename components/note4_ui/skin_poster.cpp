@@ -62,11 +62,12 @@ int PosterSkin::answer_lines_(const Model &m) const { return m.facts.empty() ? 7
 
 // ------------------------------------------------------------------ IDLE
 void PosterSkin::idle_(Display &d, const Model &m) {
+  const Strings &T = *m.tr;
   wedge(d, 400, 0, 92, PI_F / 2, PI_F, GREY_Q);
 
   // the big black circle with the clock
   fill_circle(d, 112, 122, 96, ink());
-  text(d, f_small_, 112, 78, paper(), short_day(m.weekday) + " " + ddmm(m.date), Align::CENTER, ink(), 1.5f);
+  text(d, f_small_, 112, 78, paper(), short_day(T, m.weekday) + " " + ddmm(m.date), Align::CENTER, ink(), 1.5f);
   fixed_digits(d, f_clock_, 112, 142, paper(), hhmm(m.hour, m.minute), ink());
   text(d, f_label_, 112, 174, paper(), fit(f_label_, upper(m.room), 150), Align::CENTER, ink(), 2);
 
@@ -77,10 +78,10 @@ void PosterSkin::idle_(Display &d, const Model &m) {
   fill_rect(d, 226, 150, 158, 6, ink());
 
   // next event
-  text(d, f_label_, 226, 176, ink(), "NASTĘPNE", Align::LEFT, paper(), 1.5f);
+  text(d, f_label_, 226, 176, ink(), upper(T.next), Align::LEFT, paper(), 1.5f);
   if (m.next_title.empty() && m.next_time.empty()) {
     text(d, f_head_, 226, 202, ink(), "—");
-    text(d, f_bold_, 226, 221, ink(), "Nic więcej dziś");
+    text(d, f_bold_, 226, 221, ink(), fit(f_bold_, T.nothing_more_today, 158));
   } else {
     text(d, f_head_, 226, 202, ink(), m.next_time);
     int tx = 226 + measure(f_head_, m.next_time) + 8;
@@ -99,13 +100,14 @@ void PosterSkin::idle_(Display &d, const Model &m) {
     fill_rect(d, 320, 282, 64, 1, paper());
     fill_rect(d, 320, 280, (int) lroundf(64 * timer_frac(m)), 5, paper());
   } else {
-    text(d, f_label_, 214, 254, paper(), "POWIEDZ", Align::LEFT, ink(), 1.5f);
-    text(d, f_head_, 214, 287, paper(), fit(f_head_, "„" + m.wake_word + "”", 172), Align::LEFT, ink());
+    text(d, f_label_, 214, 254, paper(), upper(T.say), Align::LEFT, ink(), 1.5f);
+    text(d, f_head_, 214, 287, paper(), fit(f_head_, subst(T.quoted, m.wake_word), 172), Align::LEFT, ink());
   }
 }
 
-// "Teraz ważne" card, bottom left (0,236 200x64).
+// The "Now" card, bottom left (0,236 200x64).
 void PosterSkin::now_card_(Display &d, const Model &m) {
+  const Strings &T = *m.tr;
   bool alarm = m.now_level == NowLevel::ALARM;
   Color bg = alarm ? ink() : GREY_Q;
   Color fg = alarm ? paper() : ink();
@@ -113,14 +115,14 @@ void PosterSkin::now_card_(Display &d, const Model &m) {
   fill_rect(d, 0, 236, alarm ? 197 : 200, 64, bg);
 
   if (m.now_level == NowLevel::BRIEF) {
-    text(d, f_label_, 14, 254, fg, "TERAZ · DZIEŃ", Align::LEFT, bg, 1.5f);
+    text(d, f_label_, 14, 254, fg, fit(f_label_, upper(T.now) + " · " + upper(T.day), 170), Align::LEFT, bg, 1.5f);
     auto lines = wrap_n(f_small_, brief_text(m), 174, 2);
     for (size_t i = 0; i < lines.size(); i++)
       text(d, f_small_, 14, 272 + (int) i * 15, fg, lines[i], Align::LEFT, bg);
     return;
   }
 
-  std::string lab = std::string(alarm ? "ALARM · " : "TERAZ · ") + upper(now_topic(m.now_icon));
+  std::string lab = upper(alarm ? T.alarm : T.now) + " · " + upper(now_topic(T, m.now_icon));
   text(d, f_label_, 14, 254, fg, fit(f_label_, lab, 170), Align::LEFT, bg, 1.5f);
   // the icon is a solid circle with the symbol cut out of it
   fill_circle(d, 32, 278, 16, fg);
@@ -138,20 +140,22 @@ void PosterSkin::now_card_(Display &d, const Model &m) {
 // The clock circle becomes the recorder: elapsed time inside, the voice as a
 // black band of bars along the bottom edge.
 void PosterSkin::listen_(Display &d, const Model &m) {
+  const Strings &T = *m.tr;
   wedge(d, 400, 0, 92, PI_F / 2, PI_F, GREY_Q);
   fill_circle(d, 112, 122, 96, ink());
-  text(d, f_label_, 112, 88, paper(), "SŁUCHAM", Align::CENTER, ink(), 2);
+  text(d, f_label_, 112, 88, paper(), fit(f_label_, upper(T.listening), 150), Align::CENTER, ink(), 2);
   fixed_digits(d, f_timer_, 112, 142, paper(), mmss(m.listen_seconds), ink());
   fill_circle(d, 112, 166, 5, paper());
 
-  text(d, f_head_, 226, 104, ink(), "Mów");
-  text(d, f_head_, 226, 128, ink(), "naturalnie.");
+  auto sp = wrap_n(f_head_, std::string(T.speak_naturally) + ".", 158, 2);
+  for (size_t i = 0; i < sp.size(); i++)
+    text(d, f_head_, 226, 104 + (int) i * 24, ink(), sp[i]);
   fill_rect(d, 226, 142, 158, 6, ink());
-  auto l = wrap_n(f_bold_, "Skończę, gdy ucichniesz.", 158, 2);
+  auto l = wrap_n(f_bold_, T.stop_when_quiet, 158, 2);
   for (size_t i = 0; i < l.size(); i++)
     text(d, f_bold_, 226, 166 + (int) i * 17, ink(), l[i]);
-  hint(d, f_small_, Sym::DOT, "zakończ", 226, 214);
-  hint(d, f_small_, Sym::DOWN, "anuluj", 384, 214, Align::RIGHT);
+  hint(d, f_small_, Sym::DOT, T.finish, 226, 214);
+  hint(d, f_small_, Sym::DOWN, T.cancel, 384, 214, Align::RIGHT);
 
   for (size_t i = 0; i < m.mic_history.size(); i++) {
     float v = clampf(m.mic_history[i], 0, 1);
@@ -164,9 +168,10 @@ void PosterSkin::listen_(Display &d, const Model &m) {
 // Inside the circle three dots for the pipeline steps; the heard question
 // stands next to it as a headline.
 void PosterSkin::think_(Display &d, const Model &m) {
+  const Strings &T = *m.tr;
   wedge(d, 400, 300, 80, PI_F, PI_F * 1.5f, GREY_Q);
   fill_circle(d, 112, 122, 96, ink());
-  text(d, f_head_, 112, 106, paper(), "Chwila…", Align::CENTER, ink());
+  text(d, f_head_, 112, 106, paper(), T.thinking, Align::CENTER, ink());
   int st = clampi(m.pipeline_step, 0, 2);
   for (int i = 0; i < 3; i++) {
     float cx = 76 + i * 36, cy = 136;
@@ -177,20 +182,21 @@ void PosterSkin::think_(Display &d, const Model &m) {
     else
       ring(d, cx, cy, 7, 2, paper());
   }
-  text(d, f_small_, 112, 172, paper(), STEPS[st], Align::CENTER, ink());
+  text(d, f_small_, 112, 172, paper(), fit(f_small_, T.steps[st], 164), Align::CENTER, ink());
 
-  text(d, f_label_, 226, 44, ink(), "USŁYSZAŁEM", Align::LEFT, paper(), 1.5f);
+  text(d, f_label_, 226, 44, ink(), upper(T.heard), Align::LEFT, paper(), 1.5f);
   auto q = wrap_n(f_head_, m.question.empty() ? std::string("…") : m.question, 158, 5);
   for (size_t i = 0; i < q.size(); i++)
     text(d, f_head_, 226, 76 + (int) i * 26, ink(), q[i]);
   fill_rect(d, 226, 76 + (int) (q.size() - 1) * 26 + 14, 96, 6, ink());
-  hint(d, f_small_, Sym::DOWN, "anuluj", 226, 290);
+  hint(d, f_small_, Sym::DOWN, T.cancel, 226, 290);
 }
 
 // ------------------------------------------------------------------ ANSWER
 void PosterSkin::answer_(Display &d, const Model &m) {
+  const Strings &T = *m.tr;
   wedge(d, 400, 0, 70, PI_F / 2, PI_F, GREY_Q);
-  text(d, f_label_, 16, 30, ink(), "PYTANIE", Align::LEFT, paper(), 1.5f);
+  text(d, f_label_, 16, 30, ink(), upper(T.question), Align::LEFT, paper(), 1.5f);
   text(d, f_head_, 16, 56, ink(), fit(f_head_, m.question, 320));
   fill_rect(d, 16, 68, 96, 6, ink());
 
@@ -228,7 +234,8 @@ void PosterSkin::answer_(Display &d, const Model &m) {
 // Tomorrow: a huge temperature, a grey cloud, hours as black circles whose
 // size is the temperature, grey bars for rain.
 void PosterSkin::weather_(Display &d, const Model &m) {
-  text(d, f_label_, 16, 30, ink(), "JUTRO · " + upper(m.fc_day), Align::LEFT, paper(), 1.5f);
+  const Strings &T = *m.tr;
+  text(d, f_label_, 16, 30, ink(), fit(f_label_, upper(T.tomorrow) + " · " + upper(m.fc_day), 368), Align::LEFT, paper(), 1.5f);
   std::string hi = temp_str(m.fc_hi);
   text(d, f_huge_, 8, 132, ink(), hi, Align::LEFT, paper(), -4);
   int w = measure(f_huge_, hi, -4);
@@ -283,16 +290,17 @@ void PosterSkin::weather_(Display &d, const Model &m) {
 
   std::vector<std::string> parts;
   if (!m.fc_wind.empty())
-    parts.push_back("Wiatr " + m.fc_wind);
+    parts.push_back(std::string(T.wind) + " " + m.fc_wind);
   if (!m.fc_humidity.empty())
-    parts.push_back("Wilgotność " + m.fc_humidity);
+    parts.push_back(std::string(T.humidity) + " " + m.fc_humidity);
   if (!m.fc_sunset.empty())
-    parts.push_back("Zachód " + m.fc_sunset);
+    parts.push_back(std::string(T.sunset) + " " + m.fc_sunset);
   text(d, f_small_, 16, 296, ink(100), fit(f_small_, join_dot(parts), 368));
 }
 
 // ------------------------------------------------------------------ TIMER
 void PosterSkin::timer_(Display &d, const Model &m) {
+  const Strings &T = *m.tr;
   wedge(d, 400, 300, 80, PI_F, PI_F * 1.5f, GREY_Q);
   text(d, f_label_, 16, 30, ink(), fit(f_label_, upper(m.timer_name), 200), Align::LEFT, paper(), 1.5f);
   const float cx = 120, cy = 156;
@@ -304,22 +312,23 @@ void PosterSkin::timer_(Display &d, const Model &m) {
     wedge(d, cx, cy, 98, TOP, TOP + fr * TAU_F, ink());
 
   fixed_digits(d, f_timer_, 236 + measure(f_timer_, "00:00") / 2, 160, ink(), mmss(m.timer_remaining));
-  text(d, f_bold_, 238, 186, ink(110), "z " + mmss(m.timer_total));
+  text(d, f_bold_, 238, 186, ink(110), subst(T.of_total, mmss(m.timer_total)));
   if (!m.timer_end.empty())
-    text(d, f_bold_, 238, 206, ink(), "koniec " + m.timer_end);
+    text(d, f_bold_, 238, 206, ink(), subst(T.ends_at, m.timer_end));
   hint(d, f_small_, Sym::UP, "+1 min", 16, 290);
-  hint(d, f_small_, Sym::DOT, "stop", 120, 290);
-  hint(d, f_small_, Sym::DOWN, "pauza", 236, 290);
+  hint(d, f_small_, Sym::DOT, T.stop, 120, 290);
+  hint(d, f_small_, Sym::DOWN, T.pause, 236, 290);
 }
 
 // ------------------------------------------------------------------ DOORBELL
 void PosterSkin::doorbell_(Display &d, const Model &m) {
+  const Strings &T = *m.tr;
   if (!bell_image(d, m, 264)) {
     fill_rect(d, 0, 0, 264, 300, GREY_Q);
     fill_circle(d, 132, 140, 40, ink());
-    text(d, f_small_, 132, 216, ink(), "Czekam na zdjęcie…", Align::CENTER, GREY_Q);
+    text(d, f_small_, 132, 216, ink(), std::string(T.waiting_photo) + "…", Align::CENTER, GREY_Q);
   }
-  std::string cap = "KAMERA · " + upper(m.bell_place);
+  std::string cap = upper(T.camera) + " · " + upper(m.bell_place);
   int pw = measure(f_label_, cap, 1.2f) + 20;
   fill_round(d, 10, 10, pw, 18, 9, ink());
   text(d, f_label_, 10 + pw / 2, 23, paper(), cap, Align::CENTER, ink(), 1.2f);
@@ -327,17 +336,17 @@ void PosterSkin::doorbell_(Display &d, const Model &m) {
   // right column: black head block, caption, actions
   fill_rect(d, 264, 0, 136, 300, paper());
   fill_rect(d, 264, 0, 136, 112, ink());
-  text(d, f_label_, 280, 30, paper(), "DZWONEK", Align::LEFT, ink(), 1.5f);
+  text(d, f_label_, 280, 30, paper(), upper(T.doorbell), Align::LEFT, ink(), 1.5f);
   text(d, f_num_, 280, 72, paper(), m.bell_time.empty() ? hhmm(m.hour, m.minute) : m.bell_time, Align::LEFT, ink());
-  text(d, f_small_, 280, 96, paper(), fit(f_small_, m.bell_place + " · przed chwilą", 112), Align::LEFT, ink());
+  text(d, f_small_, 280, 96, paper(), fit(f_small_, m.bell_place + " · " + T.just_now, 112), Align::LEFT, ink());
 
-  auto c = wrap_n(f_bold_, m.bell_caption.empty() ? std::string("Ktoś dzwoni do drzwi") : m.bell_caption, 112, 5);
+  auto c = wrap_n(f_bold_, m.bell_caption.empty() ? std::string(T.someone_at_door) : m.bell_caption, 112, 5);
   for (size_t i = 0; i < c.size(); i++)
     text(d, f_bold_, 280, 138 + (int) i * 17, ink(), c[i]);
   fill_rect(d, 280, 218, 48, 4, ink());
-  hint(d, f_small_, Sym::UP, "Otwórz", 280, 244);
-  hint(d, f_small_, Sym::DOT, "Mów", 280, 266);
-  hint(d, f_small_, Sym::DOWN, "Zamknij", 280, 288);
+  hint(d, f_small_, Sym::UP, cap_first(T.open_door), 280, 244);
+  hint(d, f_small_, Sym::DOT, cap_first(T.talk), 280, 266);
+  hint(d, f_small_, Sym::DOWN, cap_first(T.close_door), 280, 288);
 }
 
 }  // namespace note4_ui

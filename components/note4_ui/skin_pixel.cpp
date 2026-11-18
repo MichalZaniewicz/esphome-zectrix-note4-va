@@ -10,7 +10,7 @@ namespace {
 
 using BM = std::vector<const char *>;
 
-// Pixel icons (from the mockup, plus a few for the "Teraz ważne" card).
+// Pixel icons (from the mockup, plus a few for the "Now" card).
 const BM BM_CLOUD = {"0000011110000000", "0000111111110000", "0001111111111000", "0111111111111100", "1111111111111110",
                      "1111111111111111", "1111111111111111", "0111111111111110", "0011111111111100"};
 const BM BM_CLOUD_IN = {"0000000000000000", "0000000000000000", "0000011100000000", "0001100000000000",
@@ -186,9 +186,10 @@ void PixelSkin::button_(Display &d, int x, int cy, char key, int r, const std::s
 
 // ------------------------------------------------------------------ IDLE
 void PixelSkin::idle_(Display &d, const Model &m) {
+  const Strings &T = *m.tr;
   std::string right = m.battery >= 0 ? std::string(m.charging ? "BAT+ " : "BAT ") + std::to_string(m.battery) + "%" : "";
   if (!m.wifi)
-    right = "BRAK WIFI" + (right.empty() ? "" : "  " + right);
+    right = upper(T.no_wifi) + (right.empty() ? "" : "  " + right);
   this->titlebar_(d, upper(m.room), right);
 
   text(d, f_xl_, 14, 80, ink(), hhmm(m.hour, m.minute));
@@ -197,10 +198,10 @@ void PixelSkin::idle_(Display &d, const Model &m) {
   text(d, f_m_, 384, 104, ink(), temp_str(m.temp_now, true), Align::RIGHT);
   text(d, f_vt_, 384, 124, ink(), fit(f_vt_, lower(first_part(m.condition)), 120), Align::RIGHT);
 
-  this->win_(d, 14, 138, 118, 156, "NASTĘPNE");
+  this->win_(d, 14, 138, 118, 156, upper(T.next));
   if (m.next_time.empty() && m.next_title.empty()) {
-    text(d, f_vt_, 26, 180, ink(), "nic więcej");
-    text(d, f_vt_, 26, 200, ink(), "dziś");
+    text(d, f_vt_, 26, 180, ink(), fit(f_vt_, lower(T.nothing_more), 96));
+    text(d, f_vt_, 26, 200, ink(), fit(f_vt_, lower(T.today), 96));
   } else {
     text(d, f_m_, 26, 176, ink(), fit(f_m_, m.next_time, 96));
     auto l = wrap_n(f_vt_, m.next_title, 96, 3);
@@ -212,7 +213,7 @@ void PixelSkin::idle_(Display &d, const Model &m) {
   this->now_win_(d, m);
 
   if (m.timer_active) {
-    this->win_(d, 266, 138, 120, 156, "TIMER");
+    this->win_(d, 266, 138, 120, 156, upper(T.timer));
     text(d, f_m_, 278, 180, ink(), mmss(m.timer_remaining));
     text(d, f_s_, 278, 200, ink(), fit(f_s_, upper(m.timer_name), 100));
     int on = (int) ceilf(timer_frac(m) * 10 - 0.001f);
@@ -223,11 +224,11 @@ void PixelSkin::idle_(Display &d, const Model &m) {
       else
         checker(d, x, 214, 8, 12);
     }
-    text(d, f_vt_, 278, 256, ink(), "z " + mmss(m.timer_total));
+    text(d, f_vt_, 278, 256, ink(), subst(T.of_total, mmss(m.timer_total)));
   } else {
     // no timer: a status window, the battery as a health bar
-    this->win_(d, 266, 138, 120, 156, "STAN");
-    text(d, f_s_, 278, 170, ink(), "BATERIA");
+    this->win_(d, 266, 138, 120, 156, upper(T.status));
+    text(d, f_s_, 278, 170, ink(), fit(f_s_, upper(T.battery), 100));
     int on = m.battery < 0 ? 0 : (m.battery + 5) / 10;
     for (int i = 0; i < 10; i++) {
       int x = 278 + i * 10;
@@ -237,16 +238,17 @@ void PixelSkin::idle_(Display &d, const Model &m) {
         checker(d, x, 178, 8, 12);
     }
     text(d, f_vt_, 278, 214, ink(), m.battery >= 0 ? std::to_string(m.battery) + "%" + (m.charging ? " +" : "") : "--%");
-    text(d, f_vt_, 278, 242, ink(), m.wifi ? "wifi: ok" : "wifi: brak");
-    text(d, f_vt_, 278, 266, ink(), m.ha ? "HA: ok" : "HA: brak");
+    text(d, f_vt_, 278, 242, ink(), m.wifi ? std::string("wifi: ok") : "wifi: " + std::string(T.missing));
+    text(d, f_vt_, 278, 266, ink(), m.ha ? std::string("HA: ok") : "HA: " + std::string(T.missing));
   }
 }
 
-// "Teraz ważne" window in the middle (140,138 118x156).
+// The "Now" window in the middle (140,138 118x156).
 void PixelSkin::now_win_(Display &d, const Model &m) {
+  const Strings &T = *m.tr;
   const int x = 140, y = 138, w = 118, h = 156, cx = x + w / 2 + 1;
   if (m.now_level == NowLevel::ALARM) {
-    this->win_(d, x, y, w, h, "UWAGA!");
+    this->win_(d, x, y, w, h, upper(T.attention));
     fill_rect(d, x + 8, y + 12, w - 16, h - 20, ink());
     bitmap(d, BM_EXCL, cx - 6, y + 22, 4, paper());
     auto t = wrap_n(f_s_, upper(m.now_title), 98, 2);
@@ -259,13 +261,13 @@ void PixelSkin::now_win_(Display &d, const Model &m) {
     return;
   }
   if (m.now_level == NowLevel::BRIEF) {
-    this->win_(d, x, y, w, h, "DZIŚ");
+    this->win_(d, x, y, w, h, upper(T.today));
     auto l = wrap_n(f_vt_, brief_text(m), 100, 6);
     for (size_t i = 0; i < l.size(); i++)
       text(d, f_vt_, x + 10, y + 30 + (int) i * 21, ink(), l[i]);
     return;
   }
-  this->win_(d, x, y, w, h, "TERAZ");
+  this->win_(d, x, y, w, h, upper(T.now));
   const BM &icon = now_bitmap(m.now_icon);
   bitmap(d, icon, cx - bm_w(icon) * 2, y + 16, 4, ink());
   auto t = wrap_n(f_vt_, m.now_title, 100, 2);
@@ -278,11 +280,12 @@ void PixelSkin::now_win_(Display &d, const Model &m) {
 }
 
 // ------------------------------------------------------------------ LISTEN
-// A "MIKROFON" window with chunky level bars (two samples per bar), the
+// A microphone window with chunky level bars (two samples per bar), the
 // elapsed time ticking in the title bar like a recorder.
 void PixelSkin::listen_(Display &d, const Model &m) {
-  this->titlebar_(d, "SŁUCHAM", "REC " + mmss(m.listen_seconds));
-  this->win_(d, 8, 30, 384, 150, "MIKROFON");
+  const Strings &T = *m.tr;
+  this->titlebar_(d, upper(T.listening), "REC " + mmss(m.listen_seconds));
+  this->win_(d, 8, 30, 384, 150, upper(T.mic));
   const size_t n = m.mic_history.size() / 2;
   for (size_t i = 0; i < n; i++) {
     float v = std::max(m.mic_history[2 * i], m.mic_history[2 * i + 1]);
@@ -290,44 +293,46 @@ void PixelSkin::listen_(Display &d, const Model &m) {
     int hgt = 4 + units * 8;
     fill_rect(d, 16 + (int) i * 8, 104 - units * 4, 6, hgt, ink());
   }
-  text(d, f_vt_, 16, 206, ink(), "Mów naturalnie.");
-  text(d, f_vt_, 16, 228, ink(105), "Skończę, gdy ucichniesz.");
-  this->button_(d, 164, 272, 'B', 13, "zakończ", 20, 7);
-  this->button_(d, 288, 272, 'v', 13, "anuluj", 20, 7);
+  text(d, f_vt_, 16, 206, ink(), fit(f_vt_, std::string(T.speak_naturally) + ".", 368));
+  text(d, f_vt_, 16, 228, ink(105), fit(f_vt_, T.stop_when_quiet, 368));
+  this->button_(d, 164, 272, 'B', 13, T.finish, 20, 7);
+  this->button_(d, 288, 272, 'v', 13, T.cancel, 20, 7);
 }
 
 // ------------------------------------------------------------------ THINK
 // Quest log: what was heard, then the three steps as checkboxes.
 void PixelSkin::think_(Display &d, const Model &m) {
-  this->titlebar_(d, "MYŚLĘ...", hhmm(m.hour, m.minute));
-  this->win_(d, 14, 34, 372, 72, "USŁYSZAŁEM");
+  const Strings &T = *m.tr;
+  this->titlebar_(d, upper(T.thinking_title), hhmm(m.hour, m.minute));
+  this->win_(d, 14, 34, 372, 72, upper(T.heard));
   auto q = wrap_n(f_vt_, "> " + (m.question.empty() ? std::string("...") : m.question), 344, 2);
   for (size_t i = 0; i < q.size(); i++)
     text(d, f_vt_, 26, 62 + (int) i * 24, ink(), q[i]);
 
-  this->win_(d, 14, 118, 372, 126, "POSTĘP");
+  this->win_(d, 14, 118, 372, 126, upper(T.progress));
   int st = clampi(m.pipeline_step, 0, 2);
   for (int i = 0; i < 3; i++) {
     int y = 152 + i * 30;
     const BM &b = i < st ? BM_BOX_OK : (i == st ? BM_PLAY : BM_BOX);
     bitmap(d, b, 28, y - 15, 2, ink());
-    std::string l = STEPS[i];
+    std::string l = T.steps[i];
     if (i == st)
       l += "...";
     text(d, f_vt_, 52, y, ink(), l);
   }
-  this->button_(d, 288, 272, 'v', 13, "anuluj", 20, 7);
+  this->button_(d, 288, 272, 'v', 13, T.cancel, 20, 7);
 }
 
 // ------------------------------------------------------------------ ANSWER
 void PixelSkin::answer_(Display &d, const Model &m) {
-  this->titlebar_(d, "ASYSTENT", hhmm(m.hour, m.minute));
+  const Strings &T = *m.tr;
+  this->titlebar_(d, upper(T.assistant), hhmm(m.hour, m.minute));
   this->win_(d, 14, 28, 372, 42, "");
   text(d, f_vt_, 26, 56, ink(), fit(f_vt_, "> " + m.question, 348));
 
   bool facts = !m.facts.empty();
   int wh = facts ? 168 : 212;
-  this->win_(d, 14, 80, 372, wh, "ODPOWIEDŹ");
+  this->win_(d, 14, 80, 372, wh, upper(T.answer));
   AnswerLayout a = layout_answer(f_vt_, m.answer, 344, this->answer_lines_(m), m.answer_words_shown);
   for (size_t i = 0; i < a.lines.size(); i++)
     text(d, f_vt_, 26, 110 + (int) i * 24, ink(), a.lines[i]);
@@ -344,12 +349,11 @@ void PixelSkin::answer_(Display &d, const Model &m) {
     this->win_(d, x, 256, 120, 40, "");
     std::string lab = lower(m.facts[i].second), v = m.facts[i].first;
     const BM *ic = i == 0 ? &BM_UMBRELLA : (i == 1 ? &BM_DROP : &BM_THERMO);
-    if (lab.find("deszcz") != std::string::npos || lab.find("parasol") != std::string::npos)
+    if (contains_any(lab, T.kw_rain))
       ic = &BM_UMBRELLA;
-    else if (lab.find("opad") != std::string::npos || v.find("mm") != std::string::npos)
+    else if (contains_any(lab, T.kw_precip) || v.find("mm") != std::string::npos)
       ic = &BM_DROP;
-    else if (lab.find("temp") != std::string::npos || lab.find("maks") != std::string::npos ||
-             v.find("°") != std::string::npos)
+    else if (contains_any(lab, T.kw_temp) || v.find("°") != std::string::npos)
       ic = &BM_THERMO;
     else if (!std::isnan(parse_hm(v)))  // a time of day
       ic = &BM_CLOCK;
@@ -360,7 +364,8 @@ void PixelSkin::answer_(Display &d, const Model &m) {
 
 // ------------------------------------------------------------------ WEATHER
 void PixelSkin::weather_(Display &d, const Model &m) {
-  this->titlebar_(d, "POGODA: JUTRO", short_day(m.fc_day) + " " + ddmm(m.fc_date));
+  const Strings &T = *m.tr;
+  this->titlebar_(d, upper(T.weather) + ": " + upper(T.tomorrow), short_day(T, m.fc_day) + " " + ddmm(m.fc_date));
   float total = fc_rain_total(m);
   if (total >= 0.2f) {
     bitmap(d, BM_CLOUD, 16, 34, 4, ink());
@@ -372,8 +377,8 @@ void PixelSkin::weather_(Display &d, const Model &m) {
   text(d, f_l_, 96, 70, ink(), temp_str(m.fc_hi, true));
   text(d, f_vt_, 96, 96, ink(), "min " + temp_str(m.fc_lo, true));
   text(d, f_vt_, 96, 118, ink(), fit(f_vt_, lower(m.fc_summary), 288));
-  text(d, f_m_, 384, 70, ink(), mm_str(total, false), Align::RIGHT);
-  text(d, f_vt_, 384, 92, ink(105), "opad", Align::RIGHT);
+  text(d, f_m_, 384, 70, ink(), mm_str(total, false, T.decimal_sep), Align::RIGHT);
+  text(d, f_vt_, 384, 92, ink(105), lower(T.precip), Align::RIGHT);
 
   float lo, hi;
   fc_temp_range(m, lo, hi);
@@ -397,19 +402,20 @@ void PixelSkin::weather_(Display &d, const Model &m) {
 
   std::vector<std::string> p;
   if (!m.fc_wind.empty())
-    p.push_back("wiatr " + m.fc_wind);
+    p.push_back(lower(T.wind) + " " + m.fc_wind);
   if (!m.fc_humidity.empty())
-    p.push_back("wilg " + m.fc_humidity);
+    p.push_back(std::string(T.humidity_abbr) + " " + m.fc_humidity);
   if (!m.fc_sunset.empty())
-    p.push_back("zach " + m.fc_sunset);
+    p.push_back(std::string(T.sunset_abbr) + " " + m.fc_sunset);
   text(d, f_vt_, 16, 288, ink(), fit(f_vt_, join_dot(p, "  "), 368));
 }
 
 // ------------------------------------------------------------------ TIMER
 void PixelSkin::timer_(Display &d, const Model &m) {
-  this->titlebar_(d, "TIMER: " + upper(m.timer_name), hhmm(m.hour, m.minute));
+  const Strings &T = *m.tr;
+  this->titlebar_(d, upper(T.timer) + ": " + upper(m.timer_name), hhmm(m.hour, m.minute));
   text(d, f_xxl_, 200, 132, ink(), mmss(m.timer_remaining), Align::CENTER);
-  text(d, f_s_, 20, 176, ink(), "CZAS");
+  text(d, f_s_, 20, 176, ink(), fit(f_s_, upper(T.time_label), 40));
   stroke_rect(d, 64, 158, 312, 24, ink(), 2);
   int on = (int) lroundf(timer_frac(m) * 30);
   for (int i = 0; i < 30; i++) {
@@ -420,38 +426,39 @@ void PixelSkin::timer_(Display &d, const Model &m) {
       checker(d, x, 163, 8, 14);
   }
   if (!m.timer_end.empty())
-    text(d, f_vt_, 200, 220, ink(), "koniec " + m.timer_end, Align::CENTER);
+    text(d, f_vt_, 200, 220, ink(), subst(T.ends_at, m.timer_end), Align::CENTER);
   this->button_(d, 40, 272, 'A', 13, "+1 min", 20, 7);
-  this->button_(d, 164, 272, 'B', 13, "stop", 20, 7);
-  this->button_(d, 288, 272, 'v', 13, "pauza", 20, 7);
+  this->button_(d, 164, 272, 'B', 13, T.stop, 20, 7);
+  this->button_(d, 288, 272, 'v', 13, T.pause, 20, 7);
 }
 
 // ------------------------------------------------------------------ DOORBELL
 void PixelSkin::doorbell_(Display &d, const Model &m) {
+  const Strings &T = *m.tr;
   if (!bell_image(d, m, 264)) {
     checker(d, 0, 0, 264, 300);
     this->win_(d, 52, 120, 160, 60, "");
-    text(d, f_vt_, 132, 157, ink(), "czekam na obraz", Align::CENTER);
+    text(d, f_vt_, 132, 157, ink(), fit(f_vt_, lower(T.waiting_image), 150), Align::CENTER);
   }
-  std::string cap = "KAMERA: " + upper(m.bell_place);
+  std::string cap = upper(T.camera) + ": " + upper(m.bell_place);
   fill_rect(d, 6, 6, measure(f_s_, cap) + 8, 14, ink());
   text(d, f_s_, 10, 17, paper(), cap, Align::LEFT, ink());
 
   fill_rect(d, 264, 0, 136, 300, paper());
   fill_rect(d, 264, 0, 2, 300, ink());
-  this->win_(d, 270, 8, 124, 104, "DZWONEK");
+  this->win_(d, 270, 8, 124, 104, upper(T.doorbell));
   bitmap(d, BM_BELL, 314, 26, 4, ink());
   text(d, f_m_, 332, 92, ink(), m.bell_time.empty() ? hhmm(m.hour, m.minute) : m.bell_time, Align::CENTER);
 
   this->win_(d, 270, 120, 124, 108, "");
   text(d, f_s_, 280, 138, ink(), fit(f_s_, upper(m.bell_place), 104));
-  auto c = wrap_n(f_vt_, m.bell_caption.empty() ? std::string("ktoś dzwoni") : m.bell_caption, 104, 3);
+  auto c = wrap_n(f_vt_, m.bell_caption.empty() ? lower(T.someone_rang) : m.bell_caption, 104, 3);
   for (size_t i = 0; i < c.size(); i++)
     text(d, f_vt_, 280, 162 + (int) i * 20, ink(), c[i]);
 
-  this->button_(d, 284, 244, 'A', 9, "otwórz", 16, 7);
-  this->button_(d, 284, 266, 'B', 9, "mów", 16, 7);
-  this->button_(d, 284, 288, 'v', 9, "zamknij", 16, 7);
+  this->button_(d, 284, 244, 'A', 9, T.open_door, 16, 7);
+  this->button_(d, 284, 266, 'B', 9, T.talk, 16, 7);
+  this->button_(d, 284, 288, 'v', 9, T.close_door, 16, 7);
 }
 
 }  // namespace note4_ui

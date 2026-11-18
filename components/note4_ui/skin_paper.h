@@ -15,14 +15,14 @@ struct PaperFonts {
   Font *next{nullptr};       // 700 24, next event time
   Font *brief{nullptr};      // 400 italic 13, day brief sentence
   Font *card{nullptr};       // 700 28, timer card / tomorrow card numbers
-  Font *title{nullptr};      // 600 16, "Teraz" card title
+  Font *title{nullptr};      // 600 16, "Now" card title
   Font *question{nullptr};   // 400 italic 19
   Font *answer{nullptr};     // 400 22
   Font *fc_hi{nullptr};      // 700 58
   Font *fc_lo{nullptr};      // 400 26
   Font *timer{nullptr};      // 700 48, timer digits
   Font *times{nullptr};      // 600 22, timer start / end
-  Font *big{nullptr};        // 500 italic 50, "Słucham" / "Chwila…"
+  Font *big{nullptr};        // 500 italic 50, the "Listening" / "Thinking…" word
   Font *bell_time{nullptr};  // 700 34
   Font *caption{nullptr};    // 600 21, doorbell caption
   // Atkinson Hyperlegible

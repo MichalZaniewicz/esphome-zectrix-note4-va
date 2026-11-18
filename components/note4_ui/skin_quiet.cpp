@@ -62,6 +62,7 @@ std::vector<Rect> QuietSkin::live_regions(Screen s, const Model &m) const {
 
 // ------------------------------------------------------------------ IDLE
 void QuietSkin::idle_(Display &d, const Model &m) {
+  const Strings &T = *m.tr;
   text(d, f_small_, 16, 36, ink(105), fit(f_small_, cap_first(m.weekday) + ", " + m.date, 200));
   std::string w = temp_str(m.temp_now);
   if (!m.condition.empty())
@@ -72,10 +73,10 @@ void QuietSkin::idle_(Display &d, const Model &m) {
   fill_rect(d, 16, 192, 368, 1, tone(185));
 
   // three quiet columns: next, now, timer
-  text(d, f_tiny_, 16, 220, ink(110), "Następne");
+  text(d, f_tiny_, 16, 220, ink(110), fit(f_tiny_, T.next, 116));
   if (m.next_time.empty() && m.next_title.empty()) {
     text(d, f_body_, 16, 252, ink(), "—");
-    text(d, f_small_, 16, 274, ink(110), "nic więcej dziś");
+    text(d, f_small_, 16, 274, ink(110), fit(f_small_, lower(T.nothing_more_today), 116));
   } else {
     text(d, f_body_, 16, 252, ink(), fit(f_body_, m.next_time, 116));
     text(d, f_small_, 16, 274, ink(110), fit(f_small_, m.next_title, 116));
@@ -88,19 +89,20 @@ void QuietSkin::idle_(Display &d, const Model &m) {
     text(d, f_tiny_, x, 220, ink(110), fit(f_tiny_, cap_first(m.timer_name), 116));
     text(d, f_body_, x, 252, ink(), mmss(m.timer_remaining));
     if (!m.timer_end.empty())
-      text(d, f_small_, x, 274, ink(110), "do " + m.timer_end);
+      text(d, f_small_, x, 274, ink(110), subst(T.until, m.timer_end));
   } else {
-    text(d, f_tiny_, x, 220, ink(110), "Powiedz");
-    text(d, f_body_, x, 252, ink(), fit(f_body_, "„" + m.wake_word + "”", 116));
-    text(d, f_small_, x, 274, ink(110), "i zapytaj");
+    text(d, f_tiny_, x, 220, ink(110), fit(f_tiny_, T.say, 116));
+    text(d, f_body_, x, 252, ink(), fit(f_body_, subst(T.quoted, m.wake_word), 116));
+    text(d, f_small_, x, 274, ink(110), fit(f_small_, T.and_ask, 116));
   }
 }
 
 // Middle column. An alarm is the only black block quiet ever draws.
 void QuietSkin::now_col_(Display &d, const Model &m) {
+  const Strings &T = *m.tr;
   const int x = 140, w = 116;
   if (m.now_level == NowLevel::BRIEF) {
-    text(d, f_tiny_, x, 220, ink(110), "Dziś");
+    text(d, f_tiny_, x, 220, ink(110), T.today);
     auto l = wrap_n(f_small_, brief_text(m), w, 4);
     for (size_t i = 0; i < l.size(); i++)
       text(d, f_small_, x, 238 + (int) i * 16, ink(), l[i]);
@@ -116,7 +118,7 @@ void QuietSkin::now_col_(Display &d, const Model &m) {
     tx = 142;
     tw = 108;
   }
-  text(d, f_tiny_, tx, 220, dim, alarm ? "Alarm" : "Teraz", Align::LEFT, bg);
+  text(d, f_tiny_, tx, 220, dim, alarm ? T.alarm : T.now, Align::LEFT, bg);
   if (measure(f_body_, m.now_title) <= tw) {
     text(d, f_body_, tx, 252, fg, m.now_title, Align::LEFT, bg);
     std::string sub = m.now_body.empty() ? m.now_detail : m.now_body;
@@ -131,21 +133,24 @@ void QuietSkin::now_col_(Display &d, const Model &m) {
 // ------------------------------------------------------------------ LISTEN
 // Just the voice: a thin waveform in the middle, the rest whispered.
 void QuietSkin::listen_(Display &d, const Model &m) {
-  text(d, f_italic_, 200, 64, ink(105), "Słucham", Align::CENTER);
+  const Strings &T = *m.tr;
+  text(d, f_italic_, 200, 64, ink(105), T.listening, Align::CENTER);
   for (size_t i = 0; i < m.mic_history.size(); i++) {
     float v = clampf(m.mic_history[i], 0, 1);
     int h = std::max(2, (int) lroundf(2 + v * 110));
     fill_rect(d, 16 + (int) i * 4, 150 - h / 2, 2, h, ink());
   }
   text(d, f_small_, 200, 240, ink(110), mmss(m.listen_seconds), Align::CENTER);
-  text(d, f_tiny_, 200, 266, ink(120), "Mów naturalnie. Skończę, gdy ucichniesz.", Align::CENTER);
-  text(d, f_small_, 200, 288, ink(120), "zakończ          anuluj", Align::CENTER);
+  text(d, f_tiny_, 200, 266, ink(120), fit(f_tiny_, std::string(T.speak_naturally) + ". " + T.stop_when_quiet, 368),
+       Align::CENTER);
+  text(d, f_small_, 200, 288, ink(120), std::string(T.finish) + "          " + T.cancel, Align::CENTER);
 }
 
 // ------------------------------------------------------------------ THINK
 // The heard question is the one big thing; a hairline shows how far it got.
 void QuietSkin::think_(Display &d, const Model &m) {
-  text(d, f_italic_, 200, 64, ink(105), "Usłyszałem", Align::CENTER);
+  const Strings &T = *m.tr;
+  text(d, f_italic_, 200, 64, ink(105), T.heard, Align::CENTER);
   auto q = wrap_n(f_body_, m.question.empty() ? std::string("…") : m.question, 340, 3);
   int y0 = 150 - (int) (q.size() - 1) * 17;
   for (size_t i = 0; i < q.size(); i++)
@@ -154,14 +159,15 @@ void QuietSkin::think_(Display &d, const Model &m) {
   int st = clampi(m.pipeline_step, 0, 2);
   hline(d, 16, 384, 222, ink());
   fill_rect(d, 16, 221, (int) lroundf(368 * (st + 0.5f) / 3.0f), 3, ink());
-  text(d, f_small_, 200, 250, ink(110), std::string(STEPS[st]) + "…", Align::CENTER);
-  text(d, f_small_, 200, 288, ink(120), "anuluj", Align::CENTER);
+  text(d, f_small_, 200, 250, ink(110), std::string(T.steps[st]) + "…", Align::CENTER);
+  text(d, f_small_, 200, 288, ink(120), T.cancel, Align::CENTER);
 }
 
 // ------------------------------------------------------------------ ANSWER
 void QuietSkin::answer_(Display &d, const Model &m) {
+  const Strings &T = *m.tr;
   if (!m.question.empty())
-    text(d, f_italic_, 16, 52, ink(105), fit(f_italic_, "„" + m.question + "”", 368));
+    text(d, f_italic_, 16, 52, ink(105), fit(f_italic_, subst(T.quoted, m.question), 368));
   AnswerLayout a = layout_answer(f_body_, m.answer, 368, ANSWER_LINES, m.answer_words_shown);
   for (size_t i = 0; i < a.lines.size(); i++)
     text(d, f_body_, 16, 102 + (int) i * 34, ink(), a.lines[i]);
@@ -179,7 +185,8 @@ void QuietSkin::answer_(Display &d, const Model &m) {
 
 // ------------------------------------------------------------------ WEATHER
 void QuietSkin::weather_(Display &d, const Model &m) {
-  text(d, f_small_, 16, 36, ink(105), "Jutro, " + lower(m.fc_day));
+  const Strings &T = *m.tr;
+  text(d, f_small_, 16, 36, ink(105), fit(f_small_, std::string(T.tomorrow) + ", " + lower_name(T, m.fc_day), 368));
   std::string hi = temp_str(m.fc_hi), lo = "/ " + temp_str(m.fc_lo);
   text(d, f_huge_, 10, 158, ink(), hi);
   int w = measure(f_huge_, hi);
@@ -215,43 +222,45 @@ void QuietSkin::weather_(Display &d, const Model &m) {
 
   std::vector<std::string> p;
   if (!m.fc_wind.empty())
-    p.push_back("wiatr " + m.fc_wind);
+    p.push_back(lower(T.wind) + " " + m.fc_wind);
   if (!m.fc_humidity.empty())
-    p.push_back("wilgotność " + m.fc_humidity);
+    p.push_back(lower(T.humidity) + " " + m.fc_humidity);
   if (!m.fc_sunset.empty())
-    p.push_back("zachód " + m.fc_sunset);
+    p.push_back(lower(T.sunset) + " " + m.fc_sunset);
   text(d, f_tiny_, 16, 296, ink(115), fit(f_tiny_, join_dot(p), 368));
 }
 
 // ------------------------------------------------------------------ TIMER
 void QuietSkin::timer_(Display &d, const Model &m) {
+  const Strings &T = *m.tr;
   text(d, f_italic_, 200, 64, ink(105), fit(f_italic_, cap_first(m.timer_name), 360), Align::CENTER);
   fixed_digits(d, f_huge_, 200, 192, ink(), strip0(mmss(m.timer_remaining)));
   hline(d, 16, 384, 222, ink());
   fill_rect(d, 16, 221, (int) lroundf(368 * timer_frac(m)), 3, ink());
   if (!m.timer_end.empty())
-    text(d, f_small_, 200, 250, ink(110), "do " + m.timer_end, Align::CENTER);
-  text(d, f_small_, 200, 288, ink(120), "+1 min       stop       pauza", Align::CENTER);
+    text(d, f_small_, 200, 250, ink(110), subst(T.until, m.timer_end), Align::CENTER);
+  text(d, f_small_, 200, 288, ink(120), std::string("+1 min       ") + T.stop + "       " + T.pause, Align::CENTER);
 }
 
 // ------------------------------------------------------------------ DOORBELL
 // The snapshot is the big thing; time and the AI caption sit next to it.
 void QuietSkin::doorbell_(Display &d, const Model &m) {
+  const Strings &T = *m.tr;
   if (!bell_image(d, m, 264)) {
     fill_rect(d, 0, 0, 264, 300, tone(236));
-    text(d, f_italic_, 132, 156, ink(105), "Czekam na obraz…", Align::CENTER, tone(236));
+    text(d, f_italic_, 132, 156, ink(105), std::string(T.waiting_image) + "…", Align::CENTER, tone(236));
   }
   fill_rect(d, 264, 0, 136, 300, paper());
   const int x = 280;
   text(d, f_small_, x, 36, ink(105), fit(f_small_, cap_first(m.bell_place), 108));
   text(d, f_body_, x, 76, ink(), m.bell_time.empty() ? hhmm(m.hour, m.minute) : m.bell_time);
-  text(d, f_tiny_, x, 96, ink(115), "przed chwilą");
-  auto c = wrap_n(f_italic_, m.bell_caption.empty() ? std::string("Ktoś dzwoni.") : m.bell_caption, 108, 4);
+  text(d, f_tiny_, x, 96, ink(115), fit(f_tiny_, T.just_now, 108));
+  auto c = wrap_n(f_italic_, m.bell_caption.empty() ? std::string(T.someone_rang) + "." : m.bell_caption, 108, 4);
   for (size_t i = 0; i < c.size(); i++)
     text(d, f_italic_, x, 140 + (int) i * 28, ink(), c[i]);
-  text(d, f_small_, x, 256, ink(120), "otwórz");
-  text(d, f_small_, x, 272, ink(120), "mów");
-  text(d, f_small_, x, 288, ink(120), "zamknij");
+  text(d, f_small_, x, 256, ink(120), T.open_door);
+  text(d, f_small_, x, 272, ink(120), T.talk);
+  text(d, f_small_, x, 288, ink(120), T.close_door);
 }
 
 }  // namespace note4_ui

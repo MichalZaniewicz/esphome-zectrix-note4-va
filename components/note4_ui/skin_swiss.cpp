@@ -17,8 +17,6 @@ namespace {
 const Color K = ink(0);
 const Color WH = ink(255);
 
-const char *const STEPS[3] = {"Rozpoznano mowę", "Pytam Home Assistant", "Układam odpowiedź"};
-
 // Answer block (answerB).
 const int ANS_X = 16, ANS_Y = 111, ANS_PITCH = 27, ANS_W = 368;
 
@@ -28,13 +26,15 @@ std::string total_label(int s) { return s % 60 == 0 ? std::to_string(s / 60) : m
 
 // ---------------------------------------------------------------------------
 void SwissSkin::status_(Display &d, const Model &m, const std::string &left) {
+  const Strings &T = *m.tr;
   text(d, f_.i10b, 16, 15, K, fit(f_.i10b, upper(left), 230, 1), Align::LEFT, paper(), 1);
-  std::string right = m.wifi ? "WI-FI" : "BEZ WI-FI";
+  const std::string without = upper(T.without);
+  std::string right = m.wifi ? "WI-FI" : without + " WI-FI";
   if (!m.ha)
-    right += " · BEZ HA";
+    right += " · " + without + " HA";
   right += "   ";
   if (m.charging)
-    right += "ŁAD. ";
+    right += upper(T.charging_abbr) + ". ";
   right += m.battery >= 0 ? std::to_string(m.battery) + " %" : "– %";
   text(d, f_.i10b, 384, 15, K, right, Align::RIGHT, paper(), 1);
   hline(d, 16, 384, 22, K, 2);
@@ -93,7 +93,8 @@ std::vector<Rect> SwissSkin::live_regions(Screen s, const Model &m) const {
 
 // ---------------------------------------------------------------------------
 void SwissSkin::idle_(Display &d, const Model &m) {
-  status_(d, m, weekday_short(m.weekday) + " " + ddmm(m.date) + " · " + m.room);
+  const Strings &T = *m.tr;
+  status_(d, m, weekday_short(T, m.weekday) + " " + ddmm(m.date) + " · " + m.room);
   text(d, f_.clock, 10, 130, K, hhmm(m.hour, m.minute), Align::LEFT, paper(), -3);
   std::string date = cap_first(m.weekday) + ", " + m.date;
   text(d, f_.i15s, 16, 156, K, date);
@@ -107,20 +108,20 @@ void SwissSkin::idle_(Display &d, const Model &m) {
   vline(d, 256, 176, 292, K);
 
   // next
-  text(d, f_.i9b, 16, 190, K, "NASTĘPNE", Align::LEFT, paper(), 1.2f);
+  text(d, f_.i9b, 16, 190, K, upper(T.next), Align::LEFT, paper(), 1.2f);
   if (!m.next_time.empty() || !m.next_title.empty()) {
     text(d, f_.next, 15, 224, K, m.next_time, Align::LEFT, paper(), -1);
     text(d, f_.i13s, 16, 244, K, fit(f_.i13s, m.next_title, 110));
     text(d, f_.i12, 16, 261, grey(105), fit(f_.i12, m.next_in, 110));
   } else {
     text(d, f_.next, 15, 224, K, "–", Align::LEFT, paper(), -1);
-    text(d, f_.i13s, 16, 244, K, "Wolne");
-    text(d, f_.i12, 16, 261, grey(105), "nic w kalendarzu");
+    text(d, f_.i13s, 16, 244, K, fit(f_.i13s, T.free_day, 110));
+    text(d, f_.i12, 16, 261, grey(105), fit(f_.i12, T.nothing_planned, 110));
   }
 
   // now
   if (m.now_level == NowLevel::BRIEF) {
-    text(d, f_.i9b, 142, 190, K, "DZIŚ", Align::LEFT, paper(), 1.2f);
+    text(d, f_.i9b, 142, 190, K, upper(T.today), Align::LEFT, paper(), 1.2f);
     auto lines = wrap_lines(f_.i13s, brief_text(m), 108, 5);
     for (size_t i = 0; i < lines.size(); i++)
       text(d, f_.i13s, 142, 210 + (int) i * 17, K, lines[i]);
@@ -130,7 +131,7 @@ void SwissSkin::idle_(Display &d, const Model &m) {
     const Color fg = alarm ? WH : K, bg = alarm ? K : paper();
     if (alarm)
       fill_rect(d, 136, 176, 116, 116, K);
-    text(d, f_.i9b, x, 190, fg, alarm ? "ALARM" : "TERAZ", Align::LEFT, bg, 1.2f);
+    text(d, f_.i9b, x, 190, fg, upper(alarm ? T.alarm : T.now), Align::LEFT, bg, 1.2f);
     auto title = wrap_lines(f_.title, m.now_title, alarm ? 102 : 110, 2);
     for (size_t i = 0; i < title.size(); i++)
       text(d, f_.title, x - 1, 220 + (int) i * 26, fg, title[i], Align::LEFT, bg, -0.5f);
@@ -141,13 +142,13 @@ void SwissSkin::idle_(Display &d, const Model &m) {
   // timer block, or tomorrow when no timer runs
   if (m.timer_active) {
     fill_rect(d, 264, 176, 120, 116, K);
-    text(d, f_.i9b, 274, 192, WH, "TIMER", Align::LEFT, K, 1.2f);
+    text(d, f_.i9b, 274, 192, WH, upper(T.timer), Align::LEFT, K, 1.2f);
     text(d, f_.card, 273, 230, WH, mmss(m.timer_remaining), Align::LEFT, K, -1);
     text(d, f_.i13s, 274, 250, WH, fit(f_.i13s, m.timer_name, 100), Align::LEFT, K);
     fill_rect(d, 274, 268, 100, 1, WH);
     fill_rect(d, 274, 266, (int) std::lround(100 * timer_frac(m)), 5, WH);
   } else {
-    text(d, f_.i9b, 266, 190, K, "JUTRO", Align::LEFT, paper(), 1.2f);
+    text(d, f_.i9b, 266, 190, K, upper(T.tomorrow), Align::LEFT, paper(), 1.2f);
     text(d, f_.card, 265, 224, K, deg(m.fc_hi) + " / " + deg(m.fc_lo), Align::LEFT, paper(), -1);
     auto lines = wrap_lines(f_.i13s, m.fc_summary, 116, 2);
     for (size_t i = 0; i < lines.size(); i++)
@@ -159,8 +160,9 @@ void SwissSkin::idle_(Display &d, const Model &m) {
 
 // ---------------------------------------------------------------------------
 void SwissSkin::answer_(Display &d, const Model &m) {
+  const Strings &T = *m.tr;
   status_(d, m, hhmm(m.hour, m.minute) + " · " + m.room);
-  text(d, f_.i9b, 16, 44, K, "PYTANIE", Align::LEFT, paper(), 1.2f);
+  text(d, f_.i9b, 16, 44, K, upper(T.question), Align::LEFT, paper(), 1.2f);
   text(d, f_.question, 16, 67, K, fit(f_.question, m.question, 368, -0.3f), Align::LEFT, paper(), -0.3f);
   hline(d, 16, 384, 80, K, 3);
   AnswerLayout L = layout_answer(f_.i19, m, ANS_W, answer_lines_(m));
@@ -182,16 +184,17 @@ void SwissSkin::answer_(Display &d, const Model &m) {
 
 // ---------------------------------------------------------------------------
 void SwissSkin::weather_(Display &d, const Model &m) {
-  status_(d, m, hhmm(m.hour, m.minute) + " · Pogoda");
+  const Strings &T = *m.tr;
+  status_(d, m, hhmm(m.hour, m.minute) + " · " + T.weather);
   std::string hi = deg(m.fc_hi);
   text(d, f_.fc_hi, 8, 118, K, hi, Align::LEFT, paper(), -4);
   text(d, f_.fc_lo, 14 + measure(f_.fc_hi, hi, -4), 118, grey(135), deg(m.fc_lo));
-  text(d, f_.h26, 236, 54, K, "Jutro", Align::LEFT, paper(), -0.5f);
+  text(d, f_.h26, 236, 54, K, fit(f_.h26, T.tomorrow, 148, -0.5f), Align::LEFT, paper(), -0.5f);
   text(d, f_.i12s, 236, 72, grey(105), fit(f_.i12s, cap_first(m.fc_day) + ", " + m.fc_date, 148));
   text(d, f_.i14b, 236, 100, K, fit(f_.i14b, m.fc_summary, 148));
   std::string det = m.fc_detail;
   if (!m.fc_wind.empty())
-    det += (det.empty() ? "wiatr " : " · wiatr ") + m.fc_wind;
+    det += (det.empty() ? "" : " · ") + lower(T.wind) + " " + m.fc_wind;
   text(d, f_.i12s, 236, 118, grey(105), fit(f_.i12s, det, 148));
   hline(d, 16, 384, 134, K);
 
@@ -222,7 +225,7 @@ void SwissSkin::weather_(Display &d, const Model &m) {
   hline(d, 16, 384, base + 1, K);
   hline(d, 16, 384, 266, K);
   const std::pair<const char *, const std::string *> facts[3] = {
-      {"Wilgotność", &m.fc_humidity}, {"Zachód", &m.fc_sunset}, {"Wiatr", &m.fc_wind}};
+      {T.humidity, &m.fc_humidity}, {T.sunset, &m.fc_sunset}, {T.wind, &m.fc_wind}};
   for (int i = 0; i < 3; i++) {
     const int x = 16 + i * 124;
     const int lw = measure(f_.i11s, facts[i].first);
@@ -233,9 +236,10 @@ void SwissSkin::weather_(Display &d, const Model &m) {
 
 // ---------------------------------------------------------------------------
 void SwissSkin::timer_(Display &d, const Model &m) {
-  status_(d, m, hhmm(m.hour, m.minute) + " · Timer");
+  const Strings &T = *m.tr;
+  status_(d, m, hhmm(m.hour, m.minute) + " · " + T.timer);
   text(d, f_.h26, 16, 60, K, fit(f_.h26, m.timer_name, 260, -0.5f), Align::LEFT, paper(), -0.5f);
-  text(d, f_.i13s, 384, 60, grey(105), "z " + mmss(m.timer_total), Align::RIGHT);
+  text(d, f_.i13s, 384, 60, grey(105), subst(T.of_total, mmss(m.timer_total)), Align::RIGHT);
   fixed_digits(d, f_.clock, 200, 180, K, mmss(m.timer_remaining));
   stroke_rect(d, 16, 198, 368, 14, K);
   fill_rect(d, 16, 198, (int) std::lround(368 * timer_frac(m)), 14, K);
@@ -247,10 +251,10 @@ void SwissSkin::timer_(Display &d, const Model &m) {
   text(d, f_.i10b, 200, 234, K, dur_label(m.timer_total / 2), Align::CENTER);
   text(d, f_.i10b, 384, 234, K, total_label(m.timer_total), Align::RIGHT);
   hline(d, 16, 384, 248, K);
-  text(d, f_.i11s, 16, 270, grey(105), "Koniec");
+  text(d, f_.i11s, 16, 270, grey(105), T.end);
   text(d, f_.end, 15, 292, K, m.timer_end, Align::LEFT, paper(), -0.5f);
-  hint(d, f_.i12b, Sym::DOWN, "Pauza", 384, 288, Align::RIGHT);
-  hint(d, f_.i12b, Sym::DOT, "Stop", 300, 288, Align::RIGHT);
+  hint(d, f_.i12b, Sym::DOWN, cap_first(T.pause), 384, 288, Align::RIGHT);
+  hint(d, f_.i12b, Sym::DOT, cap_first(T.stop), 300, 288, Align::RIGHT);
   hint(d, f_.i12b, Sym::UP, "+1 min", 232, 288, Align::RIGHT);
 }
 
@@ -258,10 +262,11 @@ void SwissSkin::timer_(Display &d, const Model &m) {
 // LISTEN: the huge word, the elapsed time in the black block, the voice as
 // black bars across the full width, then the idle screen's three columns.
 void SwissSkin::listen_(Display &d, const Model &m) {
+  const Strings &T = *m.tr;
   status_(d, m, hhmm(m.hour, m.minute) + " · " + m.room);
-  text(d, f_.big, 14, 82, K, "Słucham", Align::LEFT, paper(), -1.5f);
+  text(d, f_.big, 14, 82, K, T.listening, Align::LEFT, paper(), -1.5f);
   fill_rect(d, 288, 34, 96, 54, K);
-  text(d, f_.i9b, 296, 50, WH, "NAGRYWAM", Align::LEFT, K, 1.2f);
+  text(d, f_.i9b, 296, 50, WH, fit(f_.i9b, upper(T.recording), 84, 1.2f), Align::LEFT, K, 1.2f);
   text(d, f_.next, 295, 80, WH, mmss(m.listen_seconds), Align::LEFT, K, -1);
   hline(d, 16, 384, 96, K, 3);
   for (size_t i = 0; i < m.mic_history.size(); i++) {
@@ -272,24 +277,26 @@ void SwissSkin::listen_(Display &d, const Model &m) {
   hline(d, 16, 384, 216, K);
   vline(d, 132, 224, 292, K);
   vline(d, 256, 224, 292, K);
-  text(d, f_.i9b, 16, 238, K, "MÓW NATURALNIE", Align::LEFT, paper(), 1.2f);
-  text(d, f_.i13s, 16, 258, K, "Skończę, gdy");
-  text(d, f_.i13s, 16, 275, K, "ucichniesz.");
-  text(d, f_.i9b, 142, 238, K, "SŁOWO", Align::LEFT, paper(), 1.2f);
+  text(d, f_.i9b, 16, 238, K, fit(f_.i9b, upper(T.speak_naturally), 110, 1.2f), Align::LEFT, paper(), 1.2f);
+  auto hint_lines = wrap_lines(f_.i13s, T.stop_when_quiet, 110, 2);
+  for (size_t i = 0; i < hint_lines.size(); i++)
+    text(d, f_.i13s, 16, 258 + (int) i * 17, K, hint_lines[i]);
+  text(d, f_.i9b, 142, 238, K, fit(f_.i9b, upper(T.wake_word), 110, 1.2f), Align::LEFT, paper(), 1.2f);
   text(d, f_.h26, 141, 268, K, fit(f_.h26, m.wake_word, 110, -0.5f), Align::LEFT, paper(), -0.5f);
-  text(d, f_.i9b, 266, 238, K, "PRZYCISKI", Align::LEFT, paper(), 1.2f);
-  hint(d, f_.i12b, Sym::DOT, "Zakończ", 266, 260, Align::LEFT);
-  hint(d, f_.i12b, Sym::DOWN, "Anuluj", 266, 282, Align::LEFT);
+  text(d, f_.i9b, 266, 238, K, fit(f_.i9b, upper(T.buttons), 118, 1.2f), Align::LEFT, paper(), 1.2f);
+  hint(d, f_.i12b, Sym::DOT, cap_first(T.finish), 266, 260, Align::LEFT);
+  hint(d, f_.i12b, Sym::DOWN, cap_first(T.cancel), 266, 282, Align::LEFT);
 }
 
 // THINK: the question under the rule, the three pipeline steps as the grid's
 // columns; the step in progress is the black block.
 void SwissSkin::think_(Display &d, const Model &m) {
+  const Strings &T = *m.tr;
   status_(d, m, hhmm(m.hour, m.minute) + " · " + m.room);
-  text(d, f_.big, 14, 82, K, "Chwila…", Align::LEFT, paper(), -1.5f);
+  text(d, f_.big, 14, 82, K, T.thinking, Align::LEFT, paper(), -1.5f);
   hline(d, 16, 384, 96, K, 3);
-  text(d, f_.i9b, 16, 116, K, "USŁYSZAŁEM", Align::LEFT, paper(), 1.2f);
-  auto q = wrap_lines(f_.question, "„" + m.question + "”", 368, 2);
+  text(d, f_.i9b, 16, 116, K, upper(T.heard), Align::LEFT, paper(), 1.2f);
+  auto q = wrap_lines(f_.question, subst(T.quoted, m.question), 368, 2);
   for (size_t i = 0; i < q.size(); i++)
     text(d, f_.question, 16, 140 + (int) i * 24, K, q[i], Align::LEFT, paper(), -0.3f);
   hline(d, 16, 384, 178, K);
@@ -305,38 +312,39 @@ void SwissSkin::think_(Display &d, const Model &m) {
     text(d, f_.next, tx - 1, 222, fg, std::to_string(i + 1), Align::LEFT, bg, -1);
     if (done)
       check(d, tx + 26, 204, 14, 2.5f, K);
-    auto lines = wrap_lines(f_.i13s, STEPS[i], 104, 2);
+    auto lines = wrap_lines(f_.i13s, T.steps[i], 104, 2);
     for (size_t j = 0; j < lines.size(); j++)
       text(d, f_.i13s, tx, 244 + (int) j * 16, fg, lines[j], Align::LEFT, bg);
   }
-  hint(d, f_.i12b, Sym::DOWN, "Anuluj", 384, 290, Align::RIGHT);
+  hint(d, f_.i12b, Sym::DOWN, cap_first(T.cancel), 384, 290, Align::RIGHT);
 }
 
 // DOORBELL: snapshot left, the black block on top of the panel with the time.
 void SwissSkin::doorbell_(Display &d, const Model &m) {
+  const Strings &T = *m.tr;
   if (m.bell_image != nullptr && m.bell_image_ready) {
     d.start_clipping(0, 0, 264, H);
     d.image(0, 0, m.bell_image);
     d.end_clipping();
   } else {
     fill_rect(d, 0, 0, 264, H, tone(190));
-    text(d, f_.i13s, 132, 154, K, "Czekam na obraz…", Align::CENTER, tone(190));
+    text(d, f_.i13s, 132, 154, K, std::string(T.waiting_image) + "…", Align::CENTER, tone(190));
   }
   fill_rect(d, 264, 0, 136, H, paper());
   fill_rect(d, 264, 0, 136, 96, K);
   const int x = 276;
-  text(d, f_.i9b, x, 22, WH, "DZWONEK", Align::LEFT, K, 1.2f);
+  text(d, f_.i9b, x, 22, WH, upper(T.doorbell), Align::LEFT, K, 1.2f);
   text(d, f_.next, x - 1, 62, WH, m.bell_time, Align::LEFT, K, -1);
   text(d, f_.i13s, x, 84, WH, fit(f_.i13s, m.bell_place, 112), Align::LEFT, K);
   auto cap = wrap_lines(f_.question, m.bell_caption, 112, 3);
   for (size_t i = 0; i < cap.size(); i++)
     text(d, f_.question, x, 124 + (int) i * 24, K, cap[i], Align::LEFT, paper(), -0.3f);
   if (!cap.empty())
-    text(d, f_.i10s, x, 124 + (int) cap.size() * 24 - 4, grey(105), "opis AI ze zdjęcia");
+    text(d, f_.i10s, x, 124 + (int) cap.size() * 24 - 4, grey(105), fit(f_.i10s, T.ai_caption, 112));
   hline(d, x, 388, 200, K, 2);
-  hint(d, f_.i12b, Sym::UP, "Otwórz", x, 226, Align::LEFT);
-  hint(d, f_.i12b, Sym::DOT, "Mów", x, 252, Align::LEFT);
-  hint(d, f_.i12b, Sym::DOWN, "Zamknij", x, 278, Align::LEFT);
+  hint(d, f_.i12b, Sym::UP, cap_first(T.open_door), x, 226, Align::LEFT);
+  hint(d, f_.i12b, Sym::DOT, cap_first(T.talk), x, 252, Align::LEFT);
+  hint(d, f_.i12b, Sym::DOWN, cap_first(T.close_door), x, 278, Align::LEFT);
 }
 
 }  // namespace note4_ui

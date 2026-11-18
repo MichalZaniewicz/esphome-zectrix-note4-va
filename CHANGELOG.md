@@ -26,8 +26,12 @@ ci/local.yaml`) and nothing more is claimed yet.
   sync with Home Assistant, battery voltage and percentage (vendor curve),
   charging state, status LED, a Power off button.
 - **Skin** select (eight skins) and a **16 greys** switch.
+- **Screen language**: English by default, Polish with `language: pl`. Every
+  phrase the skins and the core draw comes from one table per language
+  (`components/note4_ui/strings.cpp`).
 - CI: `.github/workflows/build.yml` validates and compiles `ci/local.yaml`.
 
 ### Not carried over from the Box-3
-- LVGL, the touchscreen, characters, screens, language packages, night mode,
-  the backlight and the hello screen: none of it applies to an e-paper panel.
+- LVGL, the touchscreen, characters, screens, night mode, the backlight and
+  the hello screen: none of it applies to an e-paper panel. The language
+  packages are replaced by the C++ string table above.

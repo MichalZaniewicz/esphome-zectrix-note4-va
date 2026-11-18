@@ -16,8 +16,6 @@ namespace {
 const Color K = ink(0);
 const Color WH = ink(255);
 
-const char *const STEPS[3] = {"Rozpoznano mowę", "Pytam Home Assistant", "Układam odpowiedź"};
-
 // Answer block geometry (drawTyping).
 const int ANS_X = 16, ANS_Y = 104, ANS_PITCH = 29, ANS_LINES = 6, ANS_W = 368;
 
@@ -105,6 +103,7 @@ std::vector<Rect> PaperSkin::live_regions(Screen s, const Model &m) const {
 
 // ---------------------------------------------------------------------------
 void PaperSkin::idle_(Display &d, const Model &m) {
+  const Strings &T = *m.tr;
   status_(d, m, upper(m.room), false);
   text(d, f_.clock, 13, 106, K, hhmm(m.hour, m.minute));
   text(d, f_.date, 16, 133, K, fit(f_.date, m.weekday + ", " + m.date, 236));
@@ -156,22 +155,22 @@ void PaperSkin::idle_(Display &d, const Model &m) {
   // cards
   const int cy = 203, ch = 81, cw = 117, xs[3] = {16, 141, 266};
   stroke_round(d, xs[0], cy, cw, ch, 6, K);
-  text(d, f_.l9b, xs[0] + 10, cy + 16, K, "NASTĘPNE", Align::LEFT, paper(), 1.3f);
+  text(d, f_.l9b, xs[0] + 10, cy + 16, K, upper(T.next), Align::LEFT, paper(), 1.3f);
   if (!m.next_title.empty() || !m.next_time.empty()) {
     text(d, f_.next, xs[0] + 10, cy + 43, K, m.next_time);
     text(d, f_.l13, xs[0] + 10, cy + 60, K, fit(f_.l13, m.next_title, cw - 20));
     text(d, f_.l11i, xs[0] + 10, cy + 74, K, fit(f_.l11i, m.next_in, cw - 20));
   } else {
     text(d, f_.next, xs[0] + 10, cy + 43, K, "–");
-    text(d, f_.l13, xs[0] + 10, cy + 60, K, "Nic więcej");
-    text(d, f_.l11i, xs[0] + 10, cy + 74, K, "w kalendarzu");
+    text(d, f_.l13, xs[0] + 10, cy + 60, K, fit(f_.l13, T.nothing_more, cw - 20));
+    text(d, f_.l11i, xs[0] + 10, cy + 74, K, fit(f_.l11i, T.in_calendar, cw - 20));
   }
 
   now_card_(d, m, xs[1], cy, cw, ch);
 
   if (m.timer_active) {
     fill_round(d, xs[2], cy, cw, ch, 6, K);
-    text(d, f_.l9b, xs[2] + 10, cy + 16, WH, "TIMER", Align::LEFT, K, 1.3f);
+    text(d, f_.l9b, xs[2] + 10, cy + 16, WH, upper(T.timer), Align::LEFT, K, 1.3f);
     text(d, f_.card, xs[2] + 10, cy + 46, WH, mmss(m.timer_remaining), Align::LEFT, K);
     text(d, f_.l13, xs[2] + 10, cy + 63, WH, fit(f_.l13, m.timer_name, cw - 20), Align::LEFT, K);
     stroke_rect(d, xs[2] + 10, cy + 69, cw - 20, 6, WH);
@@ -179,22 +178,23 @@ void PaperSkin::idle_(Display &d, const Model &m) {
   } else {
     // No timer: tomorrow at a glance.
     stroke_round(d, xs[2], cy, cw, ch, 6, K);
-    text(d, f_.l9b, xs[2] + 10, cy + 16, K, "JUTRO · " + upper(weekday_short(m.fc_day)), Align::LEFT, paper(), 1.3f);
+    text(d, f_.l9b, xs[2] + 10, cy + 16, K, upper(T.tomorrow) + " · " + upper(weekday_short(T, m.fc_day)), Align::LEFT, paper(), 1.3f);
     text(d, f_.card, xs[2] + 10, cy + 46, K, deg(m.fc_hi) + " / " + deg(m.fc_lo));
     text(d, f_.l13, xs[2] + 10, cy + 63, K, fit(f_.l13, m.fc_summary, cw - 20));
     text(d, f_.l11i, xs[2] + 10, cy + 77, K, fit(f_.l11i, m.fc_detail, cw - 20));
   }
 
-  text(d, f_.l10b, 200, 297, K, "Powiedz „" + m.wake_word + "”", Align::CENTER, paper(), 0.8f);
+  text(d, f_.l10b, 200, 297, K, subst(T.say_wake, m.wake_word), Align::CENTER, paper(), 0.8f);
 }
 
-// "Teraz ważne" card: BRIEF as the mockup (italic sentence), TODO as a framed
-// card like "Następne", ALARM in negative.
+// The "Now" card: BRIEF as the mockup (italic sentence), TODO as a framed
+// card like "Next", ALARM in negative.
 void PaperSkin::now_card_(Display &d, const Model &m, int x, int y, int w, int h) {
+  const Strings &T = *m.tr;
   const int tx = x + 10, tw = w - 20;
   if (m.now_level == NowLevel::BRIEF) {
     stroke_round(d, x, y, w, h, 6, K);
-    text(d, f_.l9b, tx, y + 16, K, "TERAZ · DZIEŃ", Align::LEFT, paper(), 1.3f);
+    text(d, f_.l9b, tx, y + 16, K, fit(f_.l9b, upper(T.now) + " · " + upper(T.day), tw, 1.3f), Align::LEFT, paper(), 1.3f);
     auto lines = wrap_lines(f_.brief, brief_text(m), w - 18, 4);
     for (size_t i = 0; i < lines.size(); i++)
       text(d, f_.brief, tx, y + 33 + (int) i * 14, K, lines[i]);
@@ -206,7 +206,7 @@ void PaperSkin::now_card_(Display &d, const Model &m, int x, int y, int w, int h
     fill_round(d, x, y, w, h, 6, K);
   else
     stroke_round(d, x, y, w, h, 6, K);
-  std::string label = std::string(alarm ? "ALARM" : "TERAZ") + " · " + upper(now_kind(m.now_icon));
+  std::string label = upper(alarm ? T.alarm : T.now) + " · " + upper(now_kind(T, m.now_icon));
   text(d, f_.l9b, tx, y + 16, fg, fit(f_.l9b, label, tw, 1.3f), Align::LEFT, bg, 1.3f);
   auto title = wrap_lines(f_.title, m.now_title, tw, 2);
   if (title.size() <= 1) {
@@ -223,12 +223,13 @@ void PaperSkin::now_card_(Display &d, const Model &m, int x, int y, int w, int h
 
 // ---------------------------------------------------------------------------
 void PaperSkin::answer_(Display &d, const Model &m) {
+  const Strings &T = *m.tr;
   status_(d, m, hhmm(m.hour, m.minute) + " · " + upper(m.room), false);
   const Color band = tone(238);
   fill_rect(d, 0, 23, W, 48, band);
   hline(d, 0, W, 71, K);
-  text(d, f_.l9b, 16, 40, K, "PYTANIE", Align::LEFT, band, 1.6f);
-  text(d, f_.question, 16, 61, K, fit(f_.question, "„" + m.question + "”", 368), Align::LEFT, band);
+  text(d, f_.l9b, 16, 40, K, upper(T.question), Align::LEFT, band, 1.6f);
+  text(d, f_.question, 16, 61, K, fit(f_.question, subst(T.quoted, m.question), 368), Align::LEFT, band);
 
   AnswerLayout L = layout_answer(f_.answer, m, ANS_W, ANS_LINES);
   for (size_t i = 0; i < L.lines.size(); i++)
@@ -239,7 +240,8 @@ void PaperSkin::answer_(Display &d, const Model &m) {
   }
 
   hline(d, 16, 384, 264, K);
-  const int kw = 21 + measure(f_.l12b, "Szczegóły");
+  const std::string details = cap_first(T.details);
+  const int kw = 21 + measure(f_.l12b, details);
   std::string foot;
   for (const auto &fct : m.facts) {
     std::string item = fct.first + (fct.second.empty() ? "" : " " + fct.second);
@@ -249,14 +251,15 @@ void PaperSkin::answer_(Display &d, const Model &m) {
     foot = trial;
   }
   if (foot.empty())
-    foot = "Odpowiedź z Home Assistant";
+    foot = T.answer_from_ha;
   text(d, f_.l11, 16, 288, K, fit(f_.l11, foot, 368 - kw - 12));
-  keycap(d, f_.l12b, Sym::DOWN, "Szczegóły", 384, 289, Align::RIGHT);
+  keycap(d, f_.l12b, Sym::DOWN, details, 384, 289, Align::RIGHT);
 }
 
 // ---------------------------------------------------------------------------
 void PaperSkin::weather_(Display &d, const Model &m) {
-  status_(d, m, hhmm(m.hour, m.minute) + " · POGODA", false);
+  const Strings &T = *m.tr;
+  status_(d, m, hhmm(m.hour, m.minute) + " · " + upper(T.weather), false);
   IconStyle st;
   st.cloud_top = 236;
   st.cloud_bottom = 120;
@@ -266,7 +269,7 @@ void PaperSkin::weather_(Display &d, const Model &m) {
     sun(d, 56 + 0.944f * 46, 62 - 0.667f * 46, 0.36f * 46, 245, 150, true);
     cloud(d, 56, 62, 46, 236, 120, true);
   }
-  text(d, f_.l9b, 112, 40, K, fit(f_.l9b, "JUTRO · " + upper(m.fc_day) + ", " + upper(m.fc_date), 272, 1.5f),
+  text(d, f_.l9b, 112, 40, K, fit(f_.l9b, upper(T.tomorrow) + " · " + upper(m.fc_day) + ", " + upper(m.fc_date), 272, 1.5f),
        Align::LEFT, paper(), 1.5f);
   std::string hi = deg(m.fc_hi);
   text(d, f_.fc_hi, 110, 90, K, hi);
@@ -325,10 +328,11 @@ void PaperSkin::weather_(Display &d, const Model &m) {
   if (!std::isnan(m.fc_rain_start_h)) {
     int rx = (int) std::lround(X(m.fc_rain_start_h)) - 9;
     dotted_vline(d, rx, 122, pb, K);
-    if (rx + 5 + measure(f_.l9b, "DESZCZ", 1.2f) <= 384)
-      text(d, f_.l9b, rx + 5, 130, K, "DESZCZ", Align::LEFT, paper(), 1.2f);
+    const std::string rain = upper(T.rain);
+    if (rx + 5 + measure(f_.l9b, rain, 1.2f) <= 384)
+      text(d, f_.l9b, rx + 5, 130, K, rain, Align::LEFT, paper(), 1.2f);
     else
-      text(d, f_.l9b, rx - 4, 130, K, "DESZCZ", Align::RIGHT, paper(), 1.2f);
+      text(d, f_.l9b, rx - 4, 130, K, rain, Align::RIGHT, paper(), 1.2f);
   }
   for (int h = 6; h <= 24; h += 3) {
     vline(d, (int) std::lround(X(h)), pb, pb + 4, K);
@@ -336,20 +340,21 @@ void PaperSkin::weather_(Display &d, const Model &m) {
   }
 
   hline(d, 16, 384, 262, K);
-  const std::pair<const char *, const std::string *> facts[3] = {
-      {"WIATR", &m.fc_wind}, {"WILGOTNOŚĆ", &m.fc_humidity}, {"ZACHÓD SŁOŃCA", &m.fc_sunset}};
+  const std::pair<std::string, const std::string *> facts[3] = {
+      {upper(T.wind), &m.fc_wind}, {upper(T.humidity), &m.fc_humidity}, {upper(T.sunset_long), &m.fc_sunset}};
   for (int i = 0; i < 3; i++) {
     int x = 16 + i * 124;
     if (i)
       vline(d, x - 10, 268, 296, K);
-    text(d, f_.l9b, x, 277, K, facts[i].first, Align::LEFT, paper(), 1.2f);
+    text(d, f_.l9b, x, 277, K, fit(f_.l9b, facts[i].first, 112, 1.2f), Align::LEFT, paper(), 1.2f);
     text(d, f_.l14b, x, 294, K, fit(f_.l14b, *facts[i].second, 112));
   }
 }
 
 // ---------------------------------------------------------------------------
 void PaperSkin::timer_(Display &d, const Model &m) {
-  status_(d, m, hhmm(m.hour, m.minute) + " · TIMER", false);
+  const Strings &T = *m.tr;
+  status_(d, m, hhmm(m.hour, m.minute) + " · " + upper(T.timer), false);
   const float cx = 200, cy = 158, R = 92, th = 14;
   const float fr = timer_frac(m);
   ring(d, cx, cy, R - th / 2, th, tone(196));
@@ -363,25 +368,26 @@ void PaperSkin::timer_(Display &d, const Model &m) {
   }
   text(d, f_.l10b, 200, (int) cy - 32, K, fit(f_.l10b, upper(m.timer_name), 140, 2), Align::CENTER, paper(), 2);
   fixed_digits(d, f_.timer, 200, (int) cy + 17, K, mmss(m.timer_remaining));
-  text(d, f_.l12, 200, (int) cy + 40, K, "z " + mmss(m.timer_total), Align::CENTER);
+  text(d, f_.l12, 200, (int) cy + 40, K, subst(T.of_total, mmss(m.timer_total)), Align::CENTER);
   text(d, f_.l9b, 16, 128, K, "START", Align::LEFT, paper(), 1.4f);
   text(d, f_.times, 16, 150, K, m.timer_start);
-  text(d, f_.l9b, 384, 128, K, "KONIEC", Align::RIGHT, paper(), 1.4f);
+  text(d, f_.l9b, 384, 128, K, upper(T.end), Align::RIGHT, paper(), 1.4f);
   text(d, f_.times, 384, 150, K, m.timer_end, Align::RIGHT);
   keycap(d, f_.l12b, Sym::UP, "+1 min", 16, 289, Align::LEFT);
-  keycap(d, f_.l12b, Sym::DOT, "stop", 200, 289, Align::CENTER);
-  keycap(d, f_.l12b, Sym::DOWN, "pauza", 384, 289, Align::RIGHT);
+  keycap(d, f_.l12b, Sym::DOT, T.stop, 200, 289, Align::CENTER);
+  keycap(d, f_.l12b, Sym::DOWN, T.pause, 384, 289, Align::RIGHT);
 }
 
 // ---------------------------------------------------------------------------
 // LISTEN and THINK share the black screen (drawListen).
 void PaperSkin::listen_(Display &d, const Model &m, bool thinking) {
+  const Strings &T = *m.tr;
   fill_rect(d, 0, 0, W, H, K);
   status_(d, m, hhmm(m.hour, m.minute) + " · " + upper(m.room), true);
   if (thinking) {
-    text(d, f_.big, 16, 88, WH, "Chwila…", Align::LEFT, K);
-    text(d, f_.l9b, 16, 126, WH, "USŁYSZAŁEM", Align::LEFT, K, 1.6f);
-    text(d, f_.answer, 16, 154, WH, fit(f_.answer, "„" + m.question + "”", 368), Align::LEFT, K);
+    text(d, f_.big, 16, 88, WH, T.thinking, Align::LEFT, K);
+    text(d, f_.l9b, 16, 126, WH, upper(T.heard), Align::LEFT, K, 1.6f);
+    text(d, f_.answer, 16, 154, WH, fit(f_.answer, subst(T.quoted, m.question), 368), Align::LEFT, K);
     dotted_hline(d, 16, 384, 176, WH);
     for (int i = 0; i < 3; i++) {
       const int y = 206 + i * 24;
@@ -394,12 +400,12 @@ void PaperSkin::listen_(Display &d, const Model &m, bool thinking) {
         if (active)
           fill_rect(d, 20, y - 7, 6, 6, WH);
       }
-      text(d, active ? f_.l13b : f_.l13, 38, y, WH, STEPS[i], Align::LEFT, K);
+      text(d, active ? f_.l13b : f_.l13, 38, y, WH, T.steps[i], Align::LEFT, K);
     }
-    keycap(d, f_.l12b, Sym::DOWN, "anuluj", 384, 289, Align::RIGHT, WH, K);
+    keycap(d, f_.l12b, Sym::DOWN, T.cancel, 384, 289, Align::RIGHT, WH, K);
     return;
   }
-  text(d, f_.big, 16, 88, WH, "Słucham", Align::LEFT, K);
+  text(d, f_.big, 16, 88, WH, T.listening, Align::LEFT, K);
   fill_circle(d, 336, 77, 4, WH);
   text(d, f_.l13b, 384, 82, WH, mmss(m.listen_seconds), Align::RIGHT, K);
   for (size_t i = 0; i < m.mic_history.size(); i++) {
@@ -407,13 +413,14 @@ void PaperSkin::listen_(Display &d, const Model &m, bool thinking) {
     int h = std::max(2, (int) std::lround(2 + l * 78));
     fill_rect(d, 16 + (int) i * 4, (int) std::lround(168 - h / 2.0f), 2, h, WH);
   }
-  text(d, f_.l13, 16, 248, WH, "Mów naturalnie. Skończę, gdy ucichniesz.", Align::LEFT, K);
-  keycap(d, f_.l12b, Sym::DOT, "zakończ", 16, 289, Align::LEFT, WH, K);
-  keycap(d, f_.l12b, Sym::DOWN, "anuluj", 384, 289, Align::RIGHT, WH, K);
+  text(d, f_.l13, 16, 248, WH, fit(f_.l13, std::string(T.speak_naturally) + ". " + T.stop_when_quiet, 368), Align::LEFT, K);
+  keycap(d, f_.l12b, Sym::DOT, T.finish, 16, 289, Align::LEFT, WH, K);
+  keycap(d, f_.l12b, Sym::DOWN, T.cancel, 384, 289, Align::RIGHT, WH, K);
 }
 
 // ---------------------------------------------------------------------------
 void PaperSkin::doorbell_(Display &d, const Model &m) {
+  const Strings &T = *m.tr;
   // snapshot, left 264 px
   if (m.bell_image != nullptr && m.bell_image_ready) {
     d.start_clipping(0, 0, 264, H);
@@ -421,9 +428,9 @@ void PaperSkin::doorbell_(Display &d, const Model &m) {
     d.end_clipping();
   } else {
     fill_rect(d, 0, 0, 264, H, tone(190));
-    text(d, f_.l13, 132, 154, K, "Czekam na obraz…", Align::CENTER, tone(190));
+    text(d, f_.l13, 132, 154, K, std::string(T.waiting_image) + "…", Align::CENTER, tone(190));
   }
-  std::string tag = "KAMERA · " + upper(m.bell_place);
+  std::string tag = upper(T.camera) + " · " + upper(m.bell_place);
   int tw = measure(f_.l9b, tag, 1.2f) + 20;
   fill_round(d, 10, 10, tw, 18, 9, K);
   text(d, f_.l9b, 10 + tw / 2, 23, WH, tag, Align::CENTER, K, 1.2f);
@@ -431,19 +438,19 @@ void PaperSkin::doorbell_(Display &d, const Model &m) {
   fill_rect(d, 264, 0, 136, H, paper());
   fill_rect(d, 264, 0, 2, H, K);
   const int x = 280;
-  text(d, f_.l9b, x, 34, K, "DZWONEK", Align::LEFT, paper(), 1.6f);
+  text(d, f_.l9b, x, 34, K, upper(T.doorbell), Align::LEFT, paper(), 1.6f);
   text(d, f_.bell_time, x, 72, K, m.bell_time);
-  text(d, f_.l11, x, 90, K, fit(f_.l11, m.bell_place + " · przed chwilą", 106));
+  text(d, f_.l11, x, 90, K, fit(f_.l11, m.bell_place + " · " + T.just_now, 106));
   hline(d, x, 386, 104, K);
   auto cap = wrap_lines(f_.caption, m.bell_caption, 106, 2);
   for (size_t i = 0; i < cap.size(); i++)
     text(d, f_.caption, x, 130 + (int) i * 24, K, cap[i]);
   if (!cap.empty())
-    text(d, f_.l10i, x, 172, K, "opis AI ze zdjęcia");
+    text(d, f_.l10i, x, 172, K, fit(f_.l10i, T.ai_caption, 106));
   hline(d, x, 386, 188, K);
-  keycap(d, f_.l12b, Sym::UP, "Otwórz", x, 216, Align::LEFT);
-  keycap(d, f_.l12b, Sym::DOT, "Mów", x, 242, Align::LEFT);
-  keycap(d, f_.l12b, Sym::DOWN, "Zamknij", x, 268, Align::LEFT);
+  keycap(d, f_.l12b, Sym::UP, cap_first(T.open_door), x, 216, Align::LEFT);
+  keycap(d, f_.l12b, Sym::DOT, cap_first(T.talk), x, 242, Align::LEFT);
+  keycap(d, f_.l12b, Sym::DOWN, cap_first(T.close_door), x, 268, Align::LEFT);
 }
 
 }  // namespace note4_ui

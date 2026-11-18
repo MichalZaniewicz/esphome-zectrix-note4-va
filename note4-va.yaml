@@ -25,7 +25,11 @@ substitutions:
   skin: swiss
 
   # Shown on the page of the day.
-  room: "Kuchnia"
+  room: "Kitchen"
+
+  # Language of everything drawn on the screen: en (English) or pl (Polish).
+  # What the assistant says is set by the Assist pipeline in Home Assistant.
+  language: en
 
   # Weather now on the page of the day: the state is the condition, the
   # `temperature` attribute the temperature. Today's high / low are optional

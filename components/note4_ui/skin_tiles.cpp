@@ -22,8 +22,6 @@ const Color K = ink(0);
 const Color WH = ink(255);
 const float PI_F = 3.14159265f;
 
-const char *const STEPS[3] = {"Rozpoznano mowę", "Pytam Home Assistant", "Układam odpowiedź"};
-
 const int ANS_X = 26, ANS_Y = 101, ANS_PITCH = 26, ANS_W = 344, ANS_LINES = 5;
 
 void umbrella(Display &d, float cx, float cy, Color c) {
@@ -32,7 +30,7 @@ void umbrella(Display &d, float cx, float cy, Color c) {
   arc(d, cx - 2.2f, cy + 7, 2.2f, 1.6f, 0, PI_F, c);
 }
 
-// "Teraz ważne" pictograms, drawn in a 30x38 box at (x, y).
+// "Now" card pictograms, drawn in a 30x38 box at (x, y).
 void now_icon(Display &d, const std::string &icon, float x, float y, Color c, Color bg) {
   if (icon == "plant") {
     fill_ellipse(d, x + 9, y + 10, 5.5f, 10, -0.6f, c);
@@ -95,7 +93,7 @@ void TilesSkin::status_(Display &d, const Model &m, const std::string &left) {
   if (!m.wifi)
     off = "offline";
   else if (!m.ha)
-    off = "bez HA";
+    off = lower(m.tr->without) + " HA";
   if (!off.empty())
     text(d, f_.m11m, 342, 17, grey(105), off, Align::RIGHT);
 }
@@ -157,6 +155,7 @@ std::vector<Rect> TilesSkin::live_regions(Screen s, const Model &m) const {
 
 // ---------------------------------------------------------------------------
 void TilesSkin::idle_(Display &d, const Model &m) {
+  const Strings &T = *m.tr;
   // clock tile: white inside a grey ring
   fill_round(d, 10, 10, 228, 146, 18, tone(214));
   fill_round(d, 12, 12, 224, 142, 16, paper());
@@ -190,7 +189,7 @@ void TilesSkin::idle_(Display &d, const Model &m) {
   // next
   const Color tt = tone(226), lab = tone(95);
   fill_round(d, 10, 164, 120, 126, 18, tt);
-  text(d, f_.m11, 22, 186, lab, "Następne", Align::LEFT, tt);
+  text(d, f_.m11, 22, 186, lab, T.next, Align::LEFT, tt);
   if (!m.next_time.empty() || !m.next_title.empty()) {
     text(d, f_.next, 21, 220, K, m.next_time, Align::LEFT, tt, -1);
     auto t = wrap_lines(f_.m12m, m.next_title, 98, 2);
@@ -199,8 +198,8 @@ void TilesSkin::idle_(Display &d, const Model &m) {
     text(d, f_.m11m, 22, 276, lab, fit(f_.m11m, m.next_in, 98), Align::LEFT, tt);
   } else {
     text(d, f_.next, 21, 220, K, "–", Align::LEFT, tt, -1);
-    text(d, f_.m12m, 22, 242, K, "Wolne", Align::LEFT, tt);
-    text(d, f_.m11m, 22, 276, lab, "nic w kalendarzu", Align::LEFT, tt);
+    text(d, f_.m12m, 22, 242, K, fit(f_.m12m, T.free_day, 98), Align::LEFT, tt);
+    text(d, f_.m11m, 22, 276, lab, fit(f_.m11m, T.nothing_planned, 98), Align::LEFT, tt);
   }
 
   now_tile_(d, m);
@@ -208,7 +207,7 @@ void TilesSkin::idle_(Display &d, const Model &m) {
   // timer, or tomorrow
   if (m.timer_active) {
     fill_round(d, 266, 164, 124, 126, 18, K);
-    text(d, f_.m11, 278, 186, WH, "Timer", Align::LEFT, K);
+    text(d, f_.m11, 278, 186, WH, T.timer, Align::LEFT, K);
     text(d, f_.card, 277, 226, WH, mmss(m.timer_remaining), Align::LEFT, K, -1);
     text(d, f_.m13, 278, 246, WH, fit(f_.m13, m.timer_name, 100), Align::LEFT, K);
     stroke_round(d, 278, 262, 101, 9, 4, WH, 1);
@@ -217,7 +216,7 @@ void TilesSkin::idle_(Display &d, const Model &m) {
       fill_round(d, 279, 263, w, 7, 3, WH);
   } else {
     fill_round(d, 266, 164, 124, 126, 18, tt);
-    text(d, f_.m11, 278, 186, lab, "Jutro", Align::LEFT, tt);
+    text(d, f_.m11, 278, 186, lab, T.tomorrow, Align::LEFT, tt);
     text(d, f_.next, 277, 220, K, deg(m.fc_hi) + " / " + deg(m.fc_lo), Align::LEFT, tt, -1);
     auto t = wrap_lines(f_.m12m, m.fc_summary, 100, 2);
     for (size_t i = 0; i < t.size(); i++)
@@ -226,14 +225,15 @@ void TilesSkin::idle_(Display &d, const Model &m) {
   }
 }
 
-// "Teraz ważne": TODO as the mockup (badge, pictogram, three lines), ALARM as
-// a black tile, BRIEF the day's sentence.
+// The "Now" card: TODO as the mockup (badge, pictogram, three lines), ALARM
+// as a black tile, BRIEF the day's sentence.
 void TilesSkin::now_tile_(Display &d, const Model &m) {
+  const Strings &T = *m.tr;
   const int x = 138, y = 164, w = 120, h = 126;
   const Color tt = tone(226);
   if (m.now_level == NowLevel::BRIEF) {
     fill_round(d, x, y, w, h, 18, tt);
-    text(d, f_.m11, x + 12, y + 22, tone(95), "Dziś", Align::LEFT, tt);
+    text(d, f_.m11, x + 12, y + 22, tone(95), T.today, Align::LEFT, tt);
     auto lines = wrap_lines(f_.m12m, brief_text(m), 98, 5);
     for (size_t i = 0; i < lines.size(); i++)
       text(d, f_.m12m, x + 12, y + 44 + (int) i * 16, K, lines[i], Align::LEFT, tt);
@@ -242,7 +242,7 @@ void TilesSkin::now_tile_(Display &d, const Model &m) {
   const bool alarm = m.now_level == NowLevel::ALARM;
   const Color bg = alarm ? K : tt, fg = alarm ? WH : K;
   fill_round(d, x, y, w, h, 18, bg);
-  text(d, f_.m11, x + 12, y + 22, alarm ? WH : tone(95), alarm ? "Alarm" : "Teraz", Align::LEFT, bg);
+  text(d, f_.m11, x + 12, y + 22, alarm ? WH : tone(95), alarm ? T.alarm : T.now, Align::LEFT, bg);
   fill_round(d, x + 94, y + 10, 18, 18, 9, alarm ? WH : K);
   text(d, f_.m12, x + 103, y + 24, alarm ? K : WH, "!", Align::CENTER, alarm ? WH : K);
   now_icon(d, m.now_icon, x + 12, y + 34, fg, bg);
@@ -253,6 +253,7 @@ void TilesSkin::now_tile_(Display &d, const Model &m) {
 
 // ---------------------------------------------------------------------------
 void TilesSkin::answer_(Display &d, const Model &m) {
+  const Strings &T = *m.tr;
   status_(d, m, hhmm(m.hour, m.minute));
   const Color qb = tone(220);
   std::string q = fit(f_.m15, m.question, 350);
@@ -273,7 +274,8 @@ void TilesSkin::answer_(Display &d, const Model &m) {
   const Color pb = tone(212);
   for (size_t i = 0; i < m.facts.size() && i < 3; i++) {
     const std::string &v = m.facts[i].first, &l = m.facts[i].second;
-    const bool ic = l.find("deszcz") != std::string::npos || l.find("opad") != std::string::npos;
+    const std::string ll = lower(l);
+    const bool ic = contains_any(ll, T.kw_rain) || contains_any(ll, T.kw_precip);
     int w = measure(f_.m13, v) + 28 + (ic ? 18 : 0);
     int wl = l.empty() ? 0 : measure(f_.m11m, l) + 5;
     bool with_label = x + w + wl <= 390;
@@ -291,14 +293,15 @@ void TilesSkin::answer_(Display &d, const Model &m) {
     x += w + 8;
   }
   text(d, f_.m11m, 14, 293, grey(105), "Home Assistant");
-  const int mw = measure(f_.m12, "Więcej") + 34;
+  const int mw = measure(f_.m12, T.more) + 34;
   fill_round(d, 390 - mw, 276, mw, 22, 11, K);
-  text(d, f_.m12, 390 - mw + 12, 291, WH, "Więcej", Align::LEFT, K);
+  text(d, f_.m12, 390 - mw + 12, 291, WH, T.more, Align::LEFT, K);
   sym(d, Sym::DOWN, 372, 290, 7, WH);
 }
 
 // ---------------------------------------------------------------------------
 void TilesSkin::weather_(Display &d, const Model &m) {
+  const Strings &T = *m.tr;
   const Color top = tone(54);
   fill_round(d, 10, 10, 380, 114, 20, top);
   if (fc_has_rain(m)) {
@@ -312,7 +315,7 @@ void TilesSkin::weather_(Display &d, const Model &m) {
   std::string hi = deg(m.fc_hi);
   text(d, f_.fc_hi, 118, 84, WH, hi, Align::LEFT, top, -3);
   text(d, f_.fc_lo, 118 + measure(f_.fc_hi, hi, -3) + 6, 84, tone(185), "/ " + deg(m.fc_lo), Align::LEFT, top);
-  text(d, f_.m13, 120, 108, WH, fit(f_.m13, "Jutro · " + lower_first(m.fc_summary), 256), Align::LEFT, top);
+  text(d, f_.m13, 120, 108, WH, fit(f_.m13, std::string(T.tomorrow) + " · " + lower_first(m.fc_summary), 256), Align::LEFT, top);
   text(d, f_.m13, 376, 36, WH, cap_first(m.fc_day), Align::RIGHT, top);
   text(d, f_.m11m, 376, 52, tone(185), m.fc_date, Align::RIGHT, top);
 
@@ -357,7 +360,7 @@ void TilesSkin::weather_(Display &d, const Model &m) {
 
   // facts
   const std::pair<const char *, const std::string *> facts[3] = {
-      {"Wiatr", &m.fc_wind}, {"Wilgotność", &m.fc_humidity}, {"Zachód", &m.fc_sunset}};
+      {T.wind, &m.fc_wind}, {T.humidity, &m.fc_humidity}, {T.sunset, &m.fc_sunset}};
   const Color ft = tone(226);
   for (int i = 0; i < 3; i++) {
     const int x = 10 + i * 128;
@@ -369,25 +372,27 @@ void TilesSkin::weather_(Display &d, const Model &m) {
 
 // ---------------------------------------------------------------------------
 void TilesSkin::timer_(Display &d, const Model &m) {
+  const Strings &T = *m.tr;
   status_(d, m, hhmm(m.hour, m.minute));
   const float cx = 200, cy = 146, R = 98, th = 22;
   ring(d, cx, cy, R - th / 2, 2, K);
   arc(d, cx, cy, R - th / 2, th, TOP, TOP + timer_frac(m) * 2 * PI_F, K, true);
   text(d, f_.m15, 200, (int) cy - 34, K, fit(f_.m15, m.timer_name, 140), Align::CENTER);
   fixed_digits(d, f_.timer, 200, (int) cy + 16, K, mmss(m.timer_remaining));
-  text(d, f_.m12, 200, (int) cy + 40, K, "koniec " + m.timer_end, Align::CENTER);
+  text(d, f_.m12, 200, (int) cy + 40, K, subst(T.ends_at, m.timer_end), Align::CENTER);
   pill_(d, 32, 262, 104, 30, "+1 min", false, f_.m13);
-  pill_(d, 148, 262, 104, 30, "Stop", true, f_.m13);
-  pill_(d, 264, 262, 104, 30, "Pauza", false, f_.m13);
+  pill_(d, 148, 262, 104, 30, cap_first(T.stop), true, f_.m13);
+  pill_(d, 264, 262, 104, 30, cap_first(T.pause), false, f_.m13);
 }
 
 // ---------------------------------------------------------------------------
 // LISTEN: one black tile, the voice as white rounded bars, a white pill with
 // the elapsed time.
 void TilesSkin::listen_(Display &d, const Model &m) {
+  const Strings &T = *m.tr;
   status_(d, m, hhmm(m.hour, m.minute) + " · " + m.room);
   fill_round(d, 10, 30, 380, 196, 20, K);
-  text(d, f_.card, 30, 74, WH, "Słucham", Align::LEFT, K, -1);
+  text(d, f_.card, 30, 74, WH, T.listening, Align::LEFT, K, -1);
   fill_round(d, 300, 46, 74, 30, 15, paper());
   text(d, f_.m15, 337, 67, K, mmss(m.listen_seconds), Align::CENTER);
   for (size_t i = 0; i < m.mic_history.size(); i++) {
@@ -395,22 +400,23 @@ void TilesSkin::listen_(Display &d, const Model &m) {
     int h = std::max(3, (int) std::lround(3 + l * 84));
     fill_round(d, 16 + (int) i * 4, (int) std::lround(150 - h / 2.0f), 3, h, 1, WH);
   }
-  text(d, f_.m12m, 30, 214, WH, "Mów naturalnie. Skończę, gdy ucichniesz.", Align::LEFT, K);
-  pill_(d, 32, 252, 104, 30, "Zakończ", false, f_.m13);
-  text(d, f_.m11m, 200, 271, grey(105), fit(f_.m11m, "Słowo: " + m.wake_word, 112), Align::CENTER);
-  pill_(d, 264, 252, 104, 30, "Anuluj", true, f_.m13);
+  text(d, f_.m12m, 30, 214, WH, fit(f_.m12m, std::string(T.speak_naturally) + ". " + T.stop_when_quiet, 344), Align::LEFT, K);
+  pill_(d, 32, 252, 104, 30, cap_first(T.finish), false, f_.m13);
+  text(d, f_.m11m, 200, 271, grey(105), fit(f_.m11m, subst(T.wake_word_is, m.wake_word), 112), Align::CENTER);
+  pill_(d, 264, 252, 104, 30, cap_first(T.cancel), true, f_.m13);
 }
 
 // THINK: the heard question as a bubble, three step tiles; the running one
 // is black, finished ones get a check badge.
 void TilesSkin::think_(Display &d, const Model &m) {
+  const Strings &T = *m.tr;
   status_(d, m, hhmm(m.hour, m.minute) + " · " + m.room);
   const Color qb = tone(220);
   std::string q = fit(f_.m15, m.question, 350);
   int qw = measure(f_.m15, q) + 30;
   fill_round(d, 390 - qw, 30, qw, 34, 17, qb);
   text(d, f_.m15, 390 - qw + 15, 52, K, q, Align::LEFT, qb);
-  text(d, f_.card, 16, 104, K, "Chwila…", Align::LEFT, paper(), -1);
+  text(d, f_.card, 16, 104, K, T.thinking, Align::LEFT, paper(), -1);
   for (int i = 0; i < 3; i++) {
     const int x = 10 + i * 128, y = 124, w = 124, h = 106;
     const bool done = i < m.pipeline_step, active = i == m.pipeline_step;
@@ -430,42 +436,43 @@ void TilesSkin::think_(Display &d, const Model &m) {
         ring(d, bx, by, 11.5f, 1, K);
       text(d, f_.m15, (int) bx, (int) by + 5, K, std::to_string(i + 1), Align::CENTER, active ? WH : paper());
     }
-    auto lines = wrap_lines(f_.m13, STEPS[i], 100, 2);
+    auto lines = wrap_lines(f_.m13, T.steps[i], 100, 2);
     for (size_t j = 0; j < lines.size(); j++)
       text(d, f_.m13, x + 14, y + 70 + (int) j * 16, fg, lines[j], Align::LEFT, bg);
   }
   text(d, f_.m11m, 16, 271, grey(105), "Assist · Home Assistant");
-  pill_(d, 264, 252, 104, 30, "Anuluj", true, f_.m13);
+  pill_(d, 264, 252, 104, 30, cap_first(T.cancel), true, f_.m13);
 }
 
 // DOORBELL: snapshot left; black info tile and pill buttons on the right.
 void TilesSkin::doorbell_(Display &d, const Model &m) {
+  const Strings &T = *m.tr;
   if (m.bell_image != nullptr && m.bell_image_ready) {
     d.start_clipping(0, 0, 264, H);
     d.image(0, 0, m.bell_image);
     d.end_clipping();
   } else {
     fill_rect(d, 0, 0, 264, H, tone(190));
-    text(d, f_.m13, 132, 154, K, "Czekam na obraz…", Align::CENTER, tone(190));
+    text(d, f_.m13, 132, 154, K, std::string(T.waiting_image) + "…", Align::CENTER, tone(190));
   }
-  std::string tag = fit(f_.m11, "Kamera · " + m.bell_place, 220);
+  std::string tag = fit(f_.m11, std::string(T.camera) + " · " + m.bell_place, 220);
   int tw = measure(f_.m11, tag) + 24;
   fill_round(d, 10, 10, tw, 22, 11, K);
   text(d, f_.m11, 22, 25, WH, tag, Align::LEFT, K);
 
   fill_rect(d, 264, 0, 136, H, paper());
   fill_round(d, 272, 10, 118, 96, 18, K);
-  text(d, f_.m11, 284, 32, WH, "Dzwonek", Align::LEFT, K);
+  text(d, f_.m11, 284, 32, WH, T.doorbell, Align::LEFT, K);
   text(d, f_.card, 283, 72, WH, m.bell_time, Align::LEFT, K, -1);
   text(d, f_.m12m, 284, 94, WH, fit(f_.m12m, m.bell_place, 96), Align::LEFT, K);
   auto cap = wrap_lines(f_.m15, m.bell_caption, 112, 3);
   for (size_t i = 0; i < cap.size(); i++)
     text(d, f_.m15, 276, 134 + (int) i * 19, K, cap[i]);
   if (!cap.empty())
-    text(d, f_.m10, 276, 134 + (int) cap.size() * 19, grey(105), "opis AI ze zdjęcia");
-  pill_(d, 272, 206, 118, 26, "Otwórz", true, f_.m13);
-  pill_(d, 272, 238, 118, 26, "Mów", false, f_.m13);
-  pill_(d, 272, 270, 118, 26, "Zamknij", false, f_.m13);
+    text(d, f_.m10, 276, 134 + (int) cap.size() * 19, grey(105), fit(f_.m10, T.ai_caption, 112));
+  pill_(d, 272, 206, 118, 26, cap_first(T.open_door), true, f_.m13);
+  pill_(d, 272, 238, 118, 26, cap_first(T.talk), false, f_.m13);
+  pill_(d, 272, 270, 118, 26, cap_first(T.close_door), false, f_.m13);
 }
 
 }  // namespace note4_ui

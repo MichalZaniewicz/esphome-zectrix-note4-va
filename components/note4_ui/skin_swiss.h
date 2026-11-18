@@ -11,15 +11,15 @@ struct SwissFonts {
   // Inter Tight
   Font *clock{nullptr};     // 800 122, clock and timer digits
   Font *next{nullptr};      // 700 32, next event time, step numbers, seconds
-  Font *title{nullptr};     // 800 28, "Teraz" title
+  Font *title{nullptr};     // 800 28, "Now" title
   Font *card{nullptr};      // 800 34, timer card / tomorrow numbers
   Font *question{nullptr};  // 700 21
   Font *fact{nullptr};      // 800 30, answer key facts
   Font *fc_hi{nullptr};     // 800 104
   Font *fc_lo{nullptr};     // 700 38
-  Font *h26{nullptr};       // 800 26, "Jutro", timer name, wake word
+  Font *h26{nullptr};       // 800 26, "Tomorrow", timer name, wake word
   Font *end{nullptr};       // 800 24, timer end time
-  Font *big{nullptr};       // 800 56, "Słucham" / "Chwila…"
+  Font *big{nullptr};       // 800 56, the "Listening" / "Thinking…" word
   // Inter
   Font *i9b{nullptr};    // 700 9, labels
   Font *i10b{nullptr};   // 700 10, status bar, axis

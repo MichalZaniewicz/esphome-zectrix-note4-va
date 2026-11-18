@@ -29,6 +29,8 @@
 #include "esphome/components/display/display.h"
 #include "esphome/components/font/font.h"
 
+#include "strings.h"
+
 namespace esphome {
 namespace note4_ui {
 
@@ -47,7 +49,7 @@ struct Rect {
 };
 
 enum class Screen : uint8_t {
-  IDLE,      // "Kartka dnia": clock, date, weather, day timeline, cards
+  IDLE,      // page of the day: clock, date, weather, day timeline, cards
   LISTEN,    // woken, recording: waveform + elapsed seconds
   THINK,     // STT done: heard question + pipeline steps
   ANSWER,    // question + answer, typed word by word while TTS plays
@@ -58,7 +60,8 @@ enum class Screen : uint8_t {
 
 enum class Refresh : uint8_t { FULL_MONO, FULL_GRAY, PARTIAL };
 
-// "Teraz ważne" card. HA picks one item by priority and sends it.
+// The "Now" card (what matters right now). HA picks one item by priority and
+// sends it.
 enum class NowLevel : uint8_t {
   BRIEF = 0,  // nothing urgent: one-sentence day brief (AI Task)
   TODO = 1,   // window open, MeteoAlarm, plant, vacuum, school grade ...
@@ -68,9 +71,9 @@ enum class NowLevel : uint8_t {
 struct Model {
   // clock / status
   int hour = 0, minute = 0, second = 0;
-  std::string weekday;       // "wtorek"
-  std::string date;          // "17 listopada"
-  std::string room = "Kuchnia";
+  std::string weekday;       // "Tuesday", in the active language (core.yaml)
+  std::string date;          // "17 November"
+  std::string room = "Kitchen";
   int battery = -1;          // %, -1 unknown
   bool charging = false;
   bool wifi = false;
@@ -79,19 +82,19 @@ struct Model {
 
   // weather now (idle)
   float temp_now = NAN, temp_hi = NAN, temp_lo = NAN;
-  std::string condition;     // "Mgła, potem słońce"
+  std::string condition;     // "Fog, then sun"
   std::string condition_icon;  // HA condition: "fog", "rainy", "sunny", ...
 
   // day timeline + next event
   struct Event { float start_h, end_h; std::string title; };
   std::vector<Event> events;           // today, hours as float (9.5 = 9:30)
-  std::string next_time, next_title, next_in;  // "17:00", "Odbiór paczki", "za 2 h 18 min"
+  std::string next_time, next_title, next_in;  // "17:00", "Parcel pickup", "in 2 h 18 min" (all from HA)
 
-  // "Teraz ważne"
+  // the "Now" card
   NowLevel now_level = NowLevel::BRIEF;
-  std::string now_title;   // "Okno otwarte"
-  std::string now_body;    // "Łazienka · 12 min"
-  std::string now_detail;  // "grzanie wstrzymane"
+  std::string now_title;   // "Window open"
+  std::string now_body;    // "Bathroom · 12 min"
+  std::string now_detail;  // "heating paused"
   std::string now_icon;    // "window", "wind", "plant", "vacuum", "school", "flood", "smoke", "brief"
 
   // conversation
@@ -101,13 +104,13 @@ struct Model {
   int pipeline_step = 0;         // THINK: 0 stt, 1 asking HA, 2 composing
   std::array<float, 92> mic_history{};  // 0..1, newest last
   int listen_seconds = 0;
-  std::vector<std::pair<std::string, std::string>> facts;  // answer key facts ("15:00","początek deszczu")
+  std::vector<std::pair<std::string, std::string>> facts;  // answer key facts ("15:00", "rain starts")
 
   // tomorrow's forecast
-  std::string fc_day = "Środa", fc_date = "18 listopada";
+  std::string fc_day, fc_date;            // "Wednesday", "18 November" (from HA)
   float fc_hi = NAN, fc_lo = NAN;
-  std::string fc_summary;                 // "Deszcz od 15:00"
-  std::string fc_detail;                  // "razem 4 mm"
+  std::string fc_summary;                 // "Rain from 15:00"
+  std::string fc_detail;                  // "4 mm in total"
   std::array<float, 19> fc_temp{};        // hours 6..24
   std::array<float, 19> fc_rain{};        // mm per hour, hours 6..24
   float fc_rain_start_h = NAN;
@@ -115,15 +118,20 @@ struct Model {
 
   // timer
   bool timer_active = false;
-  std::string timer_name;   // "Makaron"
+  std::string timer_name;   // "Pasta"
   int timer_remaining = 0;  // s
   int timer_total = 0;      // s
   std::string timer_start, timer_end;  // "17:35", "17:45"
 
   // doorbell
-  std::string bell_place = "Furtka", bell_time, bell_caption;  // caption from AI Task
+  // bell_place: Strings::default_place until HA names one; caption from AI Task.
+  std::string bell_place = "Gate", bell_time, bell_caption;
   bool bell_image_ready = false;
   display::BaseImage *bell_image = nullptr;  // online_image (greyscale), set from YAML
+
+  // On-screen language (strings.h). Skins draw every phrase from here:
+  // `const Strings &T = *m.tr;`. Set with Note4UI::set_language().
+  const Strings *tr = &strings_en();
 };
 
 // Drawing helpers (canvas.cpp). Angles in radians, 0 = 3 o'clock, clockwise
@@ -201,6 +209,10 @@ class Note4UI : public Component {
   // (partial); otherwise the current screen is redrawn with a full refresh.
   void changed(bool live);
   void set_gray_enabled(bool on) { gray_enabled_ = on; }
+  // On-screen language: "en" (default) or "pl". False (and English kept) for
+  // an unknown code. Call before the model is filled (core.yaml on_boot).
+  bool set_language(const std::string &code);
+  const Strings &strings() const { return *model_.tr; }
 
   // Called from the display lambda.
   void draw(Display &d);

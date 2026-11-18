@@ -78,6 +78,7 @@ void DialSkin::gauge_(Display &d, float cx, float cy, float r, float frac, const
 
 // ------------------------------------------------------------------ IDLE
 void DialSkin::idle_(Display &d, const Model &m) {
+  const Strings &T = *m.tr;
   const float cx = 112, cy = 150, R = 100;
   ring(d, cx, cy, R, 2, ink());
   for (int i = 0; i < 60; i++) {
@@ -92,7 +93,7 @@ void DialSkin::idle_(Display &d, const Model &m) {
   }
   // date window at 3 o'clock
   stroke_rect(d, 149, 139, 37, 22, ink());
-  text(d, f_label_, 168, 155, ink(), short_day(m.weekday) + " " + std::to_string(day_of(m.date)), Align::CENTER);
+  text(d, f_label_, 168, 155, ink(), short_day(T, m.weekday) + " " + std::to_string(day_of(m.date)), Align::CENTER);
 
   float hh = (m.hour % 12) + m.minute / 60.0f, mm = m.minute + m.second / 60.0f;
   seg(d, cx, cy, TOP + hh / 12 * TAU_F, -10, 52, 7, ink(), true);
@@ -107,13 +108,13 @@ void DialSkin::idle_(Display &d, const Model &m) {
     this->gauge_(d, 346, 58, 26, timer_frac(m), strip0(mmss(m.timer_remaining)), upper(m.timer_name), true);
   } else if (m.battery >= 0) {
     this->gauge_(d, 346, 58, 26, m.battery / 100.0f, std::to_string(m.battery) + "%",
-                 m.charging ? "ŁADOWANIE" : "BATERIA", false);
+                 upper(m.charging ? T.charging : T.battery), false);
   }
 
   // next event
-  text(d, f_label_, 236, 128, ink(), "NASTĘPNE", Align::LEFT, paper(), 1.5f);
+  text(d, f_label_, 236, 128, ink(), upper(T.next), Align::LEFT, paper(), 1.5f);
   if (m.next_time.empty() && m.next_title.empty()) {
-    text(d, f_text_, 236, 154, ink(), "Nic więcej dziś");
+    text(d, f_text_, 236, 154, ink(), fit(f_text_, T.nothing_more_today, 148));
   } else {
     text(d, f_big_, 236, 154, ink(), m.next_time);
     int tx = 236 + measure(f_big_, m.next_time) + 6;
@@ -126,16 +127,17 @@ void DialSkin::idle_(Display &d, const Model &m) {
   dotted_hline(d, 236, 384, 258, ink());
   std::vector<std::string> sun;
   if (!m.fc_sunrise.empty())
-    sun.push_back("Wschód " + m.fc_sunrise);
+    sun.push_back(std::string(T.sunrise) + " " + m.fc_sunrise);
   if (!m.fc_sunset.empty())
-    sun.push_back("Zachód " + m.fc_sunset);
+    sun.push_back(std::string(T.sunset) + " " + m.fc_sunset);
   text(d, f_small_, 236, 282, ink(105), fit(f_small_, join_dot(sun), 148));
 }
 
-// "Teraz ważne" between the dotted rules (236..384, 176..258).
+// The "Now" card between the dotted rules (236..384, 176..258).
 void DialSkin::now_card_(Display &d, const Model &m) {
+  const Strings &T = *m.tr;
   if (m.now_level == NowLevel::BRIEF) {
-    text(d, f_label_, 236, 190, ink(), "TERAZ · DZIEŃ", Align::LEFT, paper(), 1.5f);
+    text(d, f_label_, 236, 190, ink(), fit(f_label_, upper(T.now) + " · " + upper(T.day), 148), Align::LEFT, paper(), 1.5f);
     auto l = wrap_n(f_text_, brief_text(m), 148, 3);
     for (size_t i = 0; i < l.size(); i++)
       text(d, f_text_, 236, 212 + (int) i * 17, ink(), l[i]);
@@ -146,10 +148,10 @@ void DialSkin::now_card_(Display &d, const Model &m) {
   Color bg = alarm ? ink() : paper();
   if (alarm) {
     fill_round(d, 230, 176, 158, 82, 6, ink());
-    text(d, f_label_, 240, 192, fg, fit(f_label_, "ALARM · " + upper(now_topic(m.now_icon)), 140), Align::LEFT, bg,
+    text(d, f_label_, 240, 192, fg, fit(f_label_, upper(T.alarm) + " · " + upper(now_topic(T, m.now_icon)), 140), Align::LEFT, bg,
          1.5f);
   } else {
-    text(d, f_label_, 236, 190, fg, "TERAZ", Align::LEFT, bg, 1.5f);
+    text(d, f_label_, 236, 190, fg, upper(T.now), Align::LEFT, bg, 1.5f);
   }
   float ix = alarm ? 258 : 254;
   ring(d, ix, 226, 16, 2, fg);
@@ -167,12 +169,14 @@ void DialSkin::now_card_(Display &d, const Model &m) {
 // A dial whose rim is the voice: the last 92 levels as radial bars, newest at
 // 12 o'clock, a seconds hand sweeping the elapsed time.
 void DialSkin::listen_(Display &d, const Model &m) {
+  const Strings &T = *m.tr;
   const float cx = 200, cy = 150, R = 70;
-  text(d, f_text_, 16, 30, ink(), "Mów naturalnie.");
-  text(d, f_small_, 16, 48, ink(105), "Skończę, gdy");
-  text(d, f_small_, 16, 64, ink(105), "ucichniesz.");
+  text(d, f_text_, 16, 30, ink(), fit(f_text_, std::string(T.speak_naturally) + ".", 150));
+  auto hint_lines = wrap_n(f_small_, T.stop_when_quiet, 96, 2);
+  for (size_t i = 0; i < hint_lines.size(); i++)
+    text(d, f_small_, 16, 48 + (int) i * 16, ink(105), hint_lines[i]);
   fill_circle(d, 322, 26, 4, ink());
-  text(d, f_label_, 384, 30, ink(), "MIKROFON", Align::RIGHT, paper(), 1.5f);
+  text(d, f_label_, 384, 30, ink(), fit(f_label_, upper(T.mic), 54), Align::RIGHT, paper(), 1.5f);
 
   ring(d, cx, cy, R, 2, ink());
   for (int i = 0; i < 60; i++) {
@@ -191,20 +195,21 @@ void DialSkin::listen_(Display &d, const Model &m) {
   fill_circle(d, cx, cy, 2.2f, paper());
 
   fill_rect(d, (int) cx - 32, (int) cy - 36, 64, 15, paper());
-  text(d, f_label_, (int) cx, (int) cy - 24, ink(), "SŁUCHAM", Align::CENTER, paper(), 2);
+  text(d, f_label_, (int) cx, (int) cy - 24, ink(), fit(f_label_, upper(T.listening), 60), Align::CENTER, paper(), 2);
   fill_rect(d, (int) cx - 34, (int) cy + 18, 68, 30, paper());
   stroke_rect(d, (int) cx - 34, (int) cy + 18, 68, 30, ink());
   fixed_digits(d, f_big_, (int) cx, (int) cy + 42, ink(), mmss(m.listen_seconds));
 
-  hint(d, f_small_, Sym::DOT, "zakończ", 16, 290);
-  hint(d, f_small_, Sym::DOWN, "anuluj", 384, 290, Align::RIGHT);
+  hint(d, f_small_, Sym::DOT, T.finish, 16, 290);
+  hint(d, f_small_, Sym::DOWN, T.cancel, 384, 290, Align::RIGHT);
 }
 
 // ------------------------------------------------------------------ THINK
 // Three sub-dials, one per pipeline step: full = done, partial = working,
 // empty = waiting.
 void DialSkin::think_(Display &d, const Model &m) {
-  text(d, f_label_, 16, 30, ink(110), "USŁYSZAŁEM", Align::LEFT, paper(), 1.5f);
+  const Strings &T = *m.tr;
+  text(d, f_label_, 16, 30, ink(110), upper(T.heard), Align::LEFT, paper(), 1.5f);
   auto q = wrap_n(f_head_, m.question.empty() ? std::string("…") : m.question, 368, 2);
   for (size_t i = 0; i < q.size(); i++)
     text(d, f_head_, 16, 58 + (int) i * 30, ink(), q[i]);
@@ -214,19 +219,20 @@ void DialSkin::think_(Display &d, const Model &m) {
   for (int i = 0; i < 3; i++) {
     float cx = 72 + i * 128, cy = 176;
     if (i < st) {
-      this->gauge_(d, cx, cy, 26, 1, "", upper(STEPS_SHORT[i]), true);
+      this->gauge_(d, cx, cy, 26, 1, "", upper(T.steps_short[i]), true);
       polyline(d, {{cx - 8, cy + 1}, {cx - 2, cy + 7}, {cx + 9, cy - 6}}, 3, ink());
     } else {
-      this->gauge_(d, cx, cy, 26, i == st ? 0.6f : 0, std::to_string(i + 1), upper(STEPS_SHORT[i]), true);
+      this->gauge_(d, cx, cy, 26, i == st ? 0.6f : 0, std::to_string(i + 1), upper(T.steps_short[i]), true);
     }
   }
-  text(d, f_text_, 200, 250, ink(), std::string(STEPS[st]) + "…", Align::CENTER);
-  hint(d, f_small_, Sym::DOWN, "anuluj", 384, 290, Align::RIGHT);
+  text(d, f_text_, 200, 250, ink(), std::string(T.steps[st]) + "…", Align::CENTER);
+  hint(d, f_small_, Sym::DOWN, T.cancel, 384, 290, Align::RIGHT);
 }
 
 // ------------------------------------------------------------------ ANSWER
 void DialSkin::answer_(Display &d, const Model &m) {
-  text(d, f_label_, 16, 30, ink(110), "PYTANIE", Align::LEFT, paper(), 1.5f);
+  const Strings &T = *m.tr;
+  text(d, f_label_, 16, 30, ink(110), upper(T.question), Align::LEFT, paper(), 1.5f);
   text(d, f_head_, 16, 58, ink(), fit(f_head_, m.question, 368));
   hline(d, 16, 384, 72, ink());
 
@@ -251,6 +257,7 @@ void DialSkin::answer_(Display &d, const Model &m) {
 // Tomorrow as a 24 h dial: grey night, rain as radial strokes, temperatures
 // inside, a pointer where the rain starts.
 void DialSkin::weather_(Display &d, const Model &m) {
+  const Strings &T = *m.tr;
   const float cx = 138, cy = 158, R = 100;
   auto ang = [](float h) { return TOP + h / 24.0f * TAU_F; };
   float ss = parse_hm(m.fc_sunset), sr = parse_hm(m.fc_sunrise);
@@ -289,22 +296,22 @@ void DialSkin::weather_(Display &d, const Model &m) {
   text(d, f_label_, (int) cx, (int) cy + 24, ink(115), "min " + temp_str(m.fc_lo), Align::CENTER);
 
   text(d, f_head_, 272, 58, ink(), fit(f_head_, m.fc_day, 120));
-  text(d, f_small_, 272, 76, ink(105), fit(f_small_, "jutro, " + m.fc_date, 120));
+  text(d, f_small_, 272, 76, ink(105), fit(f_small_, lower(T.tomorrow) + ", " + m.fc_date, 120));
   text(d, f_text_, 272, 108, ink(), fit(f_text_, m.fc_summary, 120));
   text(d, f_small_, 272, 126, ink(105), fit(f_small_, m.fc_detail, 120));
 
   fill_rect(d, 272, 162, 16, 8, tone(196));
-  text(d, f_small_, 296, 170, ink(), "noc");
+  text(d, f_small_, 296, 170, ink(), fit(f_small_, T.night, 96));
   thick_line(d, 280, 182, 280, 194, 5, ink(), true);
-  text(d, f_small_, 296, 192, ink(), "opad co godzinę");
+  text(d, f_small_, 296, 192, ink(), fit(f_small_, T.rain_per_hour, 96));
   text(d, f_num_, 280, 214, ink(), temp_str(fc_temp_at(m, 12)), Align::CENTER);
-  text(d, f_small_, 296, 214, ink(), "temperatura");
+  text(d, f_small_, 296, 214, ink(), fit(f_small_, T.temperature, 96));
   fill_poly(d, {{274, 226}, {286, 226}, {280, 236}}, ink());
-  text(d, f_small_, 296, 236, ink(), "start deszczu");
+  text(d, f_small_, 296, 236, ink(), fit(f_small_, T.rain_starts, 96));
 
   std::vector<std::string> p;
   if (!m.fc_wind.empty())
-    p.push_back("Wiatr " + m.fc_wind);
+    p.push_back(std::string(T.wind) + " " + m.fc_wind);
   if (!m.fc_humidity.empty())
     p.push_back(m.fc_humidity);
   text(d, f_small_, 272, 284, ink(105), fit(f_small_, join_dot(p), 120));
@@ -312,6 +319,7 @@ void DialSkin::weather_(Display &d, const Model &m) {
 
 // ------------------------------------------------------------------ TIMER
 void DialSkin::timer_(Display &d, const Model &m) {
+  const Strings &T = *m.tr;
   const float cx = 200, cy = 152, R = 112;
   ring(d, cx, cy, R, 2, ink());
   for (int i = 0; i < 60; i++) {
@@ -343,19 +351,20 @@ void DialSkin::timer_(Display &d, const Model &m) {
   fixed_digits(d, f_big_, (int) cx, (int) cy + 52, ink(), mmss(m.timer_remaining));
 
   hint(d, f_small_, Sym::UP, "+1 min", 16, 290);
-  hint(d, f_small_, Sym::DOT, "stop", 200, 290, Align::CENTER);
-  hint(d, f_small_, Sym::DOWN, "pauza", 384, 290, Align::RIGHT);
+  hint(d, f_small_, Sym::DOT, T.stop, 200, 290, Align::CENTER);
+  hint(d, f_small_, Sym::DOWN, T.pause, 384, 290, Align::RIGHT);
 }
 
 // ------------------------------------------------------------------ DOORBELL
 // Snapshot on the left; on the right a small dial showing when it rang.
 void DialSkin::doorbell_(Display &d, const Model &m) {
+  const Strings &T = *m.tr;
   if (!bell_image(d, m, 264)) {
     fill_rect(d, 0, 0, 264, 300, tone(212));
     ring(d, 132, 140, 40, 2, ink());
-    text(d, f_text_, 132, 214, ink(), "Czekam na zdjęcie…", Align::CENTER, tone(212));
+    text(d, f_text_, 132, 214, ink(), std::string(T.waiting_photo) + "…", Align::CENTER, tone(212));
   }
-  std::string cap = "KAMERA · " + upper(m.bell_place);
+  std::string cap = upper(T.camera) + " · " + upper(m.bell_place);
   int pw = measure(f_label_, cap, 1.2f) + 20;
   fill_round(d, 10, 10, pw, 18, 9, ink());
   text(d, f_label_, 10 + pw / 2, 23, paper(), cap, Align::CENTER, ink(), 1.2f);
@@ -376,17 +385,17 @@ void DialSkin::doorbell_(Display &d, const Model &m) {
   seg(d, cx, cy, TOP + mi / 60 * TAU_F, -6, 30, 2.5f, ink(), true);
   fill_circle(d, cx, cy, 3, ink());
 
-  text(d, f_label_, (int) cx, 116, ink(), "DZWONEK", Align::CENTER, paper(), 1.5f);
+  text(d, f_label_, (int) cx, 116, ink(), upper(T.doorbell), Align::CENTER, paper(), 1.5f);
   text(d, f_big_, (int) cx, 144, ink(), m.bell_time.empty() ? hhmm(m.hour, m.minute) : m.bell_time, Align::CENTER);
-  text(d, f_small_, (int) cx, 162, ink(105), fit(f_small_, m.bell_place + " · przed chwilą", 120), Align::CENTER);
+  text(d, f_small_, (int) cx, 162, ink(105), fit(f_small_, m.bell_place + " · " + T.just_now, 120), Align::CENTER);
   dotted_hline(d, 276, 388, 174, ink());
-  auto c = wrap_n(f_text_, m.bell_caption.empty() ? std::string("Ktoś dzwoni do drzwi") : m.bell_caption, 116, 3);
+  auto c = wrap_n(f_text_, m.bell_caption.empty() ? std::string(T.someone_at_door) : m.bell_caption, 116, 3);
   for (size_t i = 0; i < c.size(); i++)
     text(d, f_text_, 276, 194 + (int) i * 17, ink(), c[i]);
   dotted_hline(d, 276, 388, 242, ink());
-  hint(d, f_small_, Sym::UP, "Otwórz", 276, 260);
-  hint(d, f_small_, Sym::DOT, "Mów", 276, 276);
-  hint(d, f_small_, Sym::DOWN, "Zamknij", 276, 292);
+  hint(d, f_small_, Sym::UP, cap_first(T.open_door), 276, 260);
+  hint(d, f_small_, Sym::DOT, cap_first(T.talk), 276, 276);
+  hint(d, f_small_, Sym::DOWN, cap_first(T.close_door), 276, 292);
 }
 
 }  // namespace note4_ui

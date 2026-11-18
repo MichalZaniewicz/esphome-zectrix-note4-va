@@ -115,6 +115,23 @@ std::vector<std::string> Note4UI::skin_ids() const {
   return out;
 }
 
+bool Note4UI::set_language(const std::string &code) {
+  const Strings *t = strings_for(code);
+  if (t == nullptr) {
+    ESP_LOGW(TAG, "Language '%s' is not available (en, pl); keeping '%s'", code.c_str(), this->model_.tr->code);
+    return false;
+  }
+  // The placeholder doorbell place follows the language until HA names one.
+  if (this->model_.bell_place.empty() || this->model_.bell_place == strings_en().default_place ||
+      this->model_.bell_place == strings_pl().default_place)
+    this->model_.bell_place = t->default_place;
+  this->model_.tr = t;
+  ESP_LOGI(TAG, "Language: %s", t->code);
+  this->dirty_full_ = true;
+  this->dirty_live_ = false;
+  return true;
+}
+
 void Note4UI::show(Screen s) {
   this->screen_ = s;
   this->dirty_full_ = true;
