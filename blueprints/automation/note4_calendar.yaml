@@ -1,0 +1,102 @@
+blueprint:
+  name: Note 4 - today's events
+  description: >-
+    Sends today's calendar events to a Zectrix Note 4 running
+    esphome-zectrix-note4-va: the day timeline on the page of the day and the
+    "next" line (time, title and how soon). All-day events are left out of the
+    timeline. Runs every 10 minutes, when a calendar changes state and when Home
+    Assistant starts; the device ignores a resend that changes nothing.
+
+    "How soon" is coarse on purpose (hours, then quarters of an hour) so the
+    e-paper is not redrawn every minute.
+  domain: automation
+  author: Michał Zaniewicz
+  source_url: https://github.com/MichalZaniewicz/esphome-zectrix-note4-va/blob/main/blueprints/automation/note4_calendar.yaml
+  homeassistant:
+    min_version: "2024.10.0"
+  input:
+    device_name:
+      name: Device name
+      description: >-
+        The ESPHome `name` of the Note 4 with dashes turned into underscores
+        (`note4-va` becomes `note4_va`).
+      default: note4_va
+      selector:
+        text: {}
+    calendars:
+      name: Calendars
+      selector:
+        entity:
+          domain: calendar
+          multiple: true
+    language:
+      name: Language
+      description: Language of the "how soon" text.
+      default: en
+      selector:
+        select:
+          options:
+            - label: English
+              value: en
+            - label: Polski
+              value: pl
+
+mode: single
+max_exceeded: silent
+
+triggers:
+  - trigger: time_pattern
+    minutes: "/10"
+  - trigger: state
+    entity_id: !input calendars
+  - trigger: homeassistant
+    event: start
+
+variables:
+  device_name: !input device_name
+  lang: !input language
+  texts:
+    en: {hours: "in {} h", minutes: "in {} min", soon: "soon"}
+    pl: {hours: "za {} h", minutes: "za {} min", soon: "zaraz"}
+
+actions:
+  - action: calendar.get_events
+    target:
+      entity_id: !input calendars
+    data:
+      start_date_time: "{{ today_at('00:00') }}"
+      end_date_time: "{{ today_at('00:00') + timedelta(days=1) }}"
+    response_variable: agenda
+  - variables:
+      t: "{{ texts[lang] if lang in texts else texts['en'] }}"
+      events: >-
+        {%- set ns = namespace(l=[]) -%}
+        {%- for cal, data in agenda.items() -%}
+          {%- for e in data.events if 'T' in e.start -%}
+            {%- set s = as_local(as_datetime(e.start)) -%}
+            {%- set en = as_local(as_datetime(e.end)) -%}
+            {%- set sh = 0 if s.date() < now().date() else s.hour + s.minute / 60 -%}
+            {%- set eh = 24 if en.date() > now().date() else en.hour + en.minute / 60 -%}
+            {%- set ns.l = ns.l + [{'s': sh | round(2), 'e': eh | round(2), 'title': e.summary | default(''), 'at': s.isoformat()}] -%}
+          {%- endfor -%}
+        {%- endfor -%}
+        {{ ns.l | sort(attribute='s') }}
+      upcoming: "{{ events | selectattr('at', 'gt', now().isoformat()) | list }}"
+      next_at: "{{ upcoming[0].at if upcoming else '' }}"
+      next_in: >-
+        {%- if next_at -%}
+          {%- set m = ((as_datetime(next_at) - now()).total_seconds() / 60) | int -%}
+          {%- if m >= 60 -%}{{ t.hours.replace('{}', (m // 60) | string) }}
+          {%- elif m >= 15 -%}{{ t.minutes.replace('{}', ((m // 15) * 15) | string) }}
+          {%- else -%}{{ t.soon }}
+          {%- endif -%}
+        {%- endif -%}
+
+  - action: "esphome.{{ device_name }}_set_events"
+    data:
+      starts: "{{ events | map(attribute='s') | list }}"
+      ends: "{{ events | map(attribute='e') | list }}"
+      titles: "{{ events | map(attribute='title') | list }}"
+      next_time: "{{ as_local(as_datetime(next_at)).strftime('%H:%M') if next_at else '' }}"
+      next_title: "{{ upcoming[0].title if upcoming else '' }}"
+      next_in: "{{ next_in | trim }}"

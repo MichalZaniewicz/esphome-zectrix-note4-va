@@ -109,6 +109,19 @@ ci/local.yaml            # validates/compiles the working tree (CI uses this)
 docs/HARDWARE.md         # pin map, power latch, battery, refresh limits
 ```
 
+## Home Assistant blueprints
+
+The device only draws; these blueprints feed it. Import them with the buttons, then create one automation from each that you want. All of them call the actions below, write their texts in English or Polish (an input), and can run as often as they like: the device ignores a resend that changes nothing, so the e-paper only refreshes when the content does.
+
+| Blueprint | What it sends | Import |
+|---|---|---|
+| ["Now" card](blueprints/automation/note4_now_card.yaml) | Picks the one thing that matters: an alarm (smoke, gas, CO, leak), then a window open too long, a weather warning, a vacuum in error, a plant with a problem or a recent event, else a one-sentence day brief written by AI Task every morning. | [![Import](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2FMichalZaniewicz%2Fesphome-zectrix-note4-va%2Fblob%2Fmain%2Fblueprints%2Fautomation%2Fnote4_now_card.yaml) |
+| [Tomorrow's forecast](blueprints/automation/note4_forecast.yaml) | Hourly temperature and rain for 6:00-24:00 tomorrow, high/low, when rain starts, wind, humidity, sunrise and sunset, from any weather entity with hourly and daily forecasts. | [![Import](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2FMichalZaniewicz%2Fesphome-zectrix-note4-va%2Fblob%2Fmain%2Fblueprints%2Fautomation%2Fnote4_forecast.yaml) |
+| [Today's events](blueprints/automation/note4_calendar.yaml) | The day timeline and the "next" line from one or more calendars. | [![Import](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2FMichalZaniewicz%2Fesphome-zectrix-note4-va%2Fblob%2Fmain%2Fblueprints%2Fautomation%2Fnote4_calendar.yaml) |
+| [Doorbell](blueprints/automation/note4_doorbell.yaml) | A camera snapshot with an optional AI caption when the doorbell rings. | [![Import](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2FMichalZaniewicz%2Fesphome-zectrix-note4-va%2Fblob%2Fmain%2Fblueprints%2Fautomation%2Fnote4_doorbell.yaml) |
+
+Every blueprint asks for the **device name**: the ESPHome `name` with dashes turned into underscores (`note4-va` becomes `note4_va`), which is how Home Assistant names the device's actions.
+
 ## Home Assistant actions
 
 Home Assistant pushes what the page of the day shows. The actions appear as

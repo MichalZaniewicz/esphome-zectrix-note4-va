@@ -1,0 +1,157 @@
+blueprint:
+  name: Note 4 - tomorrow's forecast
+  description: >-
+    Sends tomorrow's forecast to a Zectrix Note 4 running esphome-zectrix-note4-va:
+    temperature and rain for every hour from 6:00 to 24:00, high and low, when the
+    rain starts, wind, humidity, sunrise and sunset. It runs every 30 minutes and
+    when Home Assistant starts; the device ignores a resend that changes nothing,
+    so the e-paper only refreshes when the forecast does.
+
+    Needs a weather entity that offers both hourly and daily forecasts (Met.no does).
+  domain: automation
+  author: Michał Zaniewicz
+  source_url: https://github.com/MichalZaniewicz/esphome-zectrix-note4-va/blob/main/blueprints/automation/note4_forecast.yaml
+  homeassistant:
+    min_version: "2024.10.0"
+  input:
+    device_name:
+      name: Device name
+      description: >-
+        The ESPHome `name` of the Note 4 with dashes turned into underscores
+        (`note4-va` becomes `note4_va`). The device's actions are called
+        `esphome.<this>_set_forecast` and so on.
+      default: note4_va
+      selector:
+        text: {}
+    weather_entity:
+      name: Weather
+      selector:
+        entity:
+          domain: weather
+    language:
+      name: Language
+      description: Language of the texts sent to the screen (day name, date, rain summary).
+      default: en
+      selector:
+        select:
+          options:
+            - label: English
+              value: en
+            - label: Polski
+              value: pl
+
+mode: single
+max_exceeded: silent
+
+triggers:
+  - trigger: time_pattern
+    minutes: "/30"
+  - trigger: homeassistant
+    event: start
+
+variables:
+  device_name: !input device_name
+  weather_entity: !input weather_entity
+  lang: !input language
+  texts:
+    en:
+      days: [Monday, Tuesday, Wednesday, Thursday, Friday, Saturday, Sunday]
+      months: [January, February, March, April, May, June, July, August, September, October, November, December]
+      rain_from: "Rain from {}"
+      no_rain: "No rain"
+      total: "about {} mm in total"
+      dry: "dry all day"
+    pl:
+      days: [Poniedziałek, Wtorek, Środa, Czwartek, Piątek, Sobota, Niedziela]
+      months: [stycznia, lutego, marca, kwietnia, maja, czerwca, lipca, sierpnia, września, października, listopada, grudnia]
+      rain_from: "Deszcz od {}"
+      no_rain: "Bez deszczu"
+      total: "razem ok. {} mm"
+      dry: "cały dzień sucho"
+
+actions:
+  - action: weather.get_forecasts
+    target:
+      entity_id: !input weather_entity
+    data:
+      type: hourly
+    response_variable: hourly
+  - action: weather.get_forecasts
+    target:
+      entity_id: !input weather_entity
+    data:
+      type: daily
+    response_variable: daily
+  - variables:
+      t: "{{ texts[lang] if lang in texts else texts['en'] }}"
+      tomorrow: "{{ (now() + timedelta(days=1)).date() }}"
+      # Hourly values for 6:00..24:00 tomorrow (19 of each). A missing hour
+      # repeats the last known temperature and counts as dry.
+      series: >-
+        {%- set fc = hourly[weather_entity].forecast -%}
+        {%- set base = today_at('00:00') + timedelta(days=1) -%}
+        {%- set ns = namespace(t=[], r=[], last=none) -%}
+        {%- for h in range(6, 25) -%}
+          {%- set target = base + timedelta(hours=h) -%}
+          {%- set hit = namespace(v=none, p=0) -%}
+          {%- for f in fc -%}
+            {%- if as_datetime(f.datetime) == target -%}
+              {%- set hit.v = f.temperature -%}
+              {%- set hit.p = f.precipitation | default(0, true) -%}
+            {%- endif -%}
+          {%- endfor -%}
+          {%- if hit.v is not none -%}{%- set ns.last = hit.v -%}{%- endif -%}
+          {%- set ns.t = ns.t + [ (ns.last if ns.last is not none else 0) | float(0) ] -%}
+          {%- set ns.r = ns.r + [ hit.p | float(0) ] -%}
+        {%- endfor -%}
+        {{ {'t': ns.t, 'r': ns.r} }}
+      day_fc: >-
+        {%- set ns = namespace(f={}) -%}
+        {%- for f in daily[weather_entity].forecast -%}
+          {%- if not ns.f and as_local(as_datetime(f.datetime)).date() | string == tomorrow | string -%}
+            {%- set ns.f = f -%}
+          {%- endif -%}
+        {%- endfor -%}
+        {{ ns.f }}
+      rain_start: >-
+        {%- set ns = namespace(h=-1) -%}
+        {%- for p in series.r -%}
+          {%- if ns.h < 0 and p >= 0.1 -%}{%- set ns.h = 6 + loop.index0 -%}{%- endif -%}
+        {%- endfor -%}
+        {{ ns.h }}
+      rain_total: "{{ series.r | sum | round(1) }}"
+      hi: "{{ day_fc.temperature | default(series.t | max, true) | float(0) }}"
+      lo: "{{ day_fc.templow | default(series.t | min, true) | float(0) }}"
+      when: "{{ today_at('00:00') + timedelta(days=1) }}"
+      wind: >-
+        {%- set speed = day_fc.wind_speed | default(state_attr(weather_entity, 'wind_speed'), true) -%}
+        {%- set bearing = day_fc.wind_bearing | default(state_attr(weather_entity, 'wind_bearing'), true) -%}
+        {%- set unit = state_attr(weather_entity, 'wind_speed_unit') or 'km/h' -%}
+        {%- if speed is number -%}
+          {%- set dirs = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'] -%}
+          {{ speed | round(0) | int }} {{ unit }}{% if bearing is number %} {{ dirs[((bearing + 22.5) // 45) | int % 8] }}{% endif %}
+        {%- endif -%}
+      humidity: >-
+        {%- set h = day_fc.humidity | default(state_attr(weather_entity, 'humidity'), true) -%}
+        {{ (h | round(0) | int ~ '%') if h is number else '' }}
+
+  - action: "esphome.{{ device_name }}_set_forecast"
+    data:
+      day: "{{ t.days[as_datetime(when).weekday()] }}"
+      date: >-
+        {{ as_datetime(when).day }} {{ t.months[as_datetime(when).month - 1] }}
+      hi: "{{ hi }}"
+      lo: "{{ lo }}"
+      summary: >-
+        {{ t.rain_from.replace('{}', '%02d:00' % rain_start) if rain_start >= 0 else t.no_rain }}
+      detail: >-
+        {{ t.total.replace('{}', rain_total | string) if rain_total > 0 else t.dry }}
+      temps: "{{ series.t }}"
+      rain: "{{ series.r }}"
+      rain_start: "{{ rain_start }}"
+      wind: "{{ wind | trim }}"
+      humidity: "{{ humidity | trim }}"
+      sunrise: >-
+        {{ as_local(as_datetime(state_attr('sun.sun', 'next_rising'))).strftime('%H:%M') if state_attr('sun.sun', 'next_rising') else '' }}
+      sunset: >-
+        {{ as_local(as_datetime(state_attr('sun.sun', 'next_setting'))).strftime('%H:%M') if state_attr('sun.sun', 'next_setting') else '' }}

@@ -1,0 +1,355 @@
+blueprint:
+  name: Note 4 - "Now" card
+  description: >-
+    Picks the one thing that matters right now and shows it on the "Now" card of
+    a Zectrix Note 4 running esphome-zectrix-note4-va.
+
+    Priority, highest first:
+
+    1. **Alarm** (drawn in negative, and brings the page of the day up): any of
+       the alarm sensors is on (smoke, gas, CO, water leak).
+
+    2. **To do**: a window or door open for longer than the set time, a weather
+       warning, a vacuum in error, a plant with a problem, or one of the event
+       entities fired recently (a new school grade, say).
+
+    3. **Brief**: nothing urgent, so one sentence about the day. With an AI Task
+       entity and a text helper, the sentence is written by AI every morning;
+       without them a plain default is shown.
+
+    Every section is optional. Runs on any change of the chosen entities, every
+    5 minutes and at start; the device ignores a resend that changes nothing.
+  domain: automation
+  author: Michał Zaniewicz
+  source_url: https://github.com/MichalZaniewicz/esphome-zectrix-note4-va/blob/main/blueprints/automation/note4_now_card.yaml
+  homeassistant:
+    min_version: "2025.8.0"
+  input:
+    device:
+      name: Device
+      icon: mdi:tablet
+      input:
+        device_name:
+          name: Device name
+          description: >-
+            The ESPHome `name` of the Note 4 with dashes turned into underscores
+            (`note4-va` becomes `note4_va`).
+          default: note4_va
+          selector:
+            text: {}
+        language:
+          name: Language
+          description: Language of the texts this blueprint writes.
+          default: en
+          selector:
+            select:
+              options:
+                - label: English
+                  value: en
+                - label: Polski
+                  value: pl
+    alarms:
+      name: Alarms
+      icon: mdi:alarm-light
+      input:
+        alarm_sensors:
+          name: Alarm sensors
+          description: Smoke, gas, CO or water leak sensors. Any of them on is an alarm.
+          default: []
+          selector:
+            entity:
+              domain: binary_sensor
+              device_class: [smoke, gas, carbon_monoxide, moisture, safety]
+              multiple: true
+    todo:
+      name: Things to do
+      icon: mdi:clipboard-check-outline
+      input:
+        window_sensors:
+          name: Windows and doors
+          default: []
+          selector:
+            entity:
+              domain: binary_sensor
+              device_class: [window, door, opening, garage_door]
+              multiple: true
+        window_minutes:
+          name: Open for at least
+          default: 10
+          selector:
+            number:
+              min: 1
+              max: 120
+              unit_of_measurement: min
+        warning_sensors:
+          name: Weather warnings
+          description: For example the MeteoAlarm binary sensor. Its `headline` or `event` attribute becomes the title.
+          default: []
+          selector:
+            entity:
+              domain: binary_sensor
+              multiple: true
+        vacuums:
+          name: Vacuums
+          description: Shown while in the `error` state.
+          default: []
+          selector:
+            entity:
+              domain: vacuum
+              multiple: true
+        plants:
+          name: Plants
+          description: Shown while in the `problem` state.
+          default: []
+          selector:
+            entity:
+              domain: plant
+              multiple: true
+        event_entities:
+          name: Events
+          description: Event entities (a new school grade, a delivery...). Shown for a while after they fire.
+          default: []
+          selector:
+            entity:
+              domain: event
+              multiple: true
+        event_hours:
+          name: Show events for
+          default: 3
+          selector:
+            number:
+              min: 1
+              max: 24
+              unit_of_measurement: h
+    brief:
+      name: Day brief
+      icon: mdi:text-short
+      collapsed: true
+      input:
+        ai_task:
+          name: AI Task entity
+          description: Leave empty for a plain default sentence.
+          default: []
+          selector:
+            entity:
+              domain: ai_task
+              multiple: true
+        brief_helper:
+          name: Text helper for the brief
+          description: An input_text helper (max length 255) that keeps the sentence between runs. Needed together with the AI Task entity.
+          default: []
+          selector:
+            entity:
+              domain: input_text
+              multiple: true
+        brief_time:
+          name: Write the brief at
+          default: "06:30:00"
+          selector:
+            time: {}
+        brief_calendars:
+          name: Calendars the brief may mention
+          default: []
+          selector:
+            entity:
+              domain: calendar
+              multiple: true
+        brief_weather:
+          name: Weather the brief may mention
+          default: []
+          selector:
+            entity:
+              domain: weather
+              multiple: true
+
+mode: queued
+max: 3
+max_exceeded: silent
+
+triggers:
+  - trigger: state
+    entity_id: !input alarm_sensors
+  - trigger: state
+    entity_id: !input window_sensors
+  - trigger: state
+    entity_id: !input warning_sensors
+  - trigger: state
+    entity_id: !input vacuums
+  - trigger: state
+    entity_id: !input plants
+  - trigger: state
+    entity_id: !input event_entities
+  - trigger: time_pattern
+    minutes: "/5"
+  - trigger: homeassistant
+    event: start
+  - trigger: time
+    at: !input brief_time
+    id: brief
+
+variables:
+  device_name: !input device_name
+  lang: !input language
+  alarm_sensors: !input alarm_sensors
+  window_sensors: !input window_sensors
+  window_minutes: !input window_minutes
+  warning_sensors: !input warning_sensors
+  vacuums: !input vacuums
+  plants: !input plants
+  event_entities: !input event_entities
+  event_hours: !input event_hours
+  ai_task: !input ai_task
+  brief_helper: !input brief_helper
+  brief_calendars: !input brief_calendars
+  brief_weather: !input brief_weather
+  texts:
+    en:
+      language_name: English
+      smoke: "Smoke!"
+      gas: "Gas!"
+      carbon_monoxide: "Carbon monoxide!"
+      moisture: "Water leak!"
+      safety: "Alarm!"
+      window_open: "Window open"
+      door_open: "Door open"
+      open_since: "open since {}"
+      until: "until {}"
+      vacuum: "Vacuum stuck"
+      brief_default: "Nothing urgent today."
+    pl:
+      language_name: Polish
+      smoke: "Dym!"
+      gas: "Gaz!"
+      carbon_monoxide: "Czad!"
+      moisture: "Zalanie!"
+      safety: "Alarm!"
+      window_open: "Okno otwarte"
+      door_open: "Drzwi otwarte"
+      open_since: "otwarte od {}"
+      until: "do {}"
+      vacuum: "Odkurzacz utknął"
+      brief_default: "Dziś nic pilnego."
+
+actions:
+  # Morning: let AI write the day brief and keep it in the helper.
+  - if:
+      - condition: trigger
+        id: brief
+      - "{{ ai_task | length > 0 and brief_helper | length > 0 }}"
+    then:
+      - variables:
+          context: []
+      - if:
+          - "{{ brief_calendars | length > 0 }}"
+        then:
+          - action: calendar.get_events
+            target:
+              entity_id: "{{ brief_calendars }}"
+            data:
+              start_date_time: "{{ today_at('00:00') }}"
+              end_date_time: "{{ today_at('00:00') + timedelta(days=1) }}"
+            response_variable: agenda
+          - variables:
+              context: >-
+                {%- set ns = namespace(l=[]) -%}
+                {%- for cal, data in agenda.items() -%}
+                  {%- for e in data.events -%}
+                    {%- set when = as_local(as_datetime(e.start)).strftime('%H:%M') if 'T' in e.start else 'all day' -%}
+                    {%- set ns.l = ns.l + [when ~ ' ' ~ e.summary] -%}
+                  {%- endfor -%}
+                {%- endfor -%}
+                {{ ns.l }}
+      - if:
+          - "{{ brief_weather | length > 0 }}"
+        then:
+          - action: weather.get_forecasts
+            target:
+              entity_id: "{{ brief_weather[0] }}"
+            data:
+              type: hourly
+            response_variable: hourly
+          - variables:
+              context: >-
+                {%- set ns = namespace(l=[]) -%}
+                {%- for f in hourly[brief_weather[0]].forecast[:16] -%}
+                  {%- set ns.l = ns.l + [as_local(as_datetime(f.datetime)).strftime('%H') ~ 'h ' ~ f.condition ~ ' ' ~ f.temperature ~ 'C'] -%}
+                {%- endfor -%}
+                {{ context + ['weather: ' ~ ns.l | join(', ')] }}
+      - action: ai_task.generate_data
+        data:
+          entity_id: "{{ ai_task[0] }}"
+          task_name: Note 4 day brief
+          instructions: >-
+            Write one short, friendly sentence in {{ texts[lang].language_name }} for a
+            kitchen e-paper display that sums up today for the family. At most 90
+            characters, no emoji, no quotes. Mention only what matters: the first or most
+            important event, and rain or cold if relevant. Today is
+            {{ now().strftime('%A %d %B') }}. Facts: {{ context | join('; ') if context else 'none' }}.
+        response_variable: brief
+      - action: input_text.set_value
+        target:
+          entity_id: "{{ brief_helper[0] }}"
+        data:
+          value: "{{ (brief.data | string)[:255] | trim }}"
+
+  - variables:
+      t: "{{ texts[lang] if lang in texts else texts['en'] }}"
+      item: >-
+        {%- set alarm = alarm_sensors | select('is_state', 'on') | list -%}
+        {%- if alarm -%}
+          {%- set dc = state_attr(alarm[0], 'device_class') or 'safety' -%}
+          {{ {'level': 2, 'title': t[dc] if dc in t else t.safety,
+              'body': state_attr(alarm[0], 'friendly_name') or alarm[0], 'detail': '',
+              'icon': 'flood' if dc == 'moisture' else 'smoke'} }}
+        {%- else -%}
+          {%- set w = namespace(e=none, m=0) -%}
+          {%- for e in window_sensors if is_state(e, 'on') -%}
+            {%- set mins = ((now() - states[e].last_changed).total_seconds() / 60) | int -%}
+            {%- if mins >= window_minutes and mins > w.m -%}{%- set w.e = e -%}{%- set w.m = mins -%}{%- endif -%}
+          {%- endfor -%}
+          {%- set warn = warning_sensors | select('is_state', 'on') | list -%}
+          {%- set vac = vacuums | select('is_state', 'error') | list -%}
+          {%- set plant = plants | select('is_state', 'problem') | list -%}
+          {%- set ev = namespace(e=none) -%}
+          {%- for e in event_entities -%}
+            {%- set ts = as_datetime(states(e), none) -%}
+            {%- if ts and (now() - ts).total_seconds() < event_hours * 3600 and ev.e is none -%}{%- set ev.e = e -%}{%- endif -%}
+          {%- endfor -%}
+          {%- if w.e -%}
+            {%- set dc = state_attr(w.e, 'device_class') -%}
+            {{ {'level': 1, 'title': t.door_open if dc in ['door', 'garage_door'] else t.window_open,
+                'body': state_attr(w.e, 'friendly_name') or w.e,
+                'detail': t.open_since.replace('{}', as_local(states[w.e].last_changed).strftime('%H:%M')),
+                'icon': 'window'} }}
+          {%- elif warn -%}
+            {%- set exp = state_attr(warn[0], 'expires') -%}
+            {{ {'level': 1,
+                'title': state_attr(warn[0], 'headline') or state_attr(warn[0], 'event') or state_attr(warn[0], 'friendly_name'),
+                'body': state_attr(warn[0], 'event') or '',
+                'detail': t.until.replace('{}', as_local(as_datetime(exp)).strftime('%H:%M')) if exp and as_datetime(exp, none) else '',
+                'icon': 'wind'} }}
+          {%- elif vac -%}
+            {{ {'level': 1, 'title': t.vacuum, 'body': state_attr(vac[0], 'friendly_name') or vac[0],
+                'detail': '', 'icon': 'vacuum'} }}
+          {%- elif plant -%}
+            {{ {'level': 1, 'title': state_attr(plant[0], 'friendly_name') or plant[0],
+                'body': state_attr(plant[0], 'problem') or '', 'detail': '', 'icon': 'plant'} }}
+          {%- elif ev.e -%}
+            {{ {'level': 1, 'title': state_attr(ev.e, 'friendly_name') or ev.e,
+                'body': state_attr(ev.e, 'event_type') or '',
+                'detail': as_local(as_datetime(states(ev.e), none)).strftime('%H:%M'), 'icon': 'school'} }}
+          {%- else -%}
+            {%- set saved = states(brief_helper[0]) if brief_helper else '' -%}
+            {{ {'level': 0, 'title': '',
+                'body': saved if saved not in ['', 'unknown', 'unavailable'] else t.brief_default,
+                'detail': '', 'icon': 'brief'} }}
+          {%- endif -%}
+        {%- endif -%}
+
+  - action: "esphome.{{ device_name }}_set_now"
+    data:
+      level: "{{ item.level }}"
+      title: "{{ item.title }}"
+      body: "{{ item.body }}"
+      detail: "{{ item.detail }}"
+      icon: "{{ item.icon }}"

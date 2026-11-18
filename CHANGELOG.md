@@ -6,6 +6,8 @@ First version. **Untested on hardware**: it validates (`esphome config
 ci/local.yaml`) and nothing more is claimed yet.
 
 ### Added
+- **Home Assistant blueprints** (`blueprints/automation/`): the "Now" card with its priority rules and an AI day brief, tomorrow's forecast, today's events and the doorbell.
+- The device skips `set_now`, `set_forecast` and `set_events` calls that change nothing, so scheduled resends cost no e-paper refresh.
 - **Core** (`base/core.yaml`), ported from the ESP32-S3-BOX-3 voice assistant:
   the same esp_audio_stack + esp_aec full-duplex audio, media player, three
   wake words plus the internal "Stop" word, the Assist pipeline with barge-in,

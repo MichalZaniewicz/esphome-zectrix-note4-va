@@ -492,7 +492,13 @@ api:
       then:
         - lambda: |-
             auto &m = id(ui).model();
-            m.now_level = (note4_ui::NowLevel) std::max(0, std::min(2, (int) level));
+            const auto lvl = (note4_ui::NowLevel) std::max(0, std::min(2, (int) level));
+            // Blueprints resend on a schedule. Only a real change may cost a
+            // full e-paper refresh.
+            if (m.now_level == lvl && m.now_title == title && m.now_body == body &&
+                m.now_detail == detail && m.now_icon == icon)
+              return;
+            m.now_level = lvl;
             m.now_title = std::string(title);
             m.now_body = std::string(body);
             m.now_detail = std::string(detail);
@@ -528,6 +534,22 @@ api:
       then:
         - lambda: |-
             auto &m = id(ui).model();
+            // Skip an unchanged resend (see set_now).
+            {
+              bool same = m.fc_day == day && m.fc_date == date && m.fc_summary == summary &&
+                          m.fc_detail == detail && m.fc_wind == wind && m.fc_humidity == humidity &&
+                          m.fc_sunrise == sunrise && m.fc_sunset == sunset &&
+                          std::fabs(m.fc_hi - hi) < 0.05f && std::fabs(m.fc_lo - lo) < 0.05f &&
+                          ((rain_start < 0 && std::isnan(m.fc_rain_start_h)) ||
+                           std::fabs(m.fc_rain_start_h - rain_start) < 0.01f);
+              for (size_t i = 0; same && i < m.fc_temp.size(); i++) {
+                float t = i < temps.size() ? temps[i] : NAN;
+                float r = i < rain.size() ? rain[i] : 0.0f;
+                same = ((std::isnan(t) && std::isnan(m.fc_temp[i])) || std::fabs(m.fc_temp[i] - t) < 0.05f) &&
+                       std::fabs(m.fc_rain[i] - r) < 0.05f;
+              }
+              if (same) return;
+            }
             m.fc_day = std::string(day);
             m.fc_date = std::string(date);
             m.fc_hi = hi;
@@ -558,8 +580,17 @@ api:
       then:
         - lambda: |-
             auto &m = id(ui).model();
-            m.events.clear();
             const size_t n = std::min(starts.size(), std::min(ends.size(), titles.size()));
+            // Skip an unchanged resend (see set_now).
+            {
+              bool same = m.events.size() == n && m.next_time == next_time &&
+                          m.next_title == next_title && m.next_in == next_in;
+              for (size_t i = 0; same && i < n; i++)
+                same = std::fabs(m.events[i].start_h - starts[i]) < 0.01f &&
+                       std::fabs(m.events[i].end_h - ends[i]) < 0.01f && m.events[i].title == titles[i];
+              if (same) return;
+            }
+            m.events.clear();
             for (size_t i = 0; i < n; i++)
               m.events.push_back({starts[i], ends[i], std::string(titles[i])});
             m.next_time = std::string(next_time);
