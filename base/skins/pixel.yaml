@@ -6,8 +6,9 @@
 # the baseline (ascender 800) on a whole pixel. Fonts are prefixed pixel_ so
 # several skins can be compiled in.
 #
-# Text fonts: GF_Latin_Kernel plus the Polish letters and „ for `language: pl`. Press Start 2P has
-# no U+2212 minus from the Kernel set, hence ignore_missing_glyphs.
+# Text fonts: GF_Latin_Core, which covers every on-screen language (en, pl,
+# de, nl, fr, es). Press Start 2P and VT323 lack part of that set (U+2212
+# minus among them), hence ignore_missing_glyphs.
 # Rough flash for all fonts below: ~25 KB.
 
 font:
@@ -15,15 +16,13 @@ font:
     file: "gfonts://Press Start 2P"
     size: 8
     bpp: 1
-    glyphsets: [GF_Latin_Kernel]
-    glyphs: ["ĄąĆćĘęŁłŃńÓóŚśŹźŻż„"]
+    glyphsets: [GF_Latin_Core]
     ignore_missing_glyphs: true
   - id: pixel_m              # card values: times, temperatures
     file: "gfonts://Press Start 2P"
     size: 16
     bpp: 1
-    glyphsets: [GF_Latin_Kernel]
-    glyphs: ["ĄąĆćĘęŁłŃńÓóŚśŹźŻż„"]
+    glyphsets: [GF_Latin_Core]
     ignore_missing_glyphs: true
   - id: pixel_l              # tomorrow's high ("6°C")
     file: "gfonts://Press Start 2P"
@@ -44,8 +43,7 @@ font:
     file: "gfonts://VT323"
     size: 25
     bpp: 1
-    glyphsets: [GF_Latin_Kernel]
-    glyphs: ["ĄąĆćĘęŁłŃńÓóŚśŹźŻż„"]
+    glyphsets: [GF_Latin_Core]
 
 esphome:
   on_boot:

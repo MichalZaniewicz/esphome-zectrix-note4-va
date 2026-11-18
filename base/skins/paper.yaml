@@ -1,7 +1,8 @@
 # Skin "paper": Literata + Atkinson Hyperlegible, thin frames, warm and
 # editorial. Fonts are prefixed paper_ so several skins can be compiled in.
 #
-# Text fonts: GF_Latin_Kernel plus the Polish letters and „ for `language: pl` (Kernel has ” ° · … –).
+# Text fonts: GF_Latin_Core, which covers every on-screen language (en, pl,
+# de, nl, fr, es) and has ” ° · … – „ « ».
 # Big numerals carry only the glyphs they show.
 
 font:
@@ -16,8 +17,7 @@ font:
     file: { type: gfonts, family: Literata, weight: 400, italic: true }
     size: 17
     bpp: 4
-    glyphsets: [GF_Latin_Kernel]
-    glyphs: ["ĄąĆćĘęŁłŃńÓóŚśŹźŻż„"]
+    glyphsets: [GF_Latin_Core]
   - id: paper_temp
     file: "gfonts://Literata@600"
     size: 30
@@ -32,8 +32,7 @@ font:
     file: { type: gfonts, family: Literata, weight: 400, italic: true }
     size: 13
     bpp: 4
-    glyphsets: [GF_Latin_Kernel]
-    glyphs: ["ĄąĆćĘęŁłŃńÓóŚśŹźŻż„"]
+    glyphsets: [GF_Latin_Core]
   - id: paper_card
     file: "gfonts://Literata@700"
     size: 28
@@ -43,20 +42,17 @@ font:
     file: "gfonts://Literata@600"
     size: 16
     bpp: 4
-    glyphsets: [GF_Latin_Kernel]
-    glyphs: ["ĄąĆćĘęŁłŃńÓóŚśŹźŻż„"]
+    glyphsets: [GF_Latin_Core]
   - id: paper_question
     file: { type: gfonts, family: Literata, weight: 400, italic: true }
     size: 19
     bpp: 4
-    glyphsets: [GF_Latin_Kernel]
-    glyphs: ["ĄąĆćĘęŁłŃńÓóŚśŹźŻż„"]
+    glyphsets: [GF_Latin_Core]
   - id: paper_answer
     file: "gfonts://Literata@400"
     size: 22
     bpp: 4
-    glyphsets: [GF_Latin_Kernel]
-    glyphs: ["ĄąĆćĘęŁłŃńÓóŚśŹźŻż„"]
+    glyphsets: [GF_Latin_Core]
   - id: paper_fc_hi
     file: "gfonts://Literata@700"
     size: 58
@@ -82,7 +78,7 @@ font:
     size: 50
     bpp: 4
     # the Listening / Thinking… word, every language in strings.cpp
-    glyphs: ["SłuchamCwil…LstengTk"]
+    glyphs: ["ListengThk…SłucamCwlI örMojJ'éUEPd"]
   - id: paper_bell_time
     file: "gfonts://Literata@700"
     size: 34
@@ -92,39 +88,34 @@ font:
     file: "gfonts://Literata@600"
     size: 21
     bpp: 4
-    glyphsets: [GF_Latin_Kernel]
-    glyphs: ["ĄąĆćĘęŁłŃńÓóŚśŹźŻż„"]
+    glyphsets: [GF_Latin_Core]
   # ---- Atkinson Hyperlegible ----
   - id: paper_l9b
     file: "gfonts://Atkinson Hyperlegible@700"
     size: 9
     bpp: 4
-    glyphsets: [GF_Latin_Kernel]
-    glyphs: ["ĄąĆćĘęŁłŃńÓóŚśŹźŻż„"]
+    glyphsets: [GF_Latin_Core]
   - id: paper_l10b
     file: "gfonts://Atkinson Hyperlegible@700"
     size: 10
     bpp: 4
-    glyphsets: [GF_Latin_Kernel]
-    glyphs: ["ĄąĆćĘęŁłŃńÓóŚśŹźŻż„"]
+    glyphsets: [GF_Latin_Core]
   - id: paper_l10i
     file: { type: gfonts, family: Atkinson Hyperlegible, weight: 400, italic: true }
     size: 10
     bpp: 4
     # the AI caption note, every language in strings.cpp
-    glyphs: [" AIacdehijnopstzę…"]
+    glyphs: [" AIphotcainszedjęK-Brbugvléó…"]
   - id: paper_l11
     file: "gfonts://Atkinson Hyperlegible@400"
     size: 11
     bpp: 4
-    glyphsets: [GF_Latin_Kernel]
-    glyphs: ["ĄąĆćĘęŁłŃńÓóŚśŹźŻż„"]
+    glyphsets: [GF_Latin_Core]
   - id: paper_l11i
     file: { type: gfonts, family: Atkinson Hyperlegible, weight: 400, italic: true }
     size: 11
     bpp: 4
-    glyphsets: [GF_Latin_Kernel]
-    glyphs: ["ĄąĆćĘęŁłŃńÓóŚśŹźŻż„"]
+    glyphsets: [GF_Latin_Core]
   - id: paper_l11b
     file: "gfonts://Atkinson Hyperlegible@700"
     size: 11
@@ -134,32 +125,28 @@ font:
     file: "gfonts://Atkinson Hyperlegible@400"
     size: 12
     bpp: 4
-    # timer total ("of 10:00" / "z 10:00")
-    glyphs: [" 0123456789:fosz"]
+    # timer total ("of 10:00", "z 10:00", "von 10:00", ...)
+    glyphs: [" 0123456789:ofzvnasurde"]
   - id: paper_l12b
     file: "gfonts://Atkinson Hyperlegible@700"
     size: 12
     bpp: 4
-    glyphsets: [GF_Latin_Kernel]
-    glyphs: ["ĄąĆćĘęŁłŃńÓóŚśŹźŻż„"]
+    glyphsets: [GF_Latin_Core]
   - id: paper_l13
     file: "gfonts://Atkinson Hyperlegible@400"
     size: 13
     bpp: 4
-    glyphsets: [GF_Latin_Kernel]
-    glyphs: ["ĄąĆćĘęŁłŃńÓóŚśŹźŻż„"]
+    glyphsets: [GF_Latin_Core]
   - id: paper_l13b
     file: "gfonts://Atkinson Hyperlegible@700"
     size: 13
     bpp: 4
-    glyphsets: [GF_Latin_Kernel]
-    glyphs: ["ĄąĆćĘęŁłŃńÓóŚśŹźŻż„"]
+    glyphsets: [GF_Latin_Core]
   - id: paper_l14b
     file: "gfonts://Atkinson Hyperlegible@700"
     size: 14
     bpp: 4
-    glyphsets: [GF_Latin_Kernel]
-    glyphs: ["ĄąĆćĘęŁłŃńÓóŚśŹźŻż„"]
+    glyphsets: [GF_Latin_Core]
 
 esphome:
   on_boot:

@@ -1,6 +1,7 @@
 #include "note4_ui.h"
 
 #include <algorithm>
+#include <initializer_list>
 
 #include "esphome/core/hal.h"
 #include "esphome/core/log.h"
@@ -118,12 +119,15 @@ std::vector<std::string> Note4UI::skin_ids() const {
 bool Note4UI::set_language(const std::string &code) {
   const Strings *t = strings_for(code);
   if (t == nullptr) {
-    ESP_LOGW(TAG, "Language '%s' is not available (en, pl); keeping '%s'", code.c_str(), this->model_.tr->code);
+    ESP_LOGW(TAG, "Language '%s' is not available (en, pl, de, nl, fr, es); keeping '%s'", code.c_str(), this->model_.tr->code);
     return false;
   }
   // The placeholder doorbell place follows the language until HA names one.
-  if (this->model_.bell_place.empty() || this->model_.bell_place == strings_en().default_place ||
-      this->model_.bell_place == strings_pl().default_place)
+  bool placeholder = this->model_.bell_place.empty();
+  for (const char *c : {"en", "pl", "de", "nl", "fr", "es"})
+    if (this->model_.bell_place == strings_for(c)->default_place)
+      placeholder = true;
+  if (placeholder)
     this->model_.bell_place = t->default_place;
   this->model_.tr = t;
   ESP_LOGI(TAG, "Language: %s", t->code);

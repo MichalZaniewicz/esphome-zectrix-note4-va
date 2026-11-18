@@ -2,7 +2,8 @@
 # scales and a dot grid; IBM Plex Sans for the answer text. Fonts are prefixed
 # instrument_.
 #
-# Text fonts: GF_Latin_Kernel plus the Polish letters and „ for `language: pl` (Kernel has ” ° · … –).
+# Text fonts: GF_Latin_Core, which covers every on-screen language (en, pl,
+# de, nl, fr, es) and has ” ° · … – „ « ».
 # Big numerals carry only the glyphs they show.
 
 font:
@@ -41,51 +42,43 @@ font:
     file: "gfonts://IBM Plex Mono@600"
     size: 13
     bpp: 4
-    glyphsets: [GF_Latin_Kernel]
-    glyphs: ["ĄąĆćĘęŁłŃńÓóŚśŹźŻż„"]
+    glyphsets: [GF_Latin_Core]
   - id: instrument_m12s
     file: "gfonts://IBM Plex Mono@600"
     size: 12
     bpp: 4
-    glyphsets: [GF_Latin_Kernel]
-    glyphs: ["ĄąĆćĘęŁłŃńÓóŚśŹźŻż„"]
+    glyphsets: [GF_Latin_Core]
   - id: instrument_m10s
     file: "gfonts://IBM Plex Mono@600"
     size: 10
     bpp: 4
-    glyphsets: [GF_Latin_Kernel]
-    glyphs: ["ĄąĆćĘęŁłŃńÓóŚśŹźŻż„"]
+    glyphsets: [GF_Latin_Core]
   - id: instrument_m10
     file: "gfonts://IBM Plex Mono@400"
     size: 10
     bpp: 4
-    glyphsets: [GF_Latin_Kernel]
-    glyphs: ["ĄąĆćĘęŁłŃńÓóŚśŹźŻż„"]
+    glyphsets: [GF_Latin_Core]
   - id: instrument_m9s
     file: "gfonts://IBM Plex Mono@600"
     size: 9
     bpp: 4
-    glyphsets: [GF_Latin_Kernel]
-    glyphs: ["ĄąĆćĘęŁłŃńÓóŚśŹźŻż„"]
+    glyphsets: [GF_Latin_Core]
   - id: instrument_m9
     file: "gfonts://IBM Plex Mono@500"
     size: 9
     bpp: 4
-    glyphsets: [GF_Latin_Kernel]
-    glyphs: ["ĄąĆćĘęŁłŃńÓóŚśŹźŻż„"]
+    glyphsets: [GF_Latin_Core]
   - id: instrument_m8s
     file: "gfonts://IBM Plex Mono@600"
     size: 8
     bpp: 4
-    glyphsets: [GF_Latin_Kernel]
-    glyphs: ["ĄąĆćĘęŁłŃńÓóŚśŹźŻż„"]
+    glyphsets: [GF_Latin_Core]
   # ---- IBM Plex Sans ----
   - id: instrument_answer
     file: "gfonts://IBM Plex Sans@400"
     size: 19
     bpp: 4
-    glyphsets: [GF_Latin_Kernel]
-    glyphs: ["ĄąĆćĘęŁłŃńÓóŚśŹźŻż„"]
+    glyphsets: [GF_Latin_Core]
 
 esphome:
   on_boot:

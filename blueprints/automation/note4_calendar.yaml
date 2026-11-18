@@ -40,6 +40,14 @@ blueprint:
               value: en
             - label: Polski
               value: pl
+            - label: Deutsch
+              value: de
+            - label: Nederlands
+              value: nl
+            - label: Français
+              value: fr
+            - label: Español
+              value: es
 
 mode: single
 max_exceeded: silent
@@ -58,6 +66,10 @@ variables:
   texts:
     en: {hours: "in {} h", minutes: "in {} min", soon: "soon"}
     pl: {hours: "za {} h", minutes: "za {} min", soon: "zaraz"}
+    de: {hours: "in {} Std.", minutes: "in {} Min.", soon: "gleich"}
+    nl: {hours: "over {} u", minutes: "over {} min", soon: "zo meteen"}
+    fr: {hours: "dans {} h", minutes: "dans {} min", soon: "bientôt"}
+    es: {hours: "en {} h", minutes: "en {} min", soon: "enseguida"}
 
 actions:
   - action: calendar.get_events

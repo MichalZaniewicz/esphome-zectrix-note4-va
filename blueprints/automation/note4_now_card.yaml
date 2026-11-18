@@ -48,6 +48,14 @@ blueprint:
                   value: en
                 - label: Polski
                   value: pl
+                - label: Deutsch
+                  value: de
+                - label: Nederlands
+                  value: nl
+                - label: Français
+                  value: fr
+                - label: Español
+                  value: es
     alarms:
       name: Alarms
       icon: mdi:alarm-light
@@ -229,6 +237,58 @@ variables:
       until: "do {}"
       vacuum: "Odkurzacz utknął"
       brief_default: "Dziś nic pilnego."
+    de:
+      language_name: German
+      smoke: "Rauch!"
+      gas: "Gas!"
+      carbon_monoxide: "Kohlenmonoxid!"
+      moisture: "Wasserleck!"
+      safety: "Alarm!"
+      window_open: "Fenster offen"
+      door_open: "Tür offen"
+      open_since: "offen seit {}"
+      until: "bis {}"
+      vacuum: "Sauger steckt fest"
+      brief_default: "Heute nichts Dringendes."
+    nl:
+      language_name: Dutch
+      smoke: "Rook!"
+      gas: "Gas!"
+      carbon_monoxide: "Koolmonoxide!"
+      moisture: "Waterlek!"
+      safety: "Alarm!"
+      window_open: "Raam open"
+      door_open: "Deur open"
+      open_since: "open sinds {}"
+      until: "tot {}"
+      vacuum: "Stofzuiger vast"
+      brief_default: "Vandaag niets dringends."
+    fr:
+      language_name: French
+      smoke: "Fumée !"
+      gas: "Gaz !"
+      carbon_monoxide: "Monoxyde de carbone !"
+      moisture: "Fuite d'eau !"
+      safety: "Alarme !"
+      window_open: "Fenêtre ouverte"
+      door_open: "Porte ouverte"
+      open_since: "ouverte depuis {}"
+      until: "jusqu'à {}"
+      vacuum: "Aspirateur bloqué"
+      brief_default: "Rien d'urgent aujourd'hui."
+    es:
+      language_name: Spanish
+      smoke: "¡Humo!"
+      gas: "¡Gas!"
+      carbon_monoxide: "¡Monóxido de carbono!"
+      moisture: "¡Fuga de agua!"
+      safety: "¡Alarma!"
+      window_open: "Ventana abierta"
+      door_open: "Puerta abierta"
+      open_since: "abierta desde las {}"
+      until: "hasta las {}"
+      vacuum: "Aspiradora atascada"
+      brief_default: "Nada urgente hoy."
 
 actions:
   # Morning: let AI write the day brief and keep it in the helper.

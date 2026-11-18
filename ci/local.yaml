@@ -13,7 +13,7 @@ substitutions:
   name: note4-va-ci
   friendly_name: "Note 4 Voice CI"
   skin: swiss
-  language: en
+  language: en        # en, pl, de, nl, fr or es
   # The sounds from the working tree too, not from GitHub: a build of a branch
   # must not depend on what `main` happens to hold. Paths are relative to this
   # file.

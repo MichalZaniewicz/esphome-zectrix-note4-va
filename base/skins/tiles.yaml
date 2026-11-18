@@ -1,7 +1,8 @@
 # Skin "tiles": rounded tiles in a few greys, big friendly Manrope numbers,
 # pill buttons. Fonts are prefixed tiles_.
 #
-# Text fonts: GF_Latin_Kernel plus the Polish letters and „ for `language: pl` (Kernel has ” ° · … –).
+# Text fonts: GF_Latin_Core, which covers every on-screen language (en, pl,
+# de, nl, fr, es) and has ” ° · … – „ « ».
 # Big numerals carry only the glyphs they show.
 
 font:
@@ -25,7 +26,7 @@ font:
     size: 32
     bpp: 4
     # digits plus the Listening / Thinking… word, every language in strings.cpp
-    glyphs: ["0123456789:SłuchamCwil…LstengTk–"]
+    glyphs: ["0123456789:ListengThk…SłucamCwlI örMojJ'éUEPd–"]
   - id: tiles_timer
     file: "gfonts://Manrope@800"
     size: 48
@@ -45,62 +46,52 @@ font:
     file: "gfonts://Manrope@600"
     size: 18
     bpp: 4
-    glyphsets: [GF_Latin_Kernel]
-    glyphs: ["ĄąĆćĘęŁłŃńÓóŚśŹźŻż„"]
+    glyphsets: [GF_Latin_Core]
   - id: tiles_m15
     file: "gfonts://Manrope@800"
     size: 15
     bpp: 4
-    glyphsets: [GF_Latin_Kernel]
-    glyphs: ["ĄąĆćĘęŁłŃńÓóŚśŹźŻż„"]
+    glyphsets: [GF_Latin_Core]
   - id: tiles_m14
     file: "gfonts://Manrope@800"
     size: 14
     bpp: 4
-    glyphsets: [GF_Latin_Kernel]
-    glyphs: ["ĄąĆćĘęŁłŃńÓóŚśŹźŻż„"]
+    glyphsets: [GF_Latin_Core]
   - id: tiles_m14m
     file: "gfonts://Manrope@700"
     size: 14
     bpp: 4
-    glyphsets: [GF_Latin_Kernel]
-    glyphs: ["ĄąĆćĘęŁłŃńÓóŚśŹźŻż„"]
+    glyphsets: [GF_Latin_Core]
   - id: tiles_m13
     file: "gfonts://Manrope@800"
     size: 13
     bpp: 4
-    glyphsets: [GF_Latin_Kernel]
-    glyphs: ["ĄąĆćĘęŁłŃńÓóŚśŹźŻż„"]
+    glyphsets: [GF_Latin_Core]
   - id: tiles_m12
     file: "gfonts://Manrope@800"
     size: 12
     bpp: 4
-    glyphsets: [GF_Latin_Kernel]
-    glyphs: ["ĄąĆćĘęŁłŃńÓóŚśŹźŻż„"]
+    glyphsets: [GF_Latin_Core]
   - id: tiles_m12m
     file: "gfonts://Manrope@700"
     size: 12
     bpp: 4
-    glyphsets: [GF_Latin_Kernel]
-    glyphs: ["ĄąĆćĘęŁłŃńÓóŚśŹźŻż„"]
+    glyphsets: [GF_Latin_Core]
   - id: tiles_m11
     file: "gfonts://Manrope@800"
     size: 11
     bpp: 4
-    glyphsets: [GF_Latin_Kernel]
-    glyphs: ["ĄąĆćĘęŁłŃńÓóŚśŹźŻż„"]
+    glyphsets: [GF_Latin_Core]
   - id: tiles_m11m
     file: "gfonts://Manrope@700"
     size: 11
     bpp: 4
-    glyphsets: [GF_Latin_Kernel]
-    glyphs: ["ĄąĆćĘęŁłŃńÓóŚśŹźŻż„"]
+    glyphsets: [GF_Latin_Core]
   - id: tiles_m10
     file: "gfonts://Manrope@800"
     size: 10
     bpp: 4
-    glyphsets: [GF_Latin_Kernel]
-    glyphs: ["ĄąĆćĘęŁłŃńÓóŚśŹźŻż„"]
+    glyphsets: [GF_Latin_Core]
 
 esphome:
   on_boot:

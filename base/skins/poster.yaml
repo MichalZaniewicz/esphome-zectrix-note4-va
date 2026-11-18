@@ -3,7 +3,8 @@
 # Archivo Black + Archivo. Fonts are prefixed poster_ so several skins can be
 # compiled in.
 #
-# Text fonts: GF_Latin_Kernel plus the Polish letters and „ for `language: pl` (Kernel has ” ° · … – —).
+# Text fonts: GF_Latin_Core, which covers every on-screen language (en, pl,
+# de, nl, fr, es) and has ” ° · … – — „ « ».
 # Big numerals carry only the glyphs they show.
 # Rough flash for all fonts below: ~105 KB.
 
@@ -34,39 +35,33 @@ font:
     file: "gfonts://Archivo Black"
     size: 22
     bpp: 4
-    glyphsets: [GF_Latin_Kernel]
-    glyphs: ["ĄąĆćĘęŁłŃńÓóŚśŹźŻż„"]
+    glyphsets: [GF_Latin_Core]
   - id: poster_val            # values inside the shapes
     file: "gfonts://Archivo Black"
     size: 14
     bpp: 4
-    glyphsets: [GF_Latin_Kernel]
-    glyphs: ["ĄąĆćĘęŁłŃńÓóŚśŹźŻż„"]
+    glyphsets: [GF_Latin_Core]
   # ---- Archivo ----
   - id: poster_body           # answer text
     file: "gfonts://Archivo@400"
     size: 19
     bpp: 4
-    glyphsets: [GF_Latin_Kernel]
-    glyphs: ["ĄąĆćĘęŁłŃńÓóŚśŹźŻż„"]
+    glyphsets: [GF_Latin_Core]
   - id: poster_bold
     file: "gfonts://Archivo@700"
     size: 13
     bpp: 4
-    glyphsets: [GF_Latin_Kernel]
-    glyphs: ["ĄąĆćĘęŁłŃńÓóŚśŹźŻż„"]
+    glyphsets: [GF_Latin_Core]
   - id: poster_small
     file: "gfonts://Archivo@600"
     size: 12
     bpp: 4
-    glyphsets: [GF_Latin_Kernel]
-    glyphs: ["ĄąĆćĘęŁłŃńÓóŚśŹźŻż„"]
+    glyphsets: [GF_Latin_Core]
   - id: poster_label          # spaced capitals
     file: "gfonts://Archivo@700"
     size: 10
     bpp: 4
-    glyphsets: [GF_Latin_Kernel]
-    glyphs: ["ĄąĆćĘęŁłŃńÓóŚśŹźŻż„"]
+    glyphsets: [GF_Latin_Core]
 
 esphome:
   on_boot:

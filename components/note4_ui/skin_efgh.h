@@ -134,7 +134,7 @@ inline float timer_frac(const Model &m) {
   return clampf((float) m.timer_remaining / (float) m.timer_total, 0, 1);
 }
 
-// A weekday name in either language -> T's two-letter caps ("Tuesday" -> "TU").
+// A weekday name in any language -> T's two-letter caps ("Tuesday" -> "TU").
 inline std::string short_day(const Strings &T, const std::string &wd) {
   int i = weekday_index(wd);
   if (i >= 0)

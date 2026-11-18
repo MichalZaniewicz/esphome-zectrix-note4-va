@@ -3,7 +3,8 @@
 # Barlow Condensed + Barlow. Fonts are prefixed dial_ so several skins can be
 # compiled in.
 #
-# Text fonts: GF_Latin_Kernel plus the Polish letters and „ for `language: pl` (Kernel has ” ° · … – —).
+# Text fonts: GF_Latin_Core, which covers every on-screen language (en, pl,
+# de, nl, fr, es) and has ” ° · … – — „ « ».
 # Only the big temperature is restricted to the glyphs it shows.
 # Rough flash for all fonts below: ~85 KB.
 
@@ -13,14 +14,12 @@ font:
     file: "gfonts://Barlow Condensed@700"
     size: 16
     bpp: 4
-    glyphsets: [GF_Latin_Kernel]
-    glyphs: ["ĄąĆćĘęŁłŃńÓóŚśŹźŻż„"]
+    glyphsets: [GF_Latin_Core]
   - id: dial_big            # next event time, timer box, elapsed time, doorbell time
     file: "gfonts://Barlow Condensed@700"
     size: 26
     bpp: 4
-    glyphsets: [GF_Latin_Kernel]
-    glyphs: ["ĄąĆćĘęŁłŃńÓóŚśŹźŻż„"]
+    glyphsets: [GF_Latin_Core]
   - id: dial_huge           # tomorrow's high in the middle of the 24 h dial
     file: "gfonts://Barlow Condensed@700"
     size: 32
@@ -30,39 +29,33 @@ font:
     file: "gfonts://Barlow Condensed@700"
     size: 20
     bpp: 4
-    glyphsets: [GF_Latin_Kernel]
-    glyphs: ["ĄąĆćĘęŁłŃńÓóŚśŹźŻż„"]
+    glyphsets: [GF_Latin_Core]
   - id: dial_head           # question, weekday
     file: "gfonts://Barlow Condensed@600"
     size: 28
     bpp: 4
-    glyphsets: [GF_Latin_Kernel]
-    glyphs: ["ĄąĆćĘęŁłŃńÓóŚśŹźŻż„"]
+    glyphsets: [GF_Latin_Core]
   - id: dial_label          # spaced capitals
     file: "gfonts://Barlow Condensed@600"
     size: 11
     bpp: 4
-    glyphsets: [GF_Latin_Kernel]
-    glyphs: ["ĄąĆćĘęŁłŃńÓóŚśŹźŻż„"]
+    glyphsets: [GF_Latin_Core]
   # ---- Barlow ----
   - id: dial_body           # answer text
     file: "gfonts://Barlow@500"
     size: 19
     bpp: 4
-    glyphsets: [GF_Latin_Kernel]
-    glyphs: ["ĄąĆćĘęŁłŃńÓóŚśŹźŻż„"]
+    glyphsets: [GF_Latin_Core]
   - id: dial_text
     file: "gfonts://Barlow@600"
     size: 14
     bpp: 4
-    glyphsets: [GF_Latin_Kernel]
-    glyphs: ["ĄąĆćĘęŁłŃńÓóŚśŹźŻż„"]
+    glyphsets: [GF_Latin_Core]
   - id: dial_small
     file: "gfonts://Barlow@600"
     size: 12
     bpp: 4
-    glyphsets: [GF_Latin_Kernel]
-    glyphs: ["ĄąĆćĘęŁłŃńÓóŚśŹźŻż„"]
+    glyphsets: [GF_Latin_Core]
 
 esphome:
   on_boot:

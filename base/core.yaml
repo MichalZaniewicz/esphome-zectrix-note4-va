@@ -59,10 +59,10 @@ substitutions:
   # so in the log.
   skin: swiss
   room: "Kitchen"
-  # On-screen language: `en` (default) or `pl`. Only what the panel draws;
-  # Home Assistant entities stay English, and what the assistant says is the
-  # Assist pipeline's language, set in Home Assistant. The phrases live in
-  # components/note4_ui/strings.cpp.
+  # On-screen language: en (default), pl, de, nl, fr or es. Only what the
+  # panel draws; Home Assistant entities stay English, and what the assistant
+  # says is the Assist pipeline's language, set in Home Assistant. The phrases
+  # live in components/note4_ui/strings.cpp.
   language: en
   # The weather entity for the idle screen: its state is the condition, its
   # `temperature` attribute the temperature now.

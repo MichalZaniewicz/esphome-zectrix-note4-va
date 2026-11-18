@@ -1,6 +1,6 @@
 // On-screen language packs: every phrase the skins and the core draw, one
-// table per language. English is the default; `language: pl` in the thin
-// config switches to Polish (Note4UI::set_language, called from core.yaml).
+// table per language: en (default), pl, de, nl, fr, es. `language: xx` in the
+// thin config picks one (Note4UI::set_language, called from core.yaml).
 //
 // Skins read the active table through the model: `const Strings &T = *m.tr;`
 // then `T.next`, `T.weekday[i]`, `subst(T.of_total, mmss(...))`.
@@ -8,13 +8,13 @@
 // Phrases are stored in sentence case ("Next", "cancel") and each skin
 // applies its own case (upper(), cap_first()), exactly as it did with the
 // literals before. The case helpers below work on ASCII, Latin-1 and Latin
-// Extended-A, so Polish letters upper-case correctly too.
+// Extended-A, so accented letters upper-case correctly too.
 //
 // ADDING A LANGUAGE: copy make_en() in strings.cpp, translate every field,
 // add it to strings_for(). Every glyph must exist in the skins' text fonts
-// (GF_Latin_Kernel plus the glyphs listed in base/skins/*.yaml); the few
-// restricted fonts (the big "Listening" / "Thinking…" words, paper's l10i and
-// l12) list their glyphs explicitly and need the new letters added.
+// (GF_Latin_Core in base/skins/*.yaml); the few restricted fonts (the big
+// "Listening" / "Thinking…" words, paper's l10i and l12) list their glyphs
+// explicitly and need the new letters added.
 #pragma once
 
 #include <string>
@@ -33,6 +33,8 @@ struct Strings {
   const char *weekday_2[7] = {};     // two-letter caps: "TU"
   const char *month_date[12] = {};   // after a day number: "November" (pl: genitive)
   const char *month_short[12] = {};  // lower case, for parsing dates from HA: "nov"
+  const char *date_fmt = "{} {}";   // day, month: "17 November", "17. November", "17 de noviembre"
+  const char *day_one = "";         // the 1st when it is not just "1": "1er" (fr)
 
   // ---- weather now, by HA condition (order: see CONDITION_KEYS in strings.cpp) ----
   const char *condition[15] = {};
@@ -165,6 +167,10 @@ struct Strings {
 
 const Strings &strings_en();
 const Strings &strings_pl();
+const Strings &strings_de();
+const Strings &strings_nl();
+const Strings &strings_fr();
+const Strings &strings_es();
 // nullptr for an unknown code.
 const Strings *strings_for(const std::string &code);
 
@@ -185,9 +191,9 @@ bool contains_any(const std::string &s, const char *keywords);
 const char *condition_text(const Strings &T, const std::string &ha_condition);
 // Model::now_icon -> 0..8 (window, wind, plant, vacuum, school, flood, smoke, brief, anything else).
 int now_icon_index(const std::string &icon);
-// "17 November". month 1..12.
+// T.date_fmt filled in: "17 November", "17. November". month 1..12.
 std::string format_date(const Strings &T, int day, int month);
-// A weekday name in either language ("Wednesday", "wed", "Wed.") ->
+// A weekday name in any of the languages ("Wednesday", "wed", "Wed.") ->
 // 0 (Sunday) .. 6, or -1.
 int weekday_index(const std::string &name);
 // "17 November", "November 17", "17 Nov" -> day and month

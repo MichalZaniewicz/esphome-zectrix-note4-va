@@ -3,7 +3,8 @@
 # Instrument Serif + Instrument Sans. Fonts are prefixed quiet_ so several
 # skins can be compiled in.
 #
-# Text fonts: GF_Latin_Kernel plus the Polish letters and „ for `language: pl` (Kernel has ” ° · … – —).
+# Text fonts: GF_Latin_Core, which covers every on-screen language (en, pl,
+# de, nl, fr, es) and has ” ° · … – — „ « ».
 # The huge numerals carry only the glyphs they show.
 # Rough flash for all fonts below: ~82 KB.
 
@@ -17,26 +18,22 @@ font:
     file: "gfonts://Instrument Serif"
     size: 28
     bpp: 4
-    glyphsets: [GF_Latin_Kernel]
-    glyphs: ["ĄąĆćĘęŁłŃńÓóŚśŹźŻż„"]
+    glyphsets: [GF_Latin_Core]
   - id: quiet_italic          # question, timer name, captions
     file: { type: gfonts, family: Instrument Serif, weight: 400, italic: true }
     size: 26
     bpp: 4
-    glyphsets: [GF_Latin_Kernel]
-    glyphs: ["ĄąĆćĘęŁłŃńÓóŚśŹźŻż„"]
+    glyphsets: [GF_Latin_Core]
   - id: quiet_small           # grey whispers
     file: "gfonts://Instrument Sans@500"
     size: 13
     bpp: 4
-    glyphsets: [GF_Latin_Kernel]
-    glyphs: ["ĄąĆćĘęŁłŃńÓóŚśŹźŻż„"]
+    glyphsets: [GF_Latin_Core]
   - id: quiet_tiny
     file: "gfonts://Instrument Sans@500"
     size: 11
     bpp: 4
-    glyphsets: [GF_Latin_Kernel]
-    glyphs: ["ĄąĆćĘęŁłŃńÓóŚśŹźŻż„"]
+    glyphsets: [GF_Latin_Core]
 
 esphome:
   on_boot:

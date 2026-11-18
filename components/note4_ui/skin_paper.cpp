@@ -178,7 +178,8 @@ void PaperSkin::idle_(Display &d, const Model &m) {
   } else {
     // No timer: tomorrow at a glance.
     stroke_round(d, xs[2], cy, cw, ch, 6, K);
-    text(d, f_.l9b, xs[2] + 10, cy + 16, K, upper(T.tomorrow) + " · " + upper(weekday_short(T, m.fc_day)), Align::LEFT, paper(), 1.3f);
+    text(d, f_.l9b, xs[2] + 10, cy + 16, K, fit(f_.l9b, upper(T.tomorrow) + " · " + upper(weekday_short(T, m.fc_day)), cw - 12, 1.3f),
+         Align::LEFT, paper(), 1.3f);
     text(d, f_.card, xs[2] + 10, cy + 46, K, deg(m.fc_hi) + " / " + deg(m.fc_lo));
     text(d, f_.l13, xs[2] + 10, cy + 63, K, fit(f_.l13, m.fc_summary, cw - 20));
     text(d, f_.l11i, xs[2] + 10, cy + 77, K, fit(f_.l11i, m.fc_detail, cw - 20));
@@ -194,7 +195,7 @@ void PaperSkin::now_card_(Display &d, const Model &m, int x, int y, int w, int h
   const int tx = x + 10, tw = w - 20;
   if (m.now_level == NowLevel::BRIEF) {
     stroke_round(d, x, y, w, h, 6, K);
-    text(d, f_.l9b, tx, y + 16, K, fit(f_.l9b, upper(T.now) + " · " + upper(T.day), tw, 1.3f), Align::LEFT, paper(), 1.3f);
+    text(d, f_.l9b, tx, y + 16, K, fit(f_.l9b, upper(T.now) + " · " + upper(T.day), w - 14, 1.3f), Align::LEFT, paper(), 1.3f);
     auto lines = wrap_lines(f_.brief, brief_text(m), w - 18, 4);
     for (size_t i = 0; i < lines.size(); i++)
       text(d, f_.brief, tx, y + 33 + (int) i * 14, K, lines[i]);
@@ -207,7 +208,7 @@ void PaperSkin::now_card_(Display &d, const Model &m, int x, int y, int w, int h
   else
     stroke_round(d, x, y, w, h, 6, K);
   std::string label = upper(alarm ? T.alarm : T.now) + " · " + upper(now_kind(T, m.now_icon));
-  text(d, f_.l9b, tx, y + 16, fg, fit(f_.l9b, label, tw, 1.3f), Align::LEFT, bg, 1.3f);
+  text(d, f_.l9b, tx, y + 16, fg, fit(f_.l9b, label, w - 14, 1.3f), Align::LEFT, bg, 1.3f);
   auto title = wrap_lines(f_.title, m.now_title, tw, 2);
   if (title.size() <= 1) {
     if (!title.empty())

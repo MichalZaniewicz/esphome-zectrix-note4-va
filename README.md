@@ -53,22 +53,38 @@ picked.
 
 ## Screen language
 
-Everything the panel draws is English by default. Set `language: pl` in the
-thin config's `substitutions:` for Polish:
+Everything the panel draws is English by default. Set `language:` in the thin
+config's `substitutions:` for another one:
 
 ```yaml
 substitutions:
-  language: pl    # en (default) or pl
+  language: de    # en (default), pl, de, nl, fr, es
 ```
+
+| Code | Language | |
+|---|---|---|
+| `en` | English | default |
+| `pl` | Polish | native |
+| `de` | German | review by native speakers welcome |
+| `nl` | Dutch | review by native speakers welcome |
+| `fr` | French | review by native speakers welcome |
+| `es` | Spanish | review by native speakers welcome |
+
+The German, Dutch, French and Spanish tables were written without a native
+speaker. If a word reads wrong or a better short form exists, a pull request
+against [components/note4_ui/strings.cpp](components/note4_ui/strings.cpp) is
+the fix. The blueprints below take the same language codes for the texts they
+send.
 
 This is only the on-screen text (labels, weekday and month names, weather
 words, hints). Home Assistant entity names stay English, and what the assistant
 hears and says is the language of the Assist pipeline you pick in Home
 Assistant. The text you push with the actions below (event titles, the "Now"
 card, the forecast summary) is shown as sent, so send it in the same language.
-All phrases live in one table per language in
-[components/note4_ui/strings.cpp](components/note4_ui/strings.cpp); a new
-language is one more table there.
+A new language is one more table in
+[components/note4_ui/strings.cpp](components/note4_ui/strings.cpp). Latin
+scripts only for now: some skin fonts have no Cyrillic or Greek, and CJK fonts
+do not fit in flash.
 
 The **16 greys** switch lets screens without live regions (forecast,
 doorbell) use a 16-grey refresh; everything with a clock or a countdown is
@@ -111,7 +127,7 @@ docs/HARDWARE.md         # pin map, power latch, battery, refresh limits
 
 ## Home Assistant blueprints
 
-The device only draws; these blueprints feed it. Import them with the buttons, then create one automation from each that you want. All of them call the actions below, write their texts in English or Polish (an input), and can run as often as they like: the device ignores a resend that changes nothing, so the e-paper only refreshes when the content does.
+The device only draws; these blueprints feed it. Import them with the buttons, then create one automation from each that you want. All of them call the actions below, write their texts in any of the six screen languages (an input), and can run as often as they like: the device ignores a resend that changes nothing, so the e-paper only refreshes when the content does.
 
 | Blueprint | What it sends | Import |
 |---|---|---|

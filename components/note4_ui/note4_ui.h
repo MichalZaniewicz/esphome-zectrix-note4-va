@@ -209,8 +209,9 @@ class Note4UI : public Component {
   // (partial); otherwise the current screen is redrawn with a full refresh.
   void changed(bool live);
   void set_gray_enabled(bool on) { gray_enabled_ = on; }
-  // On-screen language: "en" (default) or "pl". False (and English kept) for
-  // an unknown code. Call before the model is filled (core.yaml on_boot).
+  // On-screen language: "en" (default), "pl", "de", "nl", "fr", "es". False
+  // (and the current one kept) for an unknown code. Call before the model is
+  // filled (core.yaml on_boot).
   bool set_language(const std::string &code);
   const Strings &strings() const { return *model_.tr; }
 

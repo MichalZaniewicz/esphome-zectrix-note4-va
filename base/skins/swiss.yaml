@@ -1,7 +1,8 @@
 # Skin "swiss": strict grid, huge Inter Tight numerals, thick rules and
 # one black block per screen. Fonts are prefixed swiss_.
 #
-# Text fonts: GF_Latin_Kernel plus the Polish letters and „ for `language: pl` (Kernel has ” ° · … –).
+# Text fonts: GF_Latin_Core, which covers every on-screen language (en, pl,
+# de, nl, fr, es) and has ” ° · … – „ « ».
 # Big numerals carry only the glyphs they show.
 
 font:
@@ -20,8 +21,7 @@ font:
     file: "gfonts://Inter Tight@800"
     size: 28
     bpp: 4
-    glyphsets: [GF_Latin_Kernel]
-    glyphs: ["ĄąĆćĘęŁłŃńÓóŚśŹźŻż„"]
+    glyphsets: [GF_Latin_Core]
   - id: swiss_card
     file: "gfonts://Inter Tight@800"
     size: 34
@@ -31,14 +31,12 @@ font:
     file: "gfonts://Inter Tight@700"
     size: 21
     bpp: 4
-    glyphsets: [GF_Latin_Kernel]
-    glyphs: ["ĄąĆćĘęŁłŃńÓóŚśŹźŻż„"]
+    glyphsets: [GF_Latin_Core]
   - id: swiss_fact
     file: "gfonts://Inter Tight@800"
     size: 30
     bpp: 4
-    glyphsets: [GF_Latin_Kernel]
-    glyphs: ["ĄąĆćĘęŁłŃńÓóŚśŹźŻż„"]
+    glyphsets: [GF_Latin_Core]
   - id: swiss_fc_hi
     file: "gfonts://Inter Tight@800"
     size: 104
@@ -53,8 +51,7 @@ font:
     file: "gfonts://Inter Tight@800"
     size: 26
     bpp: 4
-    glyphsets: [GF_Latin_Kernel]
-    glyphs: ["ĄąĆćĘęŁłŃńÓóŚśŹźŻż„"]
+    glyphsets: [GF_Latin_Core]
   - id: swiss_end
     file: "gfonts://Inter Tight@800"
     size: 24
@@ -65,80 +62,68 @@ font:
     size: 56
     bpp: 4
     # the Listening / Thinking… word, every language in strings.cpp
-    glyphs: ["SłuchamCwil…LstengTk"]
+    glyphs: ["ListengThk…SłucamCwlI örMojJ'éUEPd"]
   # ---- Inter ----
   - id: swiss_i9b
     file: "gfonts://Inter@700"
     size: 9
     bpp: 4
-    glyphsets: [GF_Latin_Kernel]
-    glyphs: ["ĄąĆćĘęŁłŃńÓóŚśŹźŻż„"]
+    glyphsets: [GF_Latin_Core]
   - id: swiss_i10b
     file: "gfonts://Inter@700"
     size: 10
     bpp: 4
-    glyphsets: [GF_Latin_Kernel]
-    glyphs: ["ĄąĆćĘęŁłŃńÓóŚśŹźŻż„"]
+    glyphsets: [GF_Latin_Core]
   - id: swiss_i10s
     file: "gfonts://Inter@600"
     size: 10
     bpp: 4
-    glyphsets: [GF_Latin_Kernel]
-    glyphs: ["ĄąĆćĘęŁłŃńÓóŚśŹźŻż„"]
+    glyphsets: [GF_Latin_Core]
   - id: swiss_i11b
     file: "gfonts://Inter@700"
     size: 11
     bpp: 4
-    glyphsets: [GF_Latin_Kernel]
-    glyphs: ["ĄąĆćĘęŁłŃńÓóŚśŹźŻż„"]
+    glyphsets: [GF_Latin_Core]
   - id: swiss_i11s
     file: "gfonts://Inter@600"
     size: 11
     bpp: 4
-    glyphsets: [GF_Latin_Kernel]
-    glyphs: ["ĄąĆćĘęŁłŃńÓóŚśŹźŻż„"]
+    glyphsets: [GF_Latin_Core]
   - id: swiss_i12
     file: "gfonts://Inter@400"
     size: 12
     bpp: 4
-    glyphsets: [GF_Latin_Kernel]
-    glyphs: ["ĄąĆćĘęŁłŃńÓóŚśŹźŻż„"]
+    glyphsets: [GF_Latin_Core]
   - id: swiss_i12s
     file: "gfonts://Inter@600"
     size: 12
     bpp: 4
-    glyphsets: [GF_Latin_Kernel]
-    glyphs: ["ĄąĆćĘęŁłŃńÓóŚśŹźŻż„"]
+    glyphsets: [GF_Latin_Core]
   - id: swiss_i12b
     file: "gfonts://Inter@700"
     size: 12
     bpp: 4
-    glyphsets: [GF_Latin_Kernel]
-    glyphs: ["ĄąĆćĘęŁłŃńÓóŚśŹźŻż„"]
+    glyphsets: [GF_Latin_Core]
   - id: swiss_i13s
     file: "gfonts://Inter@600"
     size: 13
     bpp: 4
-    glyphsets: [GF_Latin_Kernel]
-    glyphs: ["ĄąĆćĘęŁłŃńÓóŚśŹźŻż„"]
+    glyphsets: [GF_Latin_Core]
   - id: swiss_i14b
     file: "gfonts://Inter@700"
     size: 14
     bpp: 4
-    glyphsets: [GF_Latin_Kernel]
-    glyphs: ["ĄąĆćĘęŁłŃńÓóŚśŹźŻż„"]
+    glyphsets: [GF_Latin_Core]
   - id: swiss_i15s
     file: "gfonts://Inter@600"
     size: 15
     bpp: 4
-    glyphsets: [GF_Latin_Kernel]
-    glyphs: ["ĄąĆćĘęŁłŃńÓóŚśŹźŻż„"]
+    glyphsets: [GF_Latin_Core]
   - id: swiss_i19
     file: "gfonts://Inter@400"
     size: 19
     bpp: 4
-    glyphsets: [GF_Latin_Kernel]
-    glyphs: ["ĄąĆćĘęŁłŃńÓóŚśŹźŻż„"]
+    glyphsets: [GF_Latin_Core]
 
 esphome:
   on_boot:

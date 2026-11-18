@@ -23,7 +23,7 @@ std::string upper(const std::string &s);
 std::string lower(const std::string &s);
 std::string cap_first(const std::string &s);    // "wednesday" -> "Wednesday"
 std::string lower_first(const std::string &s);  // "Rain from 15:00" -> "rain from 15:00"
-// A weekday name in either language -> T's short form ("Tuesday" -> "tue").
+// A weekday name in any language -> T's short form ("Tuesday" -> "tue").
 std::string weekday_short(const Strings &T, const std::string &weekday);
 std::string ddmm(const std::string &date);               // "17 November" -> "17.11"
 std::string first_clause(const std::string &s);          // "Fog, then sun" -> "Fog"

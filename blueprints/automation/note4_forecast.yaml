@@ -30,7 +30,7 @@ blueprint:
           domain: weather
     language:
       name: Language
-      description: Language of the texts sent to the screen (day name, date, rain summary).
+      description: Language of the texts sent to the screen (day name, date, rain summary). Set it to the same language as the device.
       default: en
       selector:
         select:
@@ -39,6 +39,14 @@ blueprint:
               value: en
             - label: Polski
               value: pl
+            - label: Deutsch
+              value: de
+            - label: Nederlands
+              value: nl
+            - label: Français
+              value: fr
+            - label: Español
+              value: es
 
 mode: single
 max_exceeded: silent
@@ -57,6 +65,8 @@ variables:
     en:
       days: [Monday, Tuesday, Wednesday, Thursday, Friday, Saturday, Sunday]
       months: [January, February, March, April, May, June, July, August, September, October, November, December]
+      date: "{d} {m}"
+      dec: "."
       rain_from: "Rain from {}"
       no_rain: "No rain"
       total: "about {} mm in total"
@@ -64,10 +74,48 @@ variables:
     pl:
       days: [Poniedziałek, Wtorek, Środa, Czwartek, Piątek, Sobota, Niedziela]
       months: [stycznia, lutego, marca, kwietnia, maja, czerwca, lipca, sierpnia, września, października, listopada, grudnia]
+      date: "{d} {m}"
+      dec: ","
       rain_from: "Deszcz od {}"
       no_rain: "Bez deszczu"
       total: "razem ok. {} mm"
       dry: "cały dzień sucho"
+    de:
+      days: [Montag, Dienstag, Mittwoch, Donnerstag, Freitag, Samstag, Sonntag]
+      months: [Januar, Februar, März, April, Mai, Juni, Juli, August, September, Oktober, November, Dezember]
+      date: "{d}. {m}"
+      dec: ","
+      rain_from: "Regen ab {}"
+      no_rain: "Kein Regen"
+      total: "insgesamt ca. {} mm"
+      dry: "den ganzen Tag trocken"
+    nl:
+      days: [Maandag, Dinsdag, Woensdag, Donderdag, Vrijdag, Zaterdag, Zondag]
+      months: [januari, februari, maart, april, mei, juni, juli, augustus, september, oktober, november, december]
+      date: "{d} {m}"
+      dec: ","
+      rain_from: "Regen vanaf {}"
+      no_rain: "Geen regen"
+      total: "ca. {} mm in totaal"
+      dry: "de hele dag droog"
+    fr:
+      days: [Lundi, Mardi, Mercredi, Jeudi, Vendredi, Samedi, Dimanche]
+      months: [janvier, février, mars, avril, mai, juin, juillet, août, septembre, octobre, novembre, décembre]
+      date: "{d} {m}"
+      dec: ","
+      rain_from: "Pluie dès {}"
+      no_rain: "Pas de pluie"
+      total: "env. {} mm au total"
+      dry: "sec toute la journée"
+    es:
+      days: [Lunes, Martes, Miércoles, Jueves, Viernes, Sábado, Domingo]
+      months: [enero, febrero, marzo, abril, mayo, junio, julio, agosto, septiembre, octubre, noviembre, diciembre]
+      date: "{d} de {m}"
+      dec: ","
+      rain_from: "Lluvia desde las {}"
+      no_rain: "Sin lluvia"
+      total: "unos {} mm en total"
+      dry: "seco todo el día"
 
 actions:
   - action: weather.get_forecasts
@@ -139,13 +187,13 @@ actions:
     data:
       day: "{{ t.days[as_datetime(when).weekday()] }}"
       date: >-
-        {{ as_datetime(when).day }} {{ t.months[as_datetime(when).month - 1] }}
+        {{ t.date.replace('{d}', as_datetime(when).day | string).replace('{m}', t.months[as_datetime(when).month - 1]) }}
       hi: "{{ hi }}"
       lo: "{{ lo }}"
       summary: >-
         {{ t.rain_from.replace('{}', '%02d:00' % rain_start) if rain_start >= 0 else t.no_rain }}
       detail: >-
-        {{ t.total.replace('{}', rain_total | string) if rain_total > 0 else t.dry }}
+        {{ t.total.replace('{}', (rain_total | string).replace('.', t.dec)) if rain_total > 0 else t.dry }}
       temps: "{{ series.t }}"
       rain: "{{ series.r }}"
       rain_start: "{{ rain_start }}"

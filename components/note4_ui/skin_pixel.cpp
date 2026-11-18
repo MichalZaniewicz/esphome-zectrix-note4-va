@@ -200,8 +200,9 @@ void PixelSkin::idle_(Display &d, const Model &m) {
 
   this->win_(d, 14, 138, 118, 156, upper(T.next));
   if (m.next_time.empty() && m.next_title.empty()) {
-    text(d, f_vt_, 26, 180, ink(), fit(f_vt_, lower(T.nothing_more), 96));
-    text(d, f_vt_, 26, 200, ink(), fit(f_vt_, lower(T.today), 96));
+    auto l = wrap_n(f_vt_, lower(T.nothing_more_today), 100, 3);
+    for (size_t i = 0; i < l.size(); i++)
+      text(d, f_vt_, 26, 180 + (int) i * 20, ink(), fit(f_vt_, l[i], 100));
   } else {
     text(d, f_m_, 26, 176, ink(), fit(f_m_, m.next_time, 96));
     auto l = wrap_n(f_vt_, m.next_title, 96, 3);
@@ -437,8 +438,8 @@ void PixelSkin::doorbell_(Display &d, const Model &m) {
   const Strings &T = *m.tr;
   if (!bell_image(d, m, 264)) {
     checker(d, 0, 0, 264, 300);
-    this->win_(d, 52, 120, 160, 60, "");
-    text(d, f_vt_, 132, 157, ink(), fit(f_vt_, lower(T.waiting_image), 150), Align::CENTER);
+    this->win_(d, 22, 120, 220, 60, "");
+    text(d, f_vt_, 132, 157, ink(), fit(f_vt_, lower(T.waiting_image), 200), Align::CENTER);
   }
   std::string cap = upper(T.camera) + ": " + upper(m.bell_place);
   fill_rect(d, 6, 6, measure(f_s_, cap) + 8, 14, ink());

@@ -263,7 +263,7 @@ void InstrumentSkin::now_module_(Display &d, const Model &m) {
     return;
   }
   const bool alarm = m.now_level == NowLevel::ALARM;
-  module_(d, x, w, fit(f_.m9s, "[05] " + upper(alarm ? T.alarm : T.now) + (alarm ? "   !2" : "   !1"), 106));
+  module_(d, x, w, fit(f_.m9s, "[05] " + upper(alarm ? T.alarm : T.now) + (alarm ? "  !2" : "  !1"), 106));
   const Color fg = alarm ? WH : K, bg = alarm ? K : paper();
   if (alarm)
     fill_rect(d, x, 202, w, 86, K);
@@ -374,10 +374,12 @@ void InstrumentSkin::weather_(Display &d, const Model &m) {
   }
   for (int h = 6; h <= 24; h += 3)
     text(d, f_.m9, (int) std::lround(X(h)), 252, K, pad2(h), Align::CENTER);
-  text(d, f_.m9, 16, 284, grey(115), fit(f_.m9, upper(T.sunrise), 44));
-  text(d, f_.m10s, 62, 284, K, m.fc_sunrise);
-  text(d, f_.m9, 120, 284, grey(115), fit(f_.m9, upper(T.sunset), 44));
-  text(d, f_.m10s, 166, 284, K, m.fc_sunset);
+  // Value after its label; longer labels (other languages) push it right.
+  const std::string rise = fit(f_.m9, upper(T.sunrise), 60), set = fit(f_.m9, upper(T.sunset), 60);
+  text(d, f_.m9, 16, 284, grey(115), rise);
+  text(d, f_.m10s, std::max(62, 16 + measure(f_.m9, rise) + 6), 284, K, m.fc_sunrise);
+  text(d, f_.m9, 120, 284, grey(115), set);
+  text(d, f_.m10s, std::max(166, 120 + measure(f_.m9, set) + 6), 284, K, m.fc_sunset);
   text(d, f_.m9, 228, 284, grey(115), fit(f_.m9, upper(T.summary_label), 32));
   text(d, f_.m10s, 262, 284, K, fit(f_.m10s, upper(first_clause(m.fc_summary)), 122));
 }

@@ -61,6 +61,14 @@ blueprint:
               value: en
             - label: Polski
               value: pl
+            - label: Deutsch
+              value: de
+            - label: Nederlands
+              value: nl
+            - label: Français
+              value: fr
+            - label: Español
+              value: es
 
 mode: single
 max_exceeded: silent
@@ -82,7 +90,8 @@ variables:
   ha_url: !input ha_url
   ai_task: !input ai_task
   lang: !input language
-  language_name: "{{ {'en': 'English', 'pl': 'Polish'}.get(lang, 'English') }}"
+  language_name: >-
+    {{ {'en': 'English', 'pl': 'Polish', 'de': 'German', 'nl': 'Dutch', 'fr': 'French', 'es': 'Spanish'}.get(lang, 'English') }}
 
 actions:
   - variables:
