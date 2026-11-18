@@ -52,14 +52,14 @@ editor and paste the user-attachments URL it gives on its own line here. -->
 
 <img src="docs/media/trailer.webp" alt="Concept trailer: the conversation, the page of the day, the Now card and the eight skins" width="100%">
 
-<sub>100 seconds with voice-over and subtitles. A concept: the screens are simulated from the firmware's designs.</sub>
+<sub>The full video runs 94 seconds, with voice-over and subtitles. A concept: the screens are simulated from the firmware's designs.</sub>
 
 </div>
 
 ## How it works
 
 <div align="center">
-<img src="docs/media/how-it-works@2x.png" alt="How it works: your voice goes to the Note 4, Home Assistant Assist answers, the answer is typed on paper; blueprints feed the forecast, events, Now card and doorbell" width="100%">
+<img src="docs/media/how-it-works@2x.png" alt="How it works: your voice goes to the Note 4, Home Assistant Assist answers, the answer is typed on paper; blueprints feed the forecast, events and the Now card" width="100%">
 </div>
 
 The wake word runs on the device. Your question goes to the Home Assistant Assist
@@ -67,7 +67,7 @@ pipeline you already use (speech-to-text, a conversation agent or an LLM,
 text-to-speech). While the reply is spoken, the e-paper types it out word by word
 with fast partial refreshes, then settles with one full refresh, and the answer
 stays on the screen until you need it again. The rest of the time the device
-shows a **page of the day** that Home Assistant keeps current through four
+shows a **page of the day** that Home Assistant keeps current through three
 blueprints.
 
 ## See it in motion
@@ -84,7 +84,7 @@ blueprints.
 <td width="25%" align="center"><img src="docs/media/screens-answer.png" alt="Answer screen" width="100%"><br><sub><b>Answer</b>, stays on paper</sub></td>
 <td width="25%" align="center"><img src="docs/media/screens-forecast.png" alt="Tomorrow's forecast screen" width="100%"><br><sub><b>Tomorrow</b>, hour by hour</sub></td>
 <td width="25%" align="center"><img src="docs/media/screens-timer.png" alt="Timer screen" width="100%"><br><sub><b>Timer</b>, set by voice</sub></td>
-<td width="25%" align="center"><img src="docs/media/screens-doorbell.png" alt="Doorbell screen" width="100%"><br><sub><b>Doorbell</b>, with an AI caption</sub></td>
+<td width="25%" align="center"><img src="docs/media/screens-listening.png" alt="Listening screen" width="100%"><br><sub><b>Listening</b>, a live waveform</sub></td>
 </tr>
 </table>
 
@@ -168,7 +168,7 @@ not fit in flash.
   word is designed to work while the device is talking (barge-in).
 - **An e-paper interface.** Listening (live waveform), thinking (the heard
   question and each step), answering (typed word by word), the page of the day,
-  tomorrow's forecast, a running timer, a doorbell snapshot. Partial refreshes
+  tomorrow's forecast and a running timer. Partial refreshes
   wherever the layout allows, so the clock and the typing do not flash the panel.
 - **The page of the day.** Clock, weather, today's timeline, what's next, a
   running timer and the "Now" card, kept current by Home Assistant.
@@ -192,7 +192,6 @@ changes nothing, so the e-paper only refreshes when the content does.
 | ["Now" card](blueprints/automation/note4_now_card.yaml) | The one thing that matters: an alarm (smoke, gas, CO, leak), then a window open too long, a weather warning, a vacuum in error, a plant with a problem or a recent event, else a one-sentence day brief written by AI Task every morning. | [![Import](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2FMichalZaniewicz%2Fesphome-zectrix-note4-va%2Fblob%2Fmain%2Fblueprints%2Fautomation%2Fnote4_now_card.yaml) |
 | [Tomorrow's forecast](blueprints/automation/note4_forecast.yaml) | Hourly temperature and rain for 6:00-24:00 tomorrow, high/low, when rain starts, wind, humidity, sunrise and sunset, from any weather entity with hourly and daily forecasts. | [![Import](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2FMichalZaniewicz%2Fesphome-zectrix-note4-va%2Fblob%2Fmain%2Fblueprints%2Fautomation%2Fnote4_forecast.yaml) |
 | [Today's events](blueprints/automation/note4_calendar.yaml) | The day timeline and the "next" line from one or more calendars. | [![Import](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2FMichalZaniewicz%2Fesphome-zectrix-note4-va%2Fblob%2Fmain%2Fblueprints%2Fautomation%2Fnote4_calendar.yaml) |
-| [Doorbell](blueprints/automation/note4_doorbell.yaml) | A camera snapshot with an optional AI caption when the doorbell rings. | [![Import](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2FMichalZaniewicz%2Fesphome-zectrix-note4-va%2Fblob%2Fmain%2Fblueprints%2Fautomation%2Fnote4_doorbell.yaml) |
 
 Every blueprint asks for the **device name**: the ESPHome `name` with dashes
 turned into underscores (`note4-va` becomes `note4_va`), which is how Home
@@ -224,7 +223,7 @@ otherwise ESPHome reuses the cached copy of the remote package.
 - [x] E-paper driver ported from Zectrix's reference (full 1-bit, partial 1-bit, full 16-grey), on its own task
 - [x] Voice side ported from the [Box-3 project](https://github.com/MichalZaniewicz/esphome-esp32-s3-box-3-va): wake word, echo cancellation, timers, "Stop"
 - [x] Eight skins, six screen languages
-- [x] Four Home Assistant blueprints
+- [x] Three Home Assistant blueprints
 - [x] Compiles in CI with every skin and language
 - [ ] The device arrives; full flash backup
 - [ ] Bring-up: power latch on battery, speaker and microphone, echo-cancellation reference, refresh timings ([checklist](docs/HARDWARE.md#bring-up-checklist))
@@ -247,8 +246,7 @@ Home Assistant pushes what the page of the day shows. The actions appear as
 | `set_now` | `level` int (0 brief, 1 to do, 2 alarm), `title`, `body`, `detail`, `icon` | The "Now" card: what matters right now. Level 2 is drawn in negative and brings the page of the day up. Icons: `window`, `wind`, `plant`, `vacuum`, `school`, `flood`, `smoke`, `brief` |
 | `set_forecast` | `day`, `date`, `hi` float, `lo` float, `summary`, `detail`, `temps` float[19], `rain` float[19], `rain_start` float, `wind`, `humidity`, `sunrise`, `sunset` | Tomorrow's forecast. `temps` / `rain` (mm) are hourly for 6:00-24:00; `rain_start` is an hour (15.5 = 15:30), negative for none |
 | `set_events` | `starts` float[], `ends` float[], `titles` string[], `next_time`, `next_title`, `next_in` | Today's timeline (hours as floats) and the "next" line |
-| `show_screen` | `name`: `idle`, `weather`, `timer`, `doorbell` | Switch screen. Ignored during a conversation (except `doorbell`) |
-| `doorbell` | `url`, `caption`, `place` | Fetches a JPEG snapshot (greyscale, 264x300), shows it with the caption, back to the page of the day after a minute |
+| `show_screen` | `name`: `idle`, `weather`, `timer` | Switch screen. Ignored during a conversation |
 
 ```yaml
 action: esphome.note4_va_set_now
@@ -260,13 +258,6 @@ data:
   icon: window
 ```
 
-```yaml
-action: esphome.note4_va_doorbell
-data:
-  url: "http://homeassistant.local:8123{{ state_attr('camera.front_gate', 'entity_picture') }}"
-  caption: "Courier with a parcel"
-  place: "Gate"
-```
 
 Weather now comes from `weather_entity` on its own (its state and its
 `temperature` attribute); today's high/low from the optional
@@ -282,7 +273,7 @@ Weather now comes from `weather_entity` on its own (its state and its
 The panel can draw 16 greys, but only on a full refresh, which takes about 7 s;
 partial refreshes are 1-bit. So screens with something live on them (the clock,
 a countdown, the typing) run 1-bit with a Bayer raster for their tones, and the
-**16 greys** switch lets the static screens (forecast, doorbell) use real greys.
+**16 greys** switch lets the static forecast screen use real greys.
 [docs/HARDWARE.md](docs/HARDWARE.md) has the details and the timings measured by
 other NOTE4 projects.
 
@@ -303,7 +294,7 @@ base/
 components/
   zectrix_epd/           # e-paper display driver (SSD2683, ported from Zectrix)
   note4_ui/              # UI model, refresh policy, skins, string tables
-blueprints/automation/   # the four Home Assistant blueprints
+blueprints/automation/   # the three Home Assistant blueprints
 ci/local.yaml            # validates/compiles the working tree (CI uses this)
 docs/HARDWARE.md         # pin map, power latch, battery, refresh limits, bring-up
 ```
