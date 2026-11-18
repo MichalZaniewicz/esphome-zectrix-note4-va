@@ -11,7 +11,7 @@ struct InstrumentFonts {
   // IBM Plex Mono
   Font *clock{nullptr};  // 600 78
   Font *next{nullptr};   // 600 26, next event time
-  Font *card{nullptr};   // 600 28, timer module / tomorrow / doorbell time
+  Font *card{nullptr};   // 600 28, timer module / tomorrow
   Font *fc_hi{nullptr};  // 600 54
   Font *timer{nullptr};  // 600 42
   Font *m20s{nullptr};   // 600 20, timer side values, elapsed time
@@ -46,7 +46,6 @@ class InstrumentSkin : public Skin {
   void timer_(Display &d, const Model &m);
   void listen_(Display &d, const Model &m);
   void think_(Display &d, const Model &m);
-  void doorbell_(Display &d, const Model &m);
   InstrumentFonts f_;
 };
 

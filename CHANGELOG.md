@@ -7,7 +7,7 @@ ci/local.yaml`) and nothing more is claimed yet.
 
 ### Added
 - **Screen languages** German (`de`), Dutch (`nl`), French (`fr`) and Spanish (`es`), besides English and Polish; also in the blueprints. Written without native speakers; review welcome.
-- **Home Assistant blueprints** (`blueprints/automation/`): the "Now" card with its priority rules and an AI day brief, tomorrow's forecast, today's events and the doorbell.
+- **Home Assistant blueprints** (`blueprints/automation/`): the "Now" card with its priority rules and an AI day brief, tomorrow's forecast and today's events.
 - The device skips `set_now`, `set_forecast` and `set_events` calls that change nothing, so scheduled resends cost no e-paper refresh.
 - **Core** (`base/core.yaml`), ported from the ESP32-S3-BOX-3 voice assistant:
   the same esp_audio_stack + esp_aec full-duplex audio, media player, three
@@ -20,11 +20,11 @@ ci/local.yaml`) and nothing more is claimed yet.
 - **E-paper UI wiring**: the `zectrix_epd` display and the `note4_ui` model,
   driven from the pipeline - listening with a live waveform, the heard
   question, the answer typed while it is spoken, back to the page of the day a
-  minute later. Timers, a tomorrow-forecast screen and a doorbell snapshot.
+  minute later. Timers and a tomorrow-forecast screen.
   UP/DOWN step through the screens, OK talks or stops, a 2 s hold on OK
   silences the alarm.
 - **Home Assistant actions**: `set_now`, `set_forecast`, `set_events`,
-  `show_screen`, `doorbell`.
+  `show_screen`.
 - **Board support**: power latch and audio rail at boot, PCF8563 RTC kept in
   sync with Home Assistant, battery voltage and percentage (vendor curve),
   charging state, status LED, a Power off button.

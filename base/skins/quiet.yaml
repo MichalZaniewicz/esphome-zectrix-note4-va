@@ -19,7 +19,7 @@ font:
     size: 28
     bpp: 4
     glyphsets: [GF_Latin_Core]
-  - id: quiet_italic          # question, timer name, captions
+  - id: quiet_italic          # question, timer name, "Listening" / "I heard"
     file: { type: gfonts, family: Instrument Serif, weight: 400, italic: true }
     size: 26
     bpp: 4

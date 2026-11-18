@@ -11,7 +11,7 @@ struct TilesFonts {
   Font *clock{nullptr};   // 800 72
   Font *temp{nullptr};    // 800 44, temperature now
   Font *next{nullptr};    // 800 28, next event time / tomorrow numbers
-  Font *card{nullptr};    // 800 32, timer tile digits, the "Listening" / "Thinking…" word, doorbell time
+  Font *card{nullptr};    // 800 32, timer tile digits, the "Listening" / "Thinking…" word
   Font *timer{nullptr};   // 800 48
   Font *fc_hi{nullptr};   // 800 60
   Font *fc_lo{nullptr};   // 800 22
@@ -44,7 +44,6 @@ class TilesSkin : public Skin {
   void timer_(Display &d, const Model &m);
   void listen_(Display &d, const Model &m);
   void think_(Display &d, const Model &m);
-  void doorbell_(Display &d, const Model &m);
   TilesFonts f_;
 };
 

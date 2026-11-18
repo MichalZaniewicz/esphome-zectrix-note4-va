@@ -301,7 +301,6 @@ static Strings make_en() {
   s.progress = "Progress";
   s.conditions = "Conditions";
   s.time_label = "Time";
-  s.clock_time = "Time";
   s.sky = "Sky";
   s.status = "Status";
   s.forecast = "Forecast";
@@ -350,9 +349,6 @@ static Strings make_en() {
   s.cancel = "cancel";
   s.stop = "stop";
   s.pause = "pause";
-  s.open_door = "open";
-  s.talk = "talk";
-  s.close_door = "close";
 
   s.wind = "Wind";
   s.humidity = "Humidity";
@@ -375,16 +371,6 @@ static Strings make_en() {
   s.no_wifi = "No wifi";
   s.missing = "off";
 
-  s.doorbell = "Doorbell";
-  s.camera = "Camera";
-  s.just_now = "just now";
-  s.waiting_image = "Waiting for image";
-  s.waiting_photo = "Waiting for photo";
-  s.ai_caption = "AI photo caption";
-  s.caption_source = "Caption: AI Task";
-  s.someone_rang = "Someone rang";
-  s.someone_at_door = "Someone is at the door";
-  s.default_place = "Gate";
 
   set(s.now_kind, {"Window", "Storm", "Plant", "Vacuum", "School", "Flood", "Smoke", "Day", "Notice"});
   set(s.now_topic, {"home", "weather", "plants", "cleaning", "school", "flood", "smoke", "home", "home"});
@@ -432,7 +418,6 @@ static Strings make_pl() {
   s.progress = "Postęp";
   s.conditions = "Warunki";
   s.time_label = "Czas";
-  s.clock_time = "Godzina";
   s.sky = "Stan";
   s.status = "Stan";
   s.forecast = "Prognoza";
@@ -481,9 +466,6 @@ static Strings make_pl() {
   s.cancel = "anuluj";
   s.stop = "stop";
   s.pause = "pauza";
-  s.open_door = "otwórz";
-  s.talk = "mów";
-  s.close_door = "zamknij";
 
   s.wind = "Wiatr";
   s.humidity = "Wilgotność";
@@ -506,16 +488,6 @@ static Strings make_pl() {
   s.no_wifi = "Brak wifi";
   s.missing = "brak";
 
-  s.doorbell = "Dzwonek";
-  s.camera = "Kamera";
-  s.just_now = "przed chwilą";
-  s.waiting_image = "Czekam na obraz";
-  s.waiting_photo = "Czekam na zdjęcie";
-  s.ai_caption = "opis AI ze zdjęcia";
-  s.caption_source = "Opis: AI Task";
-  s.someone_rang = "Ktoś dzwoni";
-  s.someone_at_door = "Ktoś dzwoni do drzwi";
-  s.default_place = "Furtka";
 
   set(s.now_kind, {"Okno", "Ostrzeżenie", "Roślina", "Odkurzacz", "Szkoła", "Zalanie", "Dym", "Dzień", "Uwaga"});
   set(s.now_topic, {"dom", "pogoda", "rośliny", "sprzątanie", "szkoła", "zalanie", "dym", "dom", "dom"});
@@ -564,7 +536,6 @@ static Strings make_de() {
   s.progress = "Fortschritt";
   s.conditions = "Wetterlage";
   s.time_label = "Zeit";
-  s.clock_time = "Uhrzeit";
   s.sky = "Himmel";
   s.status = "Status";
   s.forecast = "Vorhersage";
@@ -613,9 +584,6 @@ static Strings make_de() {
   s.cancel = "abbrechen";
   s.stop = "stopp";
   s.pause = "pause";
-  s.open_door = "öffnen";
-  s.talk = "sprechen";
-  s.close_door = "schließen";
 
   s.wind = "Wind";
   s.humidity = "Luftfeuchte";
@@ -638,16 +606,6 @@ static Strings make_de() {
   s.no_wifi = "Kein WLAN";
   s.missing = "aus";
 
-  s.doorbell = "Klingel";
-  s.camera = "Kamera";
-  s.just_now = "soeben";
-  s.waiting_image = "Warte auf Bild";
-  s.waiting_photo = "Warte auf Foto";
-  s.ai_caption = "KI-Beschreibung";
-  s.caption_source = "Text: AI Task";
-  s.someone_rang = "Es hat geklingelt";
-  s.someone_at_door = "Jemand ist an der Tür";
-  s.default_place = "Gartentor";
 
   set(s.now_kind, {"Fenster", "Sturm", "Pflanze", "Sauger", "Schule", "Wasser", "Rauch", "Tag", "Hinweis"});
   set(s.now_topic, {"Zuhause", "Wetter", "Pflanzen", "Putzen", "Schule", "Wasser", "Rauch", "Zuhause", "Zuhause"});
@@ -695,7 +653,6 @@ static Strings make_nl() {
   s.progress = "Voortgang";
   s.conditions = "Weer nu";
   s.time_label = "Tijd";
-  s.clock_time = "Tijd";
   s.sky = "Lucht";
   s.status = "Status";
   s.forecast = "Verwachting";
@@ -744,9 +701,6 @@ static Strings make_nl() {
   s.cancel = "annuleren";
   s.stop = "stop";
   s.pause = "pauze";
-  s.open_door = "openen";
-  s.talk = "praten";
-  s.close_door = "sluiten";
 
   s.wind = "Wind";
   s.humidity = "Vochtigheid";
@@ -769,16 +723,6 @@ static Strings make_nl() {
   s.no_wifi = "Geen wifi";
   s.missing = "uit";
 
-  s.doorbell = "Deurbel";
-  s.camera = "Camera";
-  s.just_now = "zojuist";
-  s.waiting_image = "Wachten op beeld";
-  s.waiting_photo = "Wachten op foto";
-  s.ai_caption = "AI-beschrijving";
-  s.caption_source = "Tekst: AI Task";
-  s.someone_rang = "Er werd aangebeld";
-  s.someone_at_door = "Er staat iemand voor de deur";
-  s.default_place = "Poort";
 
   set(s.now_kind, {"Raam", "Storm", "Plant", "Stofzuiger", "School", "Lekkage", "Rook", "Dag", "Melding"});
   set(s.now_topic, {"huis", "weer", "planten", "schoonmaak", "school", "lekkage", "rook", "huis", "huis"});
@@ -827,7 +771,6 @@ static Strings make_fr() {
   s.progress = "Progression";
   s.conditions = "Conditions";
   s.time_label = "Heure";
-  s.clock_time = "Heure";
   s.sky = "Ciel";
   s.status = "État";
   s.forecast = "Prévisions";
@@ -876,9 +819,6 @@ static Strings make_fr() {
   s.cancel = "annuler";
   s.stop = "stop";
   s.pause = "pause";
-  s.open_door = "ouvrir";
-  s.talk = "parler";
-  s.close_door = "fermer";
 
   s.wind = "Vent";
   s.humidity = "Humidité";
@@ -901,16 +841,6 @@ static Strings make_fr() {
   s.no_wifi = "Pas de wifi";
   s.missing = "non";
 
-  s.doorbell = "Sonnette";
-  s.camera = "Caméra";
-  s.just_now = "à l'instant";
-  s.waiting_image = "En attente d'image";
-  s.waiting_photo = "En attente de photo";
-  s.ai_caption = "légende IA";
-  s.caption_source = "Légende : AI Task";
-  s.someone_rang = "On a sonné";
-  s.someone_at_door = "Quelqu'un est à la porte";
-  s.default_place = "Portail";
 
   set(s.now_kind, {"Fenêtre", "Alerte", "Plante", "Robot", "École", "Fuite", "Fumée", "Jour", "Avis"});
   set(s.now_topic, {"maison", "météo", "plantes", "ménage", "école", "fuite", "fumée", "maison", "maison"});
@@ -959,7 +889,6 @@ static Strings make_es() {
   s.progress = "Progreso";
   s.conditions = "Condiciones";
   s.time_label = "Hora";
-  s.clock_time = "Hora";
   s.sky = "Cielo";
   s.status = "Estado";
   s.forecast = "Previsión";
@@ -1008,9 +937,6 @@ static Strings make_es() {
   s.cancel = "cancelar";
   s.stop = "parar";
   s.pause = "pausa";
-  s.open_door = "abrir";
-  s.talk = "hablar";
-  s.close_door = "cerrar";
 
   s.wind = "Viento";
   s.humidity = "Humedad";
@@ -1033,16 +959,6 @@ static Strings make_es() {
   s.no_wifi = "Sin wifi";
   s.missing = "no";
 
-  s.doorbell = "Timbre";
-  s.camera = "Cámara";
-  s.just_now = "ahora mismo";
-  s.waiting_image = "Esperando imagen";
-  s.waiting_photo = "Esperando foto";
-  s.ai_caption = "descripción IA";
-  s.caption_source = "Texto: AI Task";
-  s.someone_rang = "Han llamado";
-  s.someone_at_door = "Hay alguien en la puerta";
-  s.default_place = "Puerta";
 
   set(s.now_kind, {"Ventana", "Aviso", "Planta", "Robot", "Colegio", "Fuga", "Humo", "Día", "Aviso"});
   set(s.now_topic, {"casa", "tiempo", "plantas", "limpieza", "colegio", "fuga", "humo", "casa", "casa"});

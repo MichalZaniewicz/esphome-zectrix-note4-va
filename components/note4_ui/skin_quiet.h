@@ -27,7 +27,6 @@ class QuietSkin : public Skin {
   void answer_(Display &d, const Model &m);
   void weather_(Display &d, const Model &m);
   void timer_(Display &d, const Model &m);
-  void doorbell_(Display &d, const Model &m);
 
   Font *f_huge_, *f_body_, *f_italic_, *f_small_, *f_tiny_;
 };

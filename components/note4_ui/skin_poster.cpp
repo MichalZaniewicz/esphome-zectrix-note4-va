@@ -28,9 +28,6 @@ void PosterSkin::draw(Display &d, Screen s, const Model &m) {
     case Screen::TIMER:
       this->timer_(d, m);
       break;
-    case Screen::DOORBELL:
-      this->doorbell_(d, m);
-      break;
   }
 }
 
@@ -318,35 +315,6 @@ void PosterSkin::timer_(Display &d, const Model &m) {
   hint(d, f_small_, Sym::UP, "+1 min", 16, 290);
   hint(d, f_small_, Sym::DOT, T.stop, 120, 290);
   hint(d, f_small_, Sym::DOWN, T.pause, 236, 290);
-}
-
-// ------------------------------------------------------------------ DOORBELL
-void PosterSkin::doorbell_(Display &d, const Model &m) {
-  const Strings &T = *m.tr;
-  if (!bell_image(d, m, 264)) {
-    fill_rect(d, 0, 0, 264, 300, GREY_Q);
-    fill_circle(d, 132, 140, 40, ink());
-    text(d, f_small_, 132, 216, ink(), std::string(T.waiting_photo) + "…", Align::CENTER, GREY_Q);
-  }
-  std::string cap = upper(T.camera) + " · " + upper(m.bell_place);
-  int pw = measure(f_label_, cap, 1.2f) + 20;
-  fill_round(d, 10, 10, pw, 18, 9, ink());
-  text(d, f_label_, 10 + pw / 2, 23, paper(), cap, Align::CENTER, ink(), 1.2f);
-
-  // right column: black head block, caption, actions
-  fill_rect(d, 264, 0, 136, 300, paper());
-  fill_rect(d, 264, 0, 136, 112, ink());
-  text(d, f_label_, 280, 30, paper(), upper(T.doorbell), Align::LEFT, ink(), 1.5f);
-  text(d, f_num_, 280, 72, paper(), m.bell_time.empty() ? hhmm(m.hour, m.minute) : m.bell_time, Align::LEFT, ink());
-  text(d, f_small_, 280, 96, paper(), fit(f_small_, m.bell_place + " · " + T.just_now, 112), Align::LEFT, ink());
-
-  auto c = wrap_n(f_bold_, m.bell_caption.empty() ? std::string(T.someone_at_door) : m.bell_caption, 112, 5);
-  for (size_t i = 0; i < c.size(); i++)
-    text(d, f_bold_, 280, 138 + (int) i * 17, ink(), c[i]);
-  fill_rect(d, 280, 218, 48, 4, ink());
-  hint(d, f_small_, Sym::UP, cap_first(T.open_door), 280, 244);
-  hint(d, f_small_, Sym::DOT, cap_first(T.talk), 280, 266);
-  hint(d, f_small_, Sym::DOWN, cap_first(T.close_door), 280, 288);
 }
 
 }  // namespace note4_ui

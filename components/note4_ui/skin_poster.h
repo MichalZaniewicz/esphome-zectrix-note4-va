@@ -37,7 +37,6 @@ class PosterSkin : public Skin {
   void answer_(Display &d, const Model &m);
   void weather_(Display &d, const Model &m);
   void timer_(Display &d, const Model &m);
-  void doorbell_(Display &d, const Model &m);
   int answer_lines_(const Model &m) const;
 
   Font *f_clock_, *f_huge_, *f_timer_, *f_num_, *f_head_, *f_val_, *f_body_, *f_bold_, *f_small_, *f_label_;

@@ -1,6 +1,6 @@
 // Skin "tiles". Ported from note4-style.html (idleD, answerD, weatherD,
 // timerD). LISTEN is one big black tile with the voice in white, THINK three
-// step tiles, DOORBELL a black info tile and pill buttons beside the snapshot.
+// step tiles.
 //
 // Live regions sit on white or black only, so the answer tile is white inside
 // a grey ring (like the clock tile) instead of the mockup's flat grey 240:
@@ -123,9 +123,6 @@ void TilesSkin::draw(Display &d, Screen s, const Model &m) {
       break;
     case Screen::TIMER:
       timer_(d, m);
-      break;
-    case Screen::DOORBELL:
-      doorbell_(d, m);
       break;
   }
 }
@@ -442,37 +439,6 @@ void TilesSkin::think_(Display &d, const Model &m) {
   }
   text(d, f_.m11m, 16, 271, grey(105), "Assist · Home Assistant");
   pill_(d, 264, 252, 104, 30, cap_first(T.cancel), true, f_.m13);
-}
-
-// DOORBELL: snapshot left; black info tile and pill buttons on the right.
-void TilesSkin::doorbell_(Display &d, const Model &m) {
-  const Strings &T = *m.tr;
-  if (m.bell_image != nullptr && m.bell_image_ready) {
-    d.start_clipping(0, 0, 264, H);
-    d.image(0, 0, m.bell_image);
-    d.end_clipping();
-  } else {
-    fill_rect(d, 0, 0, 264, H, tone(190));
-    text(d, f_.m13, 132, 154, K, std::string(T.waiting_image) + "…", Align::CENTER, tone(190));
-  }
-  std::string tag = fit(f_.m11, std::string(T.camera) + " · " + m.bell_place, 220);
-  int tw = measure(f_.m11, tag) + 24;
-  fill_round(d, 10, 10, tw, 22, 11, K);
-  text(d, f_.m11, 22, 25, WH, tag, Align::LEFT, K);
-
-  fill_rect(d, 264, 0, 136, H, paper());
-  fill_round(d, 272, 10, 118, 96, 18, K);
-  text(d, f_.m11, 284, 32, WH, T.doorbell, Align::LEFT, K);
-  text(d, f_.card, 283, 72, WH, m.bell_time, Align::LEFT, K, -1);
-  text(d, f_.m12m, 284, 94, WH, fit(f_.m12m, m.bell_place, 96), Align::LEFT, K);
-  auto cap = wrap_lines(f_.m15, m.bell_caption, 112, 3);
-  for (size_t i = 0; i < cap.size(); i++)
-    text(d, f_.m15, 276, 134 + (int) i * 19, K, cap[i]);
-  if (!cap.empty())
-    text(d, f_.m10, 276, 134 + (int) cap.size() * 19, grey(105), fit(f_.m10, T.ai_caption, 112));
-  pill_(d, 272, 206, 118, 26, cap_first(T.open_door), true, f_.m13);
-  pill_(d, 272, 238, 118, 26, cap_first(T.talk), false, f_.m13);
-  pill_(d, 272, 270, 118, 26, cap_first(T.close_door), false, f_.m13);
 }
 
 }  // namespace note4_ui

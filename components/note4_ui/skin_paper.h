@@ -23,12 +23,9 @@ struct PaperFonts {
   Font *timer{nullptr};      // 700 48, timer digits
   Font *times{nullptr};      // 600 22, timer start / end
   Font *big{nullptr};        // 500 italic 50, the "Listening" / "Thinking…" word
-  Font *bell_time{nullptr};  // 700 34
-  Font *caption{nullptr};    // 600 21, doorbell caption
   // Atkinson Hyperlegible
   Font *l9b{nullptr};    // 700 9, small caps labels
   Font *l10b{nullptr};   // 700 10, status bar, axis, footer
-  Font *l10i{nullptr};   // 400 italic 10
   Font *l11{nullptr};    // 400 11
   Font *l11i{nullptr};   // 400 italic 11
   Font *l11b{nullptr};   // 700 11, high / low numbers
@@ -54,7 +51,6 @@ class PaperSkin : public Skin {
   void weather_(Display &d, const Model &m);
   void timer_(Display &d, const Model &m);
   void listen_(Display &d, const Model &m, bool thinking);
-  void doorbell_(Display &d, const Model &m);
   PaperFonts f_;
 };
 

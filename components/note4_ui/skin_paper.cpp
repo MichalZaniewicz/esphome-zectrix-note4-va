@@ -1,5 +1,5 @@
 // Skin "paper". Ported from note4-style.html (idleA, answerA, weatherA,
-// timerA) and note4-makiety.html (drawListen, drawTyping, drawDoorbell).
+// timerA) and note4-makiety.html (drawListen, drawTyping).
 #include "skin_paper.h"
 
 #include <cmath>
@@ -71,9 +71,6 @@ void PaperSkin::draw(Display &d, Screen s, const Model &m) {
       break;
     case Screen::TIMER:
       timer_(d, m);
-      break;
-    case Screen::DOORBELL:
-      doorbell_(d, m);
       break;
   }
 }
@@ -417,41 +414,6 @@ void PaperSkin::listen_(Display &d, const Model &m, bool thinking) {
   text(d, f_.l13, 16, 248, WH, fit(f_.l13, std::string(T.speak_naturally) + ". " + T.stop_when_quiet, 368), Align::LEFT, K);
   keycap(d, f_.l12b, Sym::DOT, T.finish, 16, 289, Align::LEFT, WH, K);
   keycap(d, f_.l12b, Sym::DOWN, T.cancel, 384, 289, Align::RIGHT, WH, K);
-}
-
-// ---------------------------------------------------------------------------
-void PaperSkin::doorbell_(Display &d, const Model &m) {
-  const Strings &T = *m.tr;
-  // snapshot, left 264 px
-  if (m.bell_image != nullptr && m.bell_image_ready) {
-    d.start_clipping(0, 0, 264, H);
-    d.image(0, 0, m.bell_image);
-    d.end_clipping();
-  } else {
-    fill_rect(d, 0, 0, 264, H, tone(190));
-    text(d, f_.l13, 132, 154, K, std::string(T.waiting_image) + "…", Align::CENTER, tone(190));
-  }
-  std::string tag = upper(T.camera) + " · " + upper(m.bell_place);
-  int tw = measure(f_.l9b, tag, 1.2f) + 20;
-  fill_round(d, 10, 10, tw, 18, 9, K);
-  text(d, f_.l9b, 10 + tw / 2, 23, WH, tag, Align::CENTER, K, 1.2f);
-
-  fill_rect(d, 264, 0, 136, H, paper());
-  fill_rect(d, 264, 0, 2, H, K);
-  const int x = 280;
-  text(d, f_.l9b, x, 34, K, upper(T.doorbell), Align::LEFT, paper(), 1.6f);
-  text(d, f_.bell_time, x, 72, K, m.bell_time);
-  text(d, f_.l11, x, 90, K, fit(f_.l11, m.bell_place + " · " + T.just_now, 106));
-  hline(d, x, 386, 104, K);
-  auto cap = wrap_lines(f_.caption, m.bell_caption, 106, 2);
-  for (size_t i = 0; i < cap.size(); i++)
-    text(d, f_.caption, x, 130 + (int) i * 24, K, cap[i]);
-  if (!cap.empty())
-    text(d, f_.l10i, x, 172, K, fit(f_.l10i, T.ai_caption, 106));
-  hline(d, x, 386, 188, K);
-  keycap(d, f_.l12b, Sym::UP, cap_first(T.open_door), x, 216, Align::LEFT);
-  keycap(d, f_.l12b, Sym::DOT, cap_first(T.talk), x, 242, Align::LEFT);
-  keycap(d, f_.l12b, Sym::DOWN, cap_first(T.close_door), x, 268, Align::LEFT);
 }
 
 }  // namespace note4_ui

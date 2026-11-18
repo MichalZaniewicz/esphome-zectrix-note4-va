@@ -1,5 +1,5 @@
 // Skin "swiss". Ported from note4-style.html (idleB, answerB, weatherB,
-// timerB). LISTEN, THINK and DOORBELL follow the same grid: a 3 px rule under
+// timerB). LISTEN and THINK follow the same grid: a 3 px rule under
 // a huge word, three columns, the one black block marks what is happening.
 #include "skin_swiss.h"
 
@@ -59,9 +59,6 @@ void SwissSkin::draw(Display &d, Screen s, const Model &m) {
       break;
     case Screen::TIMER:
       timer_(d, m);
-      break;
-    case Screen::DOORBELL:
-      doorbell_(d, m);
       break;
   }
 }
@@ -317,34 +314,6 @@ void SwissSkin::think_(Display &d, const Model &m) {
       text(d, f_.i13s, tx, 244 + (int) j * 16, fg, lines[j], Align::LEFT, bg);
   }
   hint(d, f_.i12b, Sym::DOWN, cap_first(T.cancel), 384, 290, Align::RIGHT);
-}
-
-// DOORBELL: snapshot left, the black block on top of the panel with the time.
-void SwissSkin::doorbell_(Display &d, const Model &m) {
-  const Strings &T = *m.tr;
-  if (m.bell_image != nullptr && m.bell_image_ready) {
-    d.start_clipping(0, 0, 264, H);
-    d.image(0, 0, m.bell_image);
-    d.end_clipping();
-  } else {
-    fill_rect(d, 0, 0, 264, H, tone(190));
-    text(d, f_.i13s, 132, 154, K, std::string(T.waiting_image) + "…", Align::CENTER, tone(190));
-  }
-  fill_rect(d, 264, 0, 136, H, paper());
-  fill_rect(d, 264, 0, 136, 96, K);
-  const int x = 276;
-  text(d, f_.i9b, x, 22, WH, upper(T.doorbell), Align::LEFT, K, 1.2f);
-  text(d, f_.next, x - 1, 62, WH, m.bell_time, Align::LEFT, K, -1);
-  text(d, f_.i13s, x, 84, WH, fit(f_.i13s, m.bell_place, 112), Align::LEFT, K);
-  auto cap = wrap_lines(f_.question, m.bell_caption, 112, 3);
-  for (size_t i = 0; i < cap.size(); i++)
-    text(d, f_.question, x, 124 + (int) i * 24, K, cap[i], Align::LEFT, paper(), -0.3f);
-  if (!cap.empty())
-    text(d, f_.i10s, x, 124 + (int) cap.size() * 24 - 4, grey(105), fit(f_.i10s, T.ai_caption, 112));
-  hline(d, x, 388, 200, K, 2);
-  hint(d, f_.i12b, Sym::UP, cap_first(T.open_door), x, 226, Align::LEFT);
-  hint(d, f_.i12b, Sym::DOT, cap_first(T.talk), x, 252, Align::LEFT);
-  hint(d, f_.i12b, Sym::DOWN, cap_first(T.close_door), x, 278, Align::LEFT);
 }
 
 }  // namespace note4_ui

@@ -327,17 +327,6 @@ inline void vector_icon(Display &d, const std::string &icon, float cx, float cy,
   }
 }
 
-// Doorbell snapshot centred in the left `w` pixels. False when no image yet.
-inline bool bell_image(Display &d, const Model &m, int w) {
-  if (!m.bell_image_ready || m.bell_image == nullptr)
-    return false;
-  int iw = m.bell_image->get_width(), ih = m.bell_image->get_height();
-  d.start_clipping(0, 0, w, H);
-  d.image((w - iw) / 2, (H - ih) / 2, m.bell_image);
-  d.end_clipping();
-  return true;
-}
-
 // ---------------------------------------------------------------- answer typing
 // The answer is wrapped as a whole (so lines never reflow while typing), then
 // only the first `shown` words are kept.

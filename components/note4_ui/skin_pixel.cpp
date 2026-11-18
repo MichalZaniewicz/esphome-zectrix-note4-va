@@ -39,8 +39,6 @@ const BM BM_VACUUM = {"001111100", "010000010", "100011001", "100011001", "10000
 const BM BM_BOOK = {"011101110", "100010001", "100010001", "100010001", "100010001", "100010001", "111111111"};
 const BM BM_SMOKE = {"000110000", "001000000", "000100000", "000010000", "000100000",
                      "011111110", "111111111", "111111111", "011111110"};
-const BM BM_BELL = {"000010000", "001111100", "011111110", "011111110", "011111110",
-                    "011111110", "111111111", "000000000", "000111000"};
 const BM BM_CLOCK = {"001111100", "010010010", "100010001", "100010001", "100011101",
                      "100000001", "100000001", "010000010", "001111100"};
 const BM BM_BOX = {"1111111", "1000001", "1000001", "1000001", "1000001", "1000001", "1111111"};
@@ -120,9 +118,6 @@ void PixelSkin::draw(Display &d, Screen s, const Model &m) {
       break;
     case Screen::TIMER:
       this->timer_(d, m);
-      break;
-    case Screen::DOORBELL:
-      this->doorbell_(d, m);
       break;
   }
 }
@@ -431,35 +426,6 @@ void PixelSkin::timer_(Display &d, const Model &m) {
   this->button_(d, 40, 272, 'A', 13, "+1 min", 20, 7);
   this->button_(d, 164, 272, 'B', 13, T.stop, 20, 7);
   this->button_(d, 288, 272, 'v', 13, T.pause, 20, 7);
-}
-
-// ------------------------------------------------------------------ DOORBELL
-void PixelSkin::doorbell_(Display &d, const Model &m) {
-  const Strings &T = *m.tr;
-  if (!bell_image(d, m, 264)) {
-    checker(d, 0, 0, 264, 300);
-    this->win_(d, 22, 120, 220, 60, "");
-    text(d, f_vt_, 132, 157, ink(), fit(f_vt_, lower(T.waiting_image), 200), Align::CENTER);
-  }
-  std::string cap = upper(T.camera) + ": " + upper(m.bell_place);
-  fill_rect(d, 6, 6, measure(f_s_, cap) + 8, 14, ink());
-  text(d, f_s_, 10, 17, paper(), cap, Align::LEFT, ink());
-
-  fill_rect(d, 264, 0, 136, 300, paper());
-  fill_rect(d, 264, 0, 2, 300, ink());
-  this->win_(d, 270, 8, 124, 104, upper(T.doorbell));
-  bitmap(d, BM_BELL, 314, 26, 4, ink());
-  text(d, f_m_, 332, 92, ink(), m.bell_time.empty() ? hhmm(m.hour, m.minute) : m.bell_time, Align::CENTER);
-
-  this->win_(d, 270, 120, 124, 108, "");
-  text(d, f_s_, 280, 138, ink(), fit(f_s_, upper(m.bell_place), 104));
-  auto c = wrap_n(f_vt_, m.bell_caption.empty() ? lower(T.someone_rang) : m.bell_caption, 104, 3);
-  for (size_t i = 0; i < c.size(); i++)
-    text(d, f_vt_, 280, 162 + (int) i * 20, ink(), c[i]);
-
-  this->button_(d, 284, 244, 'A', 9, T.open_door, 16, 7);
-  this->button_(d, 284, 266, 'B', 9, T.talk, 16, 7);
-  this->button_(d, 284, 288, 'v', 9, T.close_door, 16, 7);
 }
 
 }  // namespace note4_ui

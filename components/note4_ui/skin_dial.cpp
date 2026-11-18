@@ -26,9 +26,6 @@ void DialSkin::draw(Display &d, Screen s, const Model &m) {
     case Screen::TIMER:
       this->timer_(d, m);
       break;
-    case Screen::DOORBELL:
-      this->doorbell_(d, m);
-      break;
   }
 }
 
@@ -353,49 +350,6 @@ void DialSkin::timer_(Display &d, const Model &m) {
   hint(d, f_small_, Sym::UP, "+1 min", 16, 290);
   hint(d, f_small_, Sym::DOT, T.stop, 200, 290, Align::CENTER);
   hint(d, f_small_, Sym::DOWN, T.pause, 384, 290, Align::RIGHT);
-}
-
-// ------------------------------------------------------------------ DOORBELL
-// Snapshot on the left; on the right a small dial showing when it rang.
-void DialSkin::doorbell_(Display &d, const Model &m) {
-  const Strings &T = *m.tr;
-  if (!bell_image(d, m, 264)) {
-    fill_rect(d, 0, 0, 264, 300, tone(212));
-    ring(d, 132, 140, 40, 2, ink());
-    text(d, f_text_, 132, 214, ink(), std::string(T.waiting_photo) + "…", Align::CENTER, tone(212));
-  }
-  std::string cap = upper(T.camera) + " · " + upper(m.bell_place);
-  int pw = measure(f_label_, cap, 1.2f) + 20;
-  fill_round(d, 10, 10, pw, 18, 9, ink());
-  text(d, f_label_, 10 + pw / 2, 23, paper(), cap, Align::CENTER, ink(), 1.2f);
-
-  fill_rect(d, 264, 0, 136, 300, paper());
-  vline(d, 264, 0, 300, ink(), 2);
-  const float cx = 332, cy = 58, r = 38;
-  float t = parse_hm(m.bell_time);
-  if (std::isnan(t))
-    t = m.hour + m.minute / 60.0f;
-  float hh = fmodf(t, 12.0f), mi = (t - floorf(t)) * 60.0f;
-  ring(d, cx, cy, r, 2, ink());
-  for (int i = 0; i < 12; i++) {
-    bool major = i % 3 == 0;
-    seg(d, cx, cy, TOP + i * PI_F / 6, r - 3, r - (major ? 10 : 6), major ? 2 : 1, ink());
-  }
-  seg(d, cx, cy, TOP + hh / 12 * TAU_F, -4, 20, 4, ink(), true);
-  seg(d, cx, cy, TOP + mi / 60 * TAU_F, -6, 30, 2.5f, ink(), true);
-  fill_circle(d, cx, cy, 3, ink());
-
-  text(d, f_label_, (int) cx, 116, ink(), upper(T.doorbell), Align::CENTER, paper(), 1.5f);
-  text(d, f_big_, (int) cx, 144, ink(), m.bell_time.empty() ? hhmm(m.hour, m.minute) : m.bell_time, Align::CENTER);
-  text(d, f_small_, (int) cx, 162, ink(105), fit(f_small_, m.bell_place + " · " + T.just_now, 120), Align::CENTER);
-  dotted_hline(d, 276, 388, 174, ink());
-  auto c = wrap_n(f_text_, m.bell_caption.empty() ? std::string(T.someone_at_door) : m.bell_caption, 116, 3);
-  for (size_t i = 0; i < c.size(); i++)
-    text(d, f_text_, 276, 194 + (int) i * 17, ink(), c[i]);
-  dotted_hline(d, 276, 388, 242, ink());
-  hint(d, f_small_, Sym::UP, cap_first(T.open_door), 276, 260);
-  hint(d, f_small_, Sym::DOT, cap_first(T.talk), 276, 276);
-  hint(d, f_small_, Sym::DOWN, cap_first(T.close_door), 276, 292);
 }
 
 }  // namespace note4_ui

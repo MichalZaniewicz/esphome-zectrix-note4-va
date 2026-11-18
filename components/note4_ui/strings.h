@@ -13,7 +13,7 @@
 // ADDING A LANGUAGE: copy make_en() in strings.cpp, translate every field,
 // add it to strings_for(). Every glyph must exist in the skins' text fonts
 // (GF_Latin_Core in base/skins/*.yaml); the few restricted fonts (the big
-// "Listening" / "Thinking…" words, paper's l10i and l12) list their glyphs
+// "Listening" / "Thinking…" words, paper's l12) list their glyphs
 // explicitly and need the new letters added.
 #pragma once
 
@@ -59,7 +59,6 @@ struct Strings {
   const char *progress = "";        // "Progress"
   const char *conditions = "";      // "Conditions"
   const char *time_label = "";      // "Time" (clock module)
-  const char *clock_time = "";      // "Time" (doorbell: when it rang)
   const char *sky = "";             // "Sky" (condition row)
   const char *status = "";          // "Status" (device status window)
   const char *forecast = "";        // "Forecast"
@@ -113,9 +112,6 @@ struct Strings {
   const char *cancel = "";
   const char *stop = "";
   const char *pause = "";
-  const char *open_door = "";  // doorbell actions
-  const char *talk = "";
-  const char *close_door = "";
 
   // ---- weather words ----
   const char *wind = "";
@@ -139,18 +135,6 @@ struct Strings {
   const char *without = "";        // "No" Wi-Fi / HA
   const char *no_wifi = "";        // "No wifi"
   const char *missing = "";        // "wifi: off"
-
-  // ---- doorbell ----
-  const char *doorbell = "";
-  const char *camera = "";
-  const char *just_now = "";         // lower case
-  const char *waiting_image = "";    // no ellipsis
-  const char *waiting_photo = "";    // no ellipsis
-  const char *ai_caption = "";       // lower case
-  const char *caption_source = "";
-  const char *someone_rang = "";     // no full stop
-  const char *someone_at_door = "";
-  const char *default_place = "";    // Model::bell_place until HA names one
 
   // ---- the "Now" card, by Model::now_icon (index: now_icon_index()) ----
   const char *now_kind[9] = {};   // "Window", "Warning", ...

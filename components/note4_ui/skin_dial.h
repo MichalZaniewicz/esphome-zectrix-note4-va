@@ -39,7 +39,6 @@ class DialSkin : public Skin {
   void answer_(Display &d, const Model &m);
   void weather_(Display &d, const Model &m);
   void timer_(Display &d, const Model &m);
-  void doorbell_(Display &d, const Model &m);
   int answer_lines_(const Model &m) const;
 
   Font *f_num_, *f_big_, *f_huge_, *f_title_, *f_head_, *f_label_, *f_body_, *f_text_, *f_small_;

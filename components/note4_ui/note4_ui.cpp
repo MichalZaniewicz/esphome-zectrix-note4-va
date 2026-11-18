@@ -1,7 +1,6 @@
 #include "note4_ui.h"
 
 #include <algorithm>
-#include <initializer_list>
 
 #include "esphome/core/hal.h"
 #include "esphome/core/log.h"
@@ -50,7 +49,6 @@ bool Skin::gray_allowed(Screen s) const {
     // log), far too long to flash right after a spoken reply. Only the screens
     // you look at for a while get grey.
     case Screen::WEATHER:
-    case Screen::DOORBELL:
       return true;
     default:
       return false;
@@ -122,13 +120,6 @@ bool Note4UI::set_language(const std::string &code) {
     ESP_LOGW(TAG, "Language '%s' is not available (en, pl, de, nl, fr, es); keeping '%s'", code.c_str(), this->model_.tr->code);
     return false;
   }
-  // The placeholder doorbell place follows the language until HA names one.
-  bool placeholder = this->model_.bell_place.empty();
-  for (const char *c : {"en", "pl", "de", "nl", "fr", "es"})
-    if (this->model_.bell_place == strings_for(c)->default_place)
-      placeholder = true;
-  if (placeholder)
-    this->model_.bell_place = t->default_place;
   this->model_.tr = t;
   ESP_LOGI(TAG, "Language: %s", t->code);
   this->dirty_full_ = true;

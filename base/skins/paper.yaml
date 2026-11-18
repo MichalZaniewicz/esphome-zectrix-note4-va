@@ -79,16 +79,6 @@ font:
     bpp: 4
     # the Listening / Thinking… word, every language in strings.cpp
     glyphs: ["ListengThk…SłucamCwlI örMojJ'éUEPd"]
-  - id: paper_bell_time
-    file: "gfonts://Literata@700"
-    size: 34
-    bpp: 4
-    glyphs: ["0123456789:–"]
-  - id: paper_caption
-    file: "gfonts://Literata@600"
-    size: 21
-    bpp: 4
-    glyphsets: [GF_Latin_Core]
   # ---- Atkinson Hyperlegible ----
   - id: paper_l9b
     file: "gfonts://Atkinson Hyperlegible@700"
@@ -100,12 +90,6 @@ font:
     size: 10
     bpp: 4
     glyphsets: [GF_Latin_Core]
-  - id: paper_l10i
-    file: { type: gfonts, family: Atkinson Hyperlegible, weight: 400, italic: true }
-    size: 10
-    bpp: 4
-    # the AI caption note, every language in strings.cpp
-    glyphs: [" AIphotcainszedjęK-Brbugvléó…"]
   - id: paper_l11
     file: "gfonts://Atkinson Hyperlegible@400"
     size: 11
@@ -170,11 +154,8 @@ esphome:
             f.timer = id(paper_timer);
             f.times = id(paper_times);
             f.big = id(paper_big);
-            f.bell_time = id(paper_bell_time);
-            f.caption = id(paper_caption);
             f.l9b = id(paper_l9b);
             f.l10b = id(paper_l10b);
-            f.l10i = id(paper_l10i);
             f.l11 = id(paper_l11);
             f.l11i = id(paper_l11i);
             f.l11b = id(paper_l11b);

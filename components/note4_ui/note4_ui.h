@@ -55,7 +55,6 @@ enum class Screen : uint8_t {
   ANSWER,    // question + answer, typed word by word while TTS plays
   WEATHER,   // tomorrow's forecast card
   TIMER,     // running timer
-  DOORBELL,  // camera snapshot + caption + actions
 };
 
 enum class Refresh : uint8_t { FULL_MONO, FULL_GRAY, PARTIAL };
@@ -122,12 +121,6 @@ struct Model {
   int timer_remaining = 0;  // s
   int timer_total = 0;      // s
   std::string timer_start, timer_end;  // "17:35", "17:45"
-
-  // doorbell
-  // bell_place: Strings::default_place until HA names one; caption from AI Task.
-  std::string bell_place = "Gate", bell_time, bell_caption;
-  bool bell_image_ready = false;
-  display::BaseImage *bell_image = nullptr;  // online_image (greyscale), set from YAML
 
   // On-screen language (strings.h). Skins draw every phrase from here:
   // `const Strings &T = *m.tr;`. Set with Note4UI::set_language().

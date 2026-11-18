@@ -276,8 +276,6 @@ substitutions:
   # e-paper costs nothing to keep showing something, and the reason to have a
   # screen at all is to read the answer again.
   ui_return_idle: 60s
-  # The doorbell snapshot, same idea.
-  doorbell_return_idle: 60s
   # The tomorrow-forecast screen goes back to the page of the day by itself,
   # because the clock lives there and an e-paper left on the forecast looks
   # exactly as alive as one that is.
@@ -290,16 +288,11 @@ substitutions:
   answer_words_per_second: '2.6'
   answer_typing_lead_ms: '1000'
   answer_step_ms: '500'
-  # The online_image needs a URL at compile time. It is never fetched: the
-  # `doorbell` action replaces it before the first download.
-  doorbell_placeholder_url: "http://homeassistant.local:8123/local/doorbell.jpg"
 
 esphome:
   name: ${name}
   friendly_name: ${friendly_name}
-  # The Box-3 core's minimum, kept: 2026.7.0 is where `image:` became a platform
-  # component (`image: platform: online_image` below uses it), and the old
-  # syntax is removed in 2027.1.0.
+  # The Box-3 core's minimum, kept.
   min_version: 2026.7.0
   name_add_mac_suffix: false
   # List form, not a bare mapping: skin packages add their own on_boot, and
@@ -373,7 +366,6 @@ esphome:
             id(ui).set_language("${language}");
             auto &m = id(ui).model();
             m.room = "${room}";
-            m.bell_image = id(bell_img);
     # Apply the restored mic gain. The template number restores its value and
     # publishes it, but setup() does not fire the set_action, so the audio stack
     # would otherwise sit on the compiled default while HA showed the saved
@@ -437,22 +429,12 @@ esp32:
       CONFIG_MBEDTLS_EXTERNAL_MEM_ALLOC: "y"
       # Lets plain malloc()/new fall back to PSRAM when internal RAM is full,
       # instead of aborting. On the Box-3 a JPEG decoder object lost exactly
-      # that race with 14 MB of PSRAM idle; the doorbell snapshot here goes
-      # through the same decoder. DMA buffers are unaffected - they request
-      # MALLOC_CAP_DMA explicitly.
+      # that race with 14 MB of PSRAM idle. DMA buffers are unaffected - they
+      # request MALLOC_CAP_DMA explicitly.
       CONFIG_SPIRAM_USE_MALLOC: "y"
-    # ONE esp-dsp FOR TWO CALLERS THAT DISAGREE. `esp_aec` pulls esp-sr 2.4.x,
-    # which requires esp-dsp 1.8.0 exactly. ESPHome's own `runtime_image` pins
-    # esp-dsp to 1.7.1 for the SIMD paths in its JPEG decoder - which the
-    # doorbell `online_image` brings in. Component requests are last-write-wins
-    # and the IDF solver then refuses the build outright. Components declared
-    # here are applied at FINAL priority, so this settles it for both.
-    components:
-      - name: espressif/esp-dsp
-        ref: 1.8.0
 
 # Octal, 80 MHz (N16R8). Mandatory: esp_audio_stack and the e-paper driver both
-# require it, and the UI framebuffer and the doorbell image live here.
+# require it, and the UI framebuffer lives here.
 psram:
   mode: octal
   speed: 80MHz
@@ -598,7 +580,7 @@ api:
             m.next_in = std::string(next_in);
             if (id(ui).screen() == note4_ui::Screen::IDLE) id(ui).changed(false);
 
-    # idle / weather / timer / doorbell. For an automation, or for Assist via
+    # idle / weather / timer. For an automation, or for Assist via
     # a script exposed to it.
     - action: show_screen
       variables:
@@ -607,29 +589,6 @@ api:
         - script.execute:
             id: ui_go
             target: !lambda return std::string(name);
-
-    # Someone at the door: a camera snapshot (any URL the device can reach -
-    # a camera_proxy URL with its token works), a caption (AI Task's
-    # description, say) and where. Shows for ${doorbell_return_idle}.
-    - action: doorbell
-      variables:
-        url: string
-        caption: string
-        place: string
-      then:
-        - lambda: |-
-            auto &m = id(ui).model();
-            m.bell_caption = std::string(caption);
-            if (!place.empty()) m.bell_place = std::string(place);
-            m.bell_image_ready = false;
-            const auto t = id(rtc_time).now();
-            m.bell_time = t.is_valid() ? note4_ui::hhmm(t.hour, t.minute) : std::string();
-        - online_image.set_url:
-            id: bell_img
-            url: !lambda return std::string(url);
-        - script.execute:
-            id: ui_go
-            target: doorbell
 
 ota:
   - platform: esphome
@@ -648,13 +607,6 @@ wifi:
     - script.execute: ui_status_changed
 
 captive_portal:
-
-# The doorbell snapshot is fetched by the device itself.
-http_request:
-  # A local Home Assistant on plain http, or https with a self-signed
-  # certificate, is the normal case for a camera_proxy URL; verifying it would
-  # refuse exactly that.
-  verify_ssl: false
 
 ###############################################################################
 # TIME
@@ -716,26 +668,6 @@ display:
 note4_ui:
   id: ui
   display_id: epd
-
-# The doorbell snapshot. Greyscale and pre-sized to the slot the skins draw it
-# in, so the decode does the scaling once and the image costs 264x300 = 79 KB.
-# JPEG only: that is what camera_proxy serves, and each extra decoder is flash.
-image:
-  - platform: online_image
-    id: bell_img
-    url: ${doorbell_placeholder_url}
-    format: JPEG
-    type: GRAYSCALE
-    resize: 264x300
-    update_interval: never
-    on_download_finished:
-      - lambda: |-
-          id(ui).model().bell_image_ready = true;
-          if (id(ui).screen() == note4_ui::Screen::DOORBELL) id(ui).changed(false);
-    on_error:
-      - logger.log:
-          level: WARN
-          format: "Doorbell snapshot could not be downloaded - the screen shows the caption only"
 
 ###############################################################################
 # AUDIO
@@ -1515,8 +1447,8 @@ script:
           }
 
   # Back to the page of the day after a conversation, once it has been read.
-  # Only from the conversation screens: if the user moved on (UP/DOWN, a
-  # doorbell), they meant it.
+  # Only from the conversation screens: if the user moved on (UP/DOWN), they
+  # meant it.
   - id: ui_idle_later
     mode: restart
     then:
@@ -1542,9 +1474,8 @@ script:
           if (s == note4_ui::Screen::LISTEN || s == note4_ui::Screen::THINK)
             id(ui).show(note4_ui::Screen::IDLE);
 
-  # Show a screen by name: idle, weather, timer, doorbell. Used by the
-  # show_screen action, the buttons and the doorbell. A conversation keeps the
-  # screen; the doorbell is the one thing allowed to interrupt it.
+  # Show a screen by name: idle, weather, timer. Used by the show_screen
+  # action and the buttons. A conversation keeps the screen.
   - id: ui_go
     mode: queued
     parameters:
@@ -1556,9 +1487,8 @@ script:
           if (target == "idle") s = Screen::IDLE;
           else if (target == "weather") s = Screen::WEATHER;
           else if (target == "timer") s = Screen::TIMER;
-          else if (target == "doorbell") s = Screen::DOORBELL;
           else {
-            ESP_LOGW("ui", "Unknown screen \"%s\" (idle, weather, timer, doorbell)", target.c_str());
+            ESP_LOGW("ui", "Unknown screen \"%s\" (idle, weather, timer)", target.c_str());
             return;
           }
           if (s == Screen::TIMER && !id(ui).model().timer_active) {
@@ -1568,7 +1498,7 @@ script:
           const Screen cur = id(ui).screen();
           const bool talking = cur == Screen::LISTEN || cur == Screen::THINK ||
                                (cur == Screen::ANSWER && id(tts_reply_active));
-          if (talking && s != Screen::DOORBELL) return;
+          if (talking) return;
           if (s != cur) id(ui).show(s);
           else id(ui).changed(false);
       - script.stop: ui_idle_later
@@ -1577,15 +1507,10 @@ script:
             lambda: return id(ui).screen() == note4_ui::Screen::WEATHER;
           then:
             - script.execute: ui_weather_timeout
-      - if:
-          condition:
-            lambda: return id(ui).screen() == note4_ui::Screen::DOORBELL;
-          then:
-            - script.execute: ui_doorbell_timeout
 
   # UP / DOWN: step through IDLE -> WEATHER -> TIMER and wrap; TIMER only
-  # exists while a timer runs. From anywhere off that ring (a finished answer,
-  # the doorbell) the first press goes home. Ignored mid-conversation and
+  # exists while a timer runs. From anywhere off that ring (a finished answer)
+  # the first press goes home. Ignored mid-conversation and
   # while the alarm rings, where a stray press must not hide what is going on.
   - id: ui_nav
     parameters:
@@ -1624,19 +1549,6 @@ script:
             lambda: return id(ui).screen() == note4_ui::Screen::WEATHER;
           then:
             - lambda: id(ui).show(note4_ui::Screen::IDLE);
-
-  # The snapshot goes away after a minute, and so does its 79 KB of PSRAM.
-  - id: ui_doorbell_timeout
-    mode: restart
-    then:
-      - delay: ${doorbell_return_idle}
-      - if:
-          condition:
-            lambda: return id(ui).screen() == note4_ui::Screen::DOORBELL;
-          then:
-            - lambda: id(ui).show(note4_ui::Screen::IDLE);
-      - lambda: id(ui).model().bell_image_ready = false;
-      - online_image.release: bell_img
 
   # The clock: hour, minute, weekday and date in the on-screen language. Partial, and only on the
   # page of the day - the other screens have no clock. Midnight is a full
@@ -2263,12 +2175,11 @@ switch:
     on_turn_off:
       - microphone.unmute:
 
-  # 16 GREYS OR TWO. With this on, screens without live regions (the forecast,
-  # the doorbell) get a 16-grey full refresh; off, everything is 1-bit with the
-  # Bayer raster. Screens with a clock, a timer or a waveform are 1-bit either
-  # way - the panel driver forbids a partial refresh after a grey one - so this
-  # mostly decides how the weather and doorbell look, and how long their
-  # refresh takes.
+  # 16 GREYS OR TWO. With this on, screens without live regions (the forecast)
+  # get a 16-grey full refresh; off, everything is 1-bit with the Bayer raster.
+  # Screens with a clock, a timer or a waveform are 1-bit either way - the
+  # panel driver forbids a partial refresh after a grey one - so this mostly
+  # decides how the weather looks, and how long its refresh takes.
   - platform: template
     id: gray16
     name: "16 greys"

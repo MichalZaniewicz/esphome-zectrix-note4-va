@@ -51,7 +51,6 @@ class SwissSkin : public Skin {
   void timer_(Display &d, const Model &m);
   void listen_(Display &d, const Model &m);
   void think_(Display &d, const Model &m);
-  void doorbell_(Display &d, const Model &m);
   SwissFonts f_;
 };
 

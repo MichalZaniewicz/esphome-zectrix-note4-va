@@ -30,9 +30,6 @@ void QuietSkin::draw(Display &d, Screen s, const Model &m) {
     case Screen::TIMER:
       this->timer_(d, m);
       break;
-    case Screen::DOORBELL:
-      this->doorbell_(d, m);
-      break;
   }
 }
 
@@ -240,27 +237,6 @@ void QuietSkin::timer_(Display &d, const Model &m) {
   if (!m.timer_end.empty())
     text(d, f_small_, 200, 250, ink(110), subst(T.until, m.timer_end), Align::CENTER);
   text(d, f_small_, 200, 288, ink(120), std::string("+1 min       ") + T.stop + "       " + T.pause, Align::CENTER);
-}
-
-// ------------------------------------------------------------------ DOORBELL
-// The snapshot is the big thing; time and the AI caption sit next to it.
-void QuietSkin::doorbell_(Display &d, const Model &m) {
-  const Strings &T = *m.tr;
-  if (!bell_image(d, m, 264)) {
-    fill_rect(d, 0, 0, 264, 300, tone(236));
-    text(d, f_italic_, 132, 156, ink(105), std::string(T.waiting_image) + "…", Align::CENTER, tone(236));
-  }
-  fill_rect(d, 264, 0, 136, 300, paper());
-  const int x = 280;
-  text(d, f_small_, x, 36, ink(105), fit(f_small_, cap_first(m.bell_place), 108));
-  text(d, f_body_, x, 76, ink(), m.bell_time.empty() ? hhmm(m.hour, m.minute) : m.bell_time);
-  text(d, f_tiny_, x, 96, ink(115), fit(f_tiny_, T.just_now, 108));
-  auto c = wrap_n(f_italic_, m.bell_caption.empty() ? std::string(T.someone_rang) + "." : m.bell_caption, 108, 4);
-  for (size_t i = 0; i < c.size(); i++)
-    text(d, f_italic_, x, 140 + (int) i * 28, ink(), c[i]);
-  text(d, f_small_, x, 256, ink(120), T.open_door);
-  text(d, f_small_, x, 272, ink(120), T.talk);
-  text(d, f_small_, x, 288, ink(120), T.close_door);
 }
 
 }  // namespace note4_ui

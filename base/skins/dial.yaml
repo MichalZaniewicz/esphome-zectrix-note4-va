@@ -15,7 +15,7 @@ font:
     size: 16
     bpp: 4
     glyphsets: [GF_Latin_Core]
-  - id: dial_big            # next event time, timer box, elapsed time, doorbell time
+  - id: dial_big            # next event time, timer box, elapsed time
     file: "gfonts://Barlow Condensed@700"
     size: 26
     bpp: 4

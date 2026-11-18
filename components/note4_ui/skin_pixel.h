@@ -29,7 +29,6 @@ class PixelSkin : public Skin {
   void answer_(Display &d, const Model &m);
   void weather_(Display &d, const Model &m);
   void timer_(Display &d, const Model &m);
-  void doorbell_(Display &d, const Model &m);
   int answer_lines_(const Model &m) const;
 
   Font *f_s_, *f_m_, *f_l_, *f_xl_, *f_xxl_, *f_vt_;

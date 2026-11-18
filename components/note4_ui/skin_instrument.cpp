@@ -1,6 +1,6 @@
 // Skin "instrument". Ported from note4-style.html (idleC, answerC, weatherC,
-// timerC). LISTEN is an oscilloscope field, THINK a process table, DOORBELL a
-// labelled side panel, all with the same tags, dot grid and corner marks.
+// timerC). LISTEN is an oscilloscope field, THINK a process table, both with
+// the same tags, dot grid and corner marks.
 #include "skin_instrument.h"
 
 #include <cmath>
@@ -120,9 +120,6 @@ void InstrumentSkin::draw(Display &d, Screen s, const Model &m) {
       break;
     case Screen::TIMER:
       timer_(d, m);
-      break;
-    case Screen::DOORBELL:
-      doorbell_(d, m);
       break;
   }
 }
@@ -478,37 +475,6 @@ void InstrumentSkin::think_(Display &d, const Model &m) {
   }
   text(d, f_.m9, 16, 287, grey(110), "SRC HOME ASSISTANT · ASSIST");
   keycap(d, f_.m10s, Sym::DOWN, upper(T.cancel), 384, 288, Align::RIGHT);
-}
-
-// DOORBELL: snapshot left, a labelled panel right.
-void InstrumentSkin::doorbell_(Display &d, const Model &m) {
-  const Strings &T = *m.tr;
-  if (m.bell_image != nullptr && m.bell_image_ready) {
-    d.start_clipping(0, 0, 264, H);
-    d.image(0, 0, m.bell_image);
-    d.end_clipping();
-  } else {
-    fill_rect(d, 0, 0, 264, H, tone(190));
-    text(d, f_.m10s, 132, 154, K, upper(T.waiting_image) + "…", Align::CENTER, tone(190));
-  }
-  tag_(d, fit(f_.m9s, "[CAM] " + upper(m.bell_place), 240), 8, 20);
-  clear(d, 264, 0, 136, H);
-  vline(d, 264, 0, H, K);
-  corners(d, false);
-  const int x = 276;
-  tag_(d, fit(f_.m9s, "[" + upper(T.doorbell) + "]", 104), x, 22);
-  text(d, f_.m9, x, 46, grey(115), upper(T.clock_time));
-  text(d, f_.card, x - 1, 76, K, m.bell_time, Align::LEFT, paper(), -1);
-  dotted_hline(d, x, 388, 88, K);
-  auto cap = wrap_lines(f_.m12s, upper(m.bell_caption), 112, 4);
-  for (size_t i = 0; i < cap.size(); i++)
-    text(d, f_.m12s, x, 108 + (int) i * 16, K, cap[i]);
-  if (!cap.empty())
-    text(d, f_.m8s, x, 176, grey(110), fit(f_.m8s, upper(T.caption_source), 112));
-  dotted_hline(d, x, 388, 186, K);
-  keycap(d, f_.m10s, Sym::UP, upper(T.open_door), x, 214, Align::LEFT);
-  keycap(d, f_.m10s, Sym::DOT, upper(T.talk), x, 240, Align::LEFT);
-  keycap(d, f_.m10s, Sym::DOWN, upper(T.close_door), x, 266, Align::LEFT);
 }
 
 }  // namespace note4_ui
