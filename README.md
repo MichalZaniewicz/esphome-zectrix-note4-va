@@ -50,7 +50,12 @@ editor and paste the user-attachments URL it gives on its own line here. -->
 
 <div align="center">
 
-<img src="docs/media/trailer.webp" alt="Concept trailer: the conversation, the page of the day, the Now card and the eight skins" width="100%">
+
+
+https://github.com/user-attachments/assets/197f7826-4c8a-49d2-a5c1-917ab8655d58
+
+
+
 
 <sub>The full video runs 94 seconds, with voice-over and subtitles. A concept: the screens are simulated from the firmware's designs.</sub>
 
