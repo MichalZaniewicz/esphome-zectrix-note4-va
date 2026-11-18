@@ -45,17 +45,9 @@ which silently removes any <img> placed inside it. -->
 
 ## Concept video
 
-<!-- VIDEO: drag note4-concept-github.mp4 into this README in the GitHub web
-editor and paste the user-attachments URL it gives on its own line here. -->
-
 <div align="center">
 
-
-
 https://github.com/user-attachments/assets/197f7826-4c8a-49d2-a5c1-917ab8655d58
-
-
-
 
 <sub>The full video runs 94 seconds, with voice-over and subtitles. A concept: the screens are simulated from the firmware's designs.</sub>
 
